@@ -450,6 +450,10 @@ body.dark{
 
 /* ── Nouveaux écrans direction ── */
 .page-title{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.page-header-bar{position:sticky;top:60px;background:var(--bg);z-index:50;padding:14px 0 12px;margin-bottom:0!important;border-bottom:1px solid var(--bd)}
+.page-header-bar + *{margin-top:16px}
+#sc-kpi .page-title,#sc-config .page-title{position:sticky;top:60px;background:var(--bg);z-index:50;padding:14px 0;margin-bottom:0;border-bottom:1px solid var(--bd)}
+#sc-kpi .page-title + *,#sc-config .page-title + *{margin-top:16px}
 .card-table{background:var(--card);border-radius:var(--r);border:1px solid var(--bd);overflow:hidden;margin-bottom:20px;overflow-x:auto}
 .card-table table{width:100%;border-collapse:collapse;min-width:600px}
 .card-table th{background:#f8f9fc;padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bd);white-space:nowrap}
@@ -759,8 +763,8 @@ var SUPA = {
 <!-- ─── FICHE EMPLOYÉ ─── -->
 <div class="screen" id="sc-fiche">
   <div class="page">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-      <div class="page-title">&#128203; Fiche Employ&eacute;</div>
+    <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div class="page-title" style="margin-bottom:0">&#128203; Fiche Employ&eacute;</div>
       <select id="fiche-emp-sel" onchange="loadFiche()" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card)">
         <option value="">&#8212; S&eacute;lectionner un employ&eacute; &#8212;</option>
       </select>
@@ -780,8 +784,8 @@ var SUPA = {
 <!-- ─── RECAP ─── -->
 <div class="screen" id="sc-recap">
   <div class="page">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div class="page-title">&#128197; R&eacute;capitulatif Annuel</div>
+    <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="page-title" style="margin-bottom:0">&#128197; R&eacute;capitulatif Annuel</div>
       <button class="btn-sm btn-success" onclick="exportRecapCSV()">&#11015; CSV</button>
     </div>
     <div id="recap-content"><div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div></div>
@@ -791,8 +795,8 @@ var SUPA = {
 <!-- ─── PAIE ─── -->
 <div class="screen" id="sc-paie">
   <div class="page">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-      <div class="page-title">&#128176; Paie</div>
+    <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div class="page-title" style="margin-bottom:0">&#128176; Paie</div>
       <div style="display:flex;gap:8px;align-items:center">
         <select id="paie-month-sel" onchange="loadPaie()" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card)"></select>
         <button class="btn-sm btn-success" onclick="exportPaieCSV()">&#11015; CSV Comptable</button>
