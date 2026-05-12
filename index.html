@@ -2135,16 +2135,27 @@ function renderDash(d){
     h+='</div></div>';
   }
 
-  // ── SECTION 4 : Graphiques ──
+  // ── SECTION 4 : Graphiques (4 graphes dans leurs propres cards) ──
+  // Style "card" interne pour les graphiques (visible meme dans une d-sect)
+  var chartCard = 'background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05)';
+  var chartHdr = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bd)';
+  var chartTitle = 'font-size:13px;font-weight:700;color:var(--ink)';
+  var chartSub = 'font-size:11px;color:var(--ink3);font-weight:500';
   h+='<div class="d-sect"><div class="d-sect-lbl">Analyses graphiques</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
-  h+='<div class="dcard"><div class="dcard-hdr"><h3>Heures vs objectif</h3><span style="font-size:12px;color:var(--ink2)">'+dashRange().label+'</span></div><div class="dcard-body"><div style="position:relative;height:200px"><canvas id="c-hours" role="img" aria-label="Heures">H.</canvas></div></div></div>';
-  h+='<div class="dcard"><div class="dcard-hdr"><h3>Taux bureau par employe</h3><span style="font-size:12px;color:var(--ink2)">cible 40%</span></div><div class="dcard-body"><div style="position:relative;height:200px"><canvas id="c-bureau" role="img" aria-label="Bureau">B.</canvas></div></div></div>';
-  h+='<div class="dcard"><div class="dcard-hdr"><h3>Evolution hebdomadaire</h3><span style="font-size:12px;color:var(--ink2)">cumul equipe</span></div><div class="dcard-body"><div style="position:relative;height:170px"><canvas id="c-weeks" role="img" aria-label="Semaines">S.</canvas></div></div></div>';
-  h+='<div class="dcard"><div class="dcard-hdr"><h3>Repartitions</h3></div><div class="dcard-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  h+='<div><div style="font-size:11px;color:var(--ink2);margin-bottom:4px;text-align:center">Performance</div><div style="position:relative;height:130px"><canvas id="c-perf" role="img" aria-label="Perf.">P.</canvas></div><div id="leg-perf" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;justify-content:center;font-size:10px;color:var(--ink2)"></div></div>';
-  h+='<div><div style="font-size:11px;color:var(--ink2);margin-bottom:4px;text-align:center">Presence</div><div style="position:relative;height:130px"><canvas id="c-pres" role="img" aria-label="Pres.">Pr.</canvas></div><div id="leg-pres" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;justify-content:center;font-size:10px;color:var(--ink2)"></div></div>';
-  h+='</div></div></div>';
+  // Graph 1 : Heures vs objectif
+  h+='<div style="'+chartCard+'"><div style="'+chartHdr+'"><span style="'+chartTitle+'">&#128202; Heures vs objectif</span><span style="'+chartSub+'">'+dashRange().label+'</span></div><div style="position:relative;height:200px"><canvas id="c-hours" role="img" aria-label="Heures">H.</canvas></div></div>';
+  // Graph 2 : Taux bureau
+  h+='<div style="'+chartCard+'"><div style="'+chartHdr+'"><span style="'+chartTitle+'">&#127970; Taux bureau par employ&eacute;</span><span style="'+chartSub+'">cible 40%</span></div><div style="position:relative;height:200px"><canvas id="c-bureau" role="img" aria-label="Bureau">B.</canvas></div></div>';
+  // Graph 3 : Evolution hebdo
+  h+='<div style="'+chartCard+'"><div style="'+chartHdr+'"><span style="'+chartTitle+'">&#128200; &Eacute;volution hebdomadaire</span><span style="'+chartSub+'">cumul &eacute;quipe</span></div><div style="position:relative;height:200px"><canvas id="c-weeks" role="img" aria-label="Semaines">S.</canvas></div></div>';
+  // Graph 4 : Répartitions (Performance + Présence en sous-blocs)
+  h+='<div style="'+chartCard+'"><div style="'+chartHdr+'"><span style="'+chartTitle+'">&#127937; R&eacute;partitions</span><span style="'+chartSub+'">performance &amp; pr&eacute;sence</span></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  h+='<div style="text-align:center;padding:6px 4px;border-right:1px solid var(--bd)"><div style="font-size:11px;color:var(--ink2);margin-bottom:4px;font-weight:600">Performance</div><div style="position:relative;height:130px"><canvas id="c-perf" role="img" aria-label="Perf.">P.</canvas></div><div id="leg-perf" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;justify-content:center;font-size:10px;color:var(--ink2)"></div></div>';
+  h+='<div style="text-align:center;padding:6px 4px"><div style="font-size:11px;color:var(--ink2);margin-bottom:4px;font-weight:600">Pr&eacute;sence</div><div style="position:relative;height:130px"><canvas id="c-pres" role="img" aria-label="Pres.">Pr.</canvas></div><div id="leg-pres" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;justify-content:center;font-size:10px;color:var(--ink2)"></div></div>';
+  h+='</div></div>';
+  h+='</div></div>';
 
   // ── SECTION 5 : Table complète ──
   h+='<div class="d-sect"><div class="d-sect-lbl">Detail complet &mdash; '+dashRange().label+'</div>';
@@ -2494,6 +2505,33 @@ var supabaseAPI = {
       return {dept:dm.dept,count:dm.count,totalH:Math.round(dm.totalH*10)/10,avgH:dm.count>0?Math.round(dm.totalH/dm.count*10)/10:0,bureauRate:dm.totalWorked>0?Math.round(dm.totalBur/dm.totalWorked*100):0,compliance:dm.compliance,empStats:dm.empStats};
     });
 
+    // ── Evolution hebdomadaire (cumul heures equipe par semaine ISO) ──
+    function isoWeekKey(d){
+      var dt = new Date(d.getTime());
+      dt.setHours(0,0,0,0);
+      // Jeudi de la semaine ISO
+      dt.setDate(dt.getDate() + 3 - (dt.getDay() + 6) % 7);
+      var firstThursday = new Date(dt.getFullYear(),0,4);
+      var weekNum = 1 + Math.round(((dt.getTime() - firstThursday.getTime()) / 86400000 - 3 + (firstThursday.getDay()+6)%7) / 7);
+      return dt.getFullYear() + '-W' + String(weekNum).padStart(2,'0');
+    }
+    var weekMap = {};
+    (horaires||[]).forEach(function(r){
+      if(!r.debut || !r.fin) return;
+      var dp=r.debut.split(':'),fp=r.fin.split(':');
+      var mn=(parseInt(fp[0])*60+parseInt(fp[1]))-(parseInt(dp[0])*60+parseInt(dp[1]));
+      if(mn<=0) return;
+      var dt = new Date(r.date_pointage+'T00:00:00');
+      var key = isoWeekKey(dt);
+      if(!weekMap[key]) weekMap[key] = {key:key, h:0, dateRef:dt};
+      weekMap[key].h += mn/60;
+    });
+    var weekStats = Object.values(weekMap).sort(function(a,b){return a.dateRef-b.dateRef;}).map(function(w){
+      // Label court : "S12" (semaine 12)
+      var wn = w.key.split('-W')[1];
+      return {label:'S'+wn, h:Math.round(w.h*10)/10};
+    });
+
     return {
       kpis:{empCount:N,totalH:Math.round(totalH*10)/10,targetH:Math.round(target*N*10)/10,
             bureauRate:totalWorked>0?Math.round(totalBur/totalWorked*100):0,absences:totalAbs,
@@ -2501,7 +2539,7 @@ var supabaseAPI = {
             totalWorked:totalWorked,totalBur:totalBur,remoteDays:totalWorked-totalBur,target:target,period:period},
       empStats:empStats,todayPresence:todayPresence,alerts:alerts,deptStats:deptStats,
       presRatio:{office:totalBur,remote:totalWorked-totalBur,absent:totalAbs},
-      dist:dist,period:period,d1:d1,d2:d2
+      dist:dist,weekStats:weekStats,period:period,d1:d1,d2:d2
     };
   },
 
