@@ -804,7 +804,6 @@ var SUPA = {
         <button class="tab on" id="tab-ptg" onclick="gotoTab('ptg',this)">&#128336; Mon pointage</button>
         <button class="tab" id="tab-rsm" onclick="gotoTab('rsm',this)">&#128202; Mon resume</button>
         <button class="tab" id="tab-plan" onclick="gotoTab('plan',this)">&#128197; Planning equipe</button>
-        <button class="tab" id="tab-rep" onclick="gotoTab('rep',this)">&#128206; R&eacute;pertoire</button>
       </div>
 
 
@@ -1335,13 +1334,6 @@ function gotoTab(id,el){
   if(id==='rsm'){S.rM=S.pm;S.rY=S.py;loadRsm();}
   if(id==='plan'){loadPlanData();renderPlan();}
   if(id==='ptg'){loadPtgData();renderPtg();}
-  if(id==='rep'){
-    // Repertoire ne depend pas de la date : sortir du viewing-emp + cacher le selecteur global
-    document.body.classList.remove('viewing-emp');
-    var tbp=document.getElementById('tb-period');
-    if(tbp) tbp.style.display = (S.role==='direction'?'none':'none');
-    loadRepertoire();
-  }
 }
 
 // === EMP SELECT ===
