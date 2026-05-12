@@ -950,6 +950,18 @@ var SUPA = {
         <button class="btn-sm btn-success" onclick="exportPaieXLSX()" title="Export Excel format&eacute; pour consultation">&#128202; Excel</button>
       </div>
     </div>
+    <!-- DISCLAIMER : module Paie = ESTIMATION uniquement -->
+    <div style="background:#fff3cd;border:1px solid #ffe69c;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;gap:14px;align-items:flex-start">
+      <div style="font-size:24px;flex-shrink:0;line-height:1">&#9888;</div>
+      <div style="flex:1">
+        <div style="font-size:13.5px;font-weight:700;color:#856404;margin-bottom:4px">Module Paie &mdash; estimation uniquement</div>
+        <div style="font-size:12px;color:#856404;line-height:1.55">
+          Les chiffres affich&eacute;s ici sont des <strong>estimations</strong> destin&eacute;es &agrave; donner une vue d'ensemble des co&ucirc;ts (salaires bruts, charges, heures suppl&eacute;mentaires).
+          Ils <strong>ne remplacent pas un logiciel de paie agr&eacute;&eacute;</strong> (Nethris, Employer D, Desjardins Paie, etc.) qui g&egrave;re les bulletins officiels, les remises gouvernementales, les T4/Relev&eacute;s 1 et la conformit&eacute; l&eacute;gale.
+          Pour une gestion fiable de la paie, utilisez votre logiciel comptable habituel et servez-vous de cette page pour <strong>v&eacute;rifier la coh&eacute;rence</strong> ou <strong>pr&eacute;parer les saisies</strong>.
+        </div>
+      </div>
+    </div>
     <div id="paie-content"><div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div></div>
   </div>
 </div>
@@ -5341,14 +5353,16 @@ function renderArTable(){
     var unite = r.typeSalaire === 'Annuel' ? '$/an' : '$/h';
     var newVal = r.newSalaire;
     var newDisplay = newVal !== null && newVal !== undefined && !isNaN(newVal) ? newVal : '';
-    var variation = '';
+    var pctDisplay = '';
+    var diffDisplay = '';
     var variationColor = 'var(--ink3)';
     var annuelEq = '';
     if(newDisplay !== '' && r.salaire > 0){
       var diff = newVal - r.salaire;
       var pct = (diff / r.salaire) * 100;
+      pctDisplay = Math.round(pct*100)/100;  // 2 decimales pour precision
       var sign = diff>=0 ? '+' : '';
-      variation = sign + Math.round(pct*10)/10 + '% ('+sign+fmtMoney(diff, 2)+')';
+      diffDisplay = sign + fmtMoney(diff, 2);
       variationColor = diff>0 ? 'var(--gr)' : diff<0 ? 'var(--rd)' : 'var(--ink3)';
       var c = convertSalary(newVal, r.typeSalaire==='Annuel'?'annuel':'horaire', r.hSem);
       annuelEq = fmtMoney(c.annuel, 0) + '<br><small style="color:var(--ink3);font-size:10px">' + fmtMoney(c.mensuel, 0) + '/mois</small>';
@@ -5362,7 +5376,11 @@ function renderArTable(){
     h += '<td style="padding:8px 10px"><strong>'+esc(r.nom)+'</strong><br><small style="color:var(--ink3);font-size:10.5px">'+esc(r.typeSalaire)+' &middot; '+r.hSem+'h/sem</small></td>';
     h += '<td style="padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums">'+fmtMoney(r.salaire, r.typeSalaire==='Annuel'?0:2)+' <small style="color:var(--ink3);font-size:10px">'+unite+'</small></td>';
     h += '<td style="padding:8px 10px;text-align:right"><input type="number" step="0.01" value="'+newDisplay+'" onchange="arSetNewSalaire('+i+',this.value)" '+(r.included?'':'disabled')+' style="width:110px;padding:5px 7px;border:1px solid var(--bd);border-radius:5px;font-size:12px;text-align:right;background:var(--card);font-variant-numeric:tabular-nums"></td>';
-    h += '<td style="padding:8px 10px;text-align:right;color:'+variationColor+';font-weight:600">'+variation+'</td>';
+    // Variation : input % editable individuellement
+    h += '<td style="padding:8px 10px;text-align:right">';
+    h += '<input type="number" step="0.01" value="'+pctDisplay+'" placeholder="—" onchange="arSetPct('+i+',this.value)" '+(r.included?'':'disabled')+' style="width:70px;padding:5px 7px;border:1px solid var(--bd);border-radius:5px;font-size:12px;text-align:right;background:var(--card);color:'+variationColor+';font-weight:600;font-variant-numeric:tabular-nums">';
+    h += '<small style="display:block;color:'+variationColor+';font-size:10px;margin-top:2px">% &middot; '+diffDisplay+'</small>';
+    h += '</td>';
     h += '<td style="padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums">'+annuelEq+'</td>';
     h += '</tr>';
   });
@@ -5392,6 +5410,18 @@ function arSetIncluded(idx, checked){
 function arSetNewSalaire(idx, val){
   var v = parseFloat(val);
   _AR_DATA[idx].newSalaire = isNaN(v) ? null : v;
+  renderArTable();
+}
+
+// Modification du % individuel : recalcule le nouveau salaire en consequence
+function arSetPct(idx, pctVal){
+  var r = _AR_DATA[idx];
+  var pct = parseFloat(pctVal);
+  if(isNaN(pct) || pctVal === ''){
+    r.newSalaire = null;
+  } else {
+    r.newSalaire = Math.round(r.salaire * (1 + pct/100) * 100) / 100;
+  }
   renderArTable();
 }
 
