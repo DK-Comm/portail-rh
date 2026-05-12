@@ -3147,8 +3147,17 @@ async function loadConfig() {
       h += '<span style="font-size:16px">'+icon+'</span>'+dept;
       h += '<span style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.4px">'+groups[dept].length+' employ&eacute;'+(groups[dept].length>1?'s':'')+'</span>';
       h += '</div>';
-      // Tableau du departement
-      h += '<table style="width:100%;border-collapse:collapse"><tbody>';
+      // Tableau du departement avec largeurs FIXES pour aligner entre depts
+      h += '<table style="width:100%;border-collapse:collapse;table-layout:fixed">';
+      h += '<colgroup>';
+      h += '<col style="width:32%">';   // Nom + photo
+      h += '<col style="width:24%">';   // Email
+      h += '<col style="width:12%">';   // Statut
+      h += '<col style="width:10%">';   // H/semaine
+      h += '<col style="width:12%">';   // Actif
+      h += '<col style="width:10%">';   // Actions
+      h += '</colgroup>';
+      h += '<tbody>';
       groups[dept].forEach(function(item,rowIdx){
         var e = item.emp, i = item.idx;
         var isLast = rowIdx === groups[dept].length-1;
@@ -3160,14 +3169,18 @@ async function loadConfig() {
           av = '<div class="av" style="width:36px;height:36px;font-size:13px;background:'+col(e.nom)+'">'+ini(e.nom)+'</div>';
         }
         h += '<tr>';
-        // Cellule nom + photo : flex DANS un div, pas sur le td
-        h += '<td style="padding:10px 14px;vertical-align:middle;min-width:240px;'+rowBorder+'">';
-        h += '<div style="display:flex;align-items:center;gap:12px">'+av+'<div><strong>'+e.nom+'</strong><br><small style="color:var(--ink3)">'+(e.poste||'')+'</small></div></div></td>';
-        h += '<td style="font-size:12px;color:var(--ink2);padding:10px 14px;vertical-align:middle;'+rowBorder+'">'+(e.email||'&mdash;')+'</td>';
+        // Nom + photo
+        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'">';
+        h += '<div style="display:flex;align-items:center;gap:12px;overflow:hidden">'+av+'<div style="overflow:hidden;text-overflow:ellipsis"><strong>'+e.nom+'</strong><br><small style="color:var(--ink3);font-weight:400">'+(e.poste||'')+'</small></div></div></td>';
+        // Email
+        h += '<td style="font-size:12px;color:var(--ink2);padding:10px 14px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'+rowBorder+'" title="'+(e.email||'')+'">'+(e.email||'&mdash;')+'</td>';
+        // Statut
         h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span class="tag '+(e.statut==='Direction'?'tag-direction':'tag-employe')+'">'+e.statut+'</span></td>';
+        // H/sem
         h += '<td style="padding:10px 14px;font-size:12px;vertical-align:middle;'+rowBorder+'">'+e.heures_semaine+'h</td>';
-        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span style="color:'+(e.actif?'var(--gr)':'var(--rd)')+';font-weight:600">'+(e.actif?'&#10003; Oui':'&#10005; Non')+'</span></td>';
-        // Cellule actions : kebab menu (...)
+        // Actif
+        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span style="color:'+(e.actif?'var(--gr)':'var(--rd)')+';font-weight:600;font-size:12px">'+(e.actif?'&#10003; Oui':'&#10005; Non')+'</span></td>';
+        // Actions : kebab menu
         var menuId = 'kmenu-'+i;
         h += '<td style="padding:10px 14px;vertical-align:middle;text-align:right;'+rowBorder+'">';
         h += '<div style="position:relative;display:inline-block">';
