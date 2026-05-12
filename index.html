@@ -3477,8 +3477,8 @@ function renderRefSection(){
   var tEl = document.getElementById('config-types-card');
   if(!dEl || !tEl) return;
   // Card departements
-  var hd = '<div style="border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);overflow:hidden">';
-  hd += '<div style="background:var(--s2);padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">';
+  var hd = '<div style="border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);position:relative">';
+  hd += '<div style="background:var(--s2);padding:12px 16px;border-bottom:1px solid var(--bd);border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between">';
   hd += '<div style="font-size:13px;font-weight:700">&#128193; D&eacute;partements <span style="color:var(--ink3);font-weight:500;font-size:11px">('+REF_DEPTS.length+')</span></div>';
   hd += '<button class="btn-sm btn-primary" style="padding:5px 10px;font-size:11px" onclick="openAddRef(\'dept\')">+ Ajouter</button>';
   hd += '</div><div style="padding:6px">';
@@ -3499,8 +3499,8 @@ function renderRefSection(){
   hd += '</div></div>';
   dEl.innerHTML = hd;
   // Card types de poste
-  var ht = '<div style="border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);overflow:hidden">';
-  ht += '<div style="background:var(--s2);padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">';
+  var ht = '<div style="border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);position:relative">';
+  ht += '<div style="background:var(--s2);padding:12px 16px;border-bottom:1px solid var(--bd);border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between">';
   ht += '<div style="font-size:13px;font-weight:700">&#128188; Types de poste <span style="color:var(--ink3);font-weight:500;font-size:11px">('+REF_TYPES.length+')</span></div>';
   ht += '<button class="btn-sm btn-primary" style="padding:5px 10px;font-size:11px" onclick="openAddRef(\'type\')">+ Ajouter</button>';
   ht += '</div><div style="padding:6px">';
