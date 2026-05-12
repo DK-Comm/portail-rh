@@ -934,6 +934,7 @@ var S = {
   saving:false,
   role:'employe',
   dashY:new Date().getFullYear(), dashM:new Date().getMonth(),
+  dashPeriod:'month', dashW:mon0(new Date()), dashQ:Math.floor(new Date().getMonth()/3),
   teamY:new Date().getFullYear(), teamM:new Date().getMonth(),
   // Cache client — evite les appels réseau répétés sur le même mois
   _empCache:{},   // {y_m_emp: data}
@@ -1574,8 +1575,32 @@ document.addEventListener('error',function(e){
 // === INIT ===
 
 // ════ DASHBOARD DIRECTION ════
-function dashNav(dir){S.dashM+=dir;if(S.dashM>11){S.dashM=0;S.dashY++;}if(S.dashM<0){S.dashM=11;S.dashY--;}loadDash();}
-function dashPeriod(p,el){document.querySelectorAll('.d-pbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');}
+function dashNav(dir){
+  if(S.dashPeriod==='week'){
+    S.dashW=addD(S.dashW,dir*7);
+    S.dashY=S.dashW.getFullYear(); S.dashM=S.dashW.getMonth();
+  } else if(S.dashPeriod==='quarter'){
+    S.dashQ+=dir;
+    if(S.dashQ>3){S.dashQ=0;S.dashY++;}
+    if(S.dashQ<0){S.dashQ=3;S.dashY--;}
+    S.dashM=S.dashQ*3;
+  } else {
+    S.dashM+=dir;
+    if(S.dashM>11){S.dashM=0;S.dashY++;}
+    if(S.dashM<0){S.dashM=11;S.dashY--;}
+  }
+  loadDash();
+}
+function dashPeriod(p,el){
+  document.querySelectorAll('.d-pbtn').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on');
+  S.dashPeriod=p;
+  var now=new Date();
+  if(p==='week'){ S.dashW=mon0(now); S.dashY=S.dashW.getFullYear(); S.dashM=S.dashW.getMonth(); }
+  else if(p==='quarter'){ S.dashQ=Math.floor(now.getMonth()/3); S.dashY=now.getFullYear(); S.dashM=S.dashQ*3; }
+  else { S.dashM=now.getMonth(); S.dashY=now.getFullYear(); }
+  loadDash();
+}
 function teamNav(dir){S.teamM+=dir;if(S.teamM>11){S.teamM=0;S.teamY++;}if(S.teamM<0){S.teamM=11;S.teamY--;}loadTeam();}
 
 // ── Cache refresh ──
@@ -1627,40 +1652,76 @@ function initDark(){
   }
 }
 
+// Calcule d1, d2 (ISO yyyy-mm-dd) et target H selon la période
+function dashRange(){
+  var TARGET_MONTH=162.5;
+  var d1,d2,target,label;
+  function iso(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+  if(S.dashPeriod==='week'){
+    var end=addD(S.dashW,6);
+    d1=iso(S.dashW); d2=iso(end);
+    target=Math.round(TARGET_MONTH/4.33*10)/10;
+    label='Sem. du '+S.dashW.getDate()+' '+MFR2[S.dashW.getMonth()]+(S.dashW.getMonth()!==end.getMonth()?' au '+end.getDate()+' '+MFR2[end.getMonth()]:' au '+end.getDate())+' '+end.getFullYear();
+  } else if(S.dashPeriod==='quarter'){
+    var qm=S.dashQ*3;
+    d1=S.dashY+'-'+('0'+(qm+1)).slice(-2)+'-01';
+    var lastD=new Date(S.dashY,qm+3,0).getDate();
+    d2=S.dashY+'-'+('0'+(qm+3)).slice(-2)+'-'+lastD;
+    target=TARGET_MONTH*3;
+    label='T'+(S.dashQ+1)+' '+S.dashY+' ('+MFR2[qm]+' - '+MFR2[qm+2]+')';
+  } else {
+    d1=S.dashY+'-'+('0'+(S.dashM+1)).slice(-2)+'-01';
+    var lastDM=new Date(S.dashY,S.dashM+1,0).getDate();
+    d2=S.dashY+'-'+('0'+(S.dashM+1)).slice(-2)+'-'+lastDM;
+    target=TARGET_MONTH;
+    label=dashRange().label;
+  }
+  return {d1:d1,d2:d2,target:target,label:label,period:S.dashPeriod};
+}
+
 function loadDash(){
   buildSelWrap('dash-nav-wrap','month',S.dashY,S.dashM,null,
-    function(m,y){S.dashM=m;S.dashY=y;loadDash();},null,null);
-  var sub=MFR2[S.dashM]+' '+S.dashY;
-  document.getElementById('dash-sub').textContent=sub;
+    function(m,y){
+      S.dashM=m;S.dashY=y;
+      if(S.dashPeriod==='week') S.dashW=mon0(new Date(y,m,1));
+      if(S.dashPeriod==='quarter') S.dashQ=Math.floor(m/3);
+      loadDash();
+    },null,null);
+  var r=dashRange();
+  document.getElementById('dash-sub').textContent=r.label;
   document.getElementById('dash-content').innerHTML='<div class="spin">Chargement...</div>';
-  var ck='dash_'+S.dashY+'_'+S.dashM;
+  var ck='dash_'+r.d1+'_'+r.d2;
   if(S._planCache[ck]&&S._planCache[ck].kpis){renderDash(S._planCache[ck]);return;}
   google.script.run
     .withSuccessHandler(function(d){S._planCache[ck]=d;renderDash(d);})
     .withFailureHandler(function(e){document.getElementById('dash-content').innerHTML='<p style="color:var(--rd);padding:20px">'+e.message+'</p>';})
-    .api_getDashboard(S.dashY,S.dashM);
+    .api_getDashboard(r.d1,r.d2,r.target,r.period);
 }
 
 function loadTeam(){
   buildSelWrap('team-nav-wrap','month',S.teamY,S.teamM,null,
     function(m,y){S.teamM=m;S.teamY=y;loadTeam();},null,null);
-  var ck='dash_'+S.teamY+'_'+S.teamM;
+  var d1=S.teamY+'-'+('0'+(S.teamM+1)).slice(-2)+'-01';
+  var lastD=new Date(S.teamY,S.teamM+1,0).getDate();
+  var d2=S.teamY+'-'+('0'+(S.teamM+1)).slice(-2)+'-'+lastD;
+  var ck='dash_'+d1+'_'+d2;
   if(S._planCache[ck]&&S._planCache[ck].kpis){renderTeam(S._planCache[ck]);return;}
   document.getElementById('team-content').innerHTML='<div class="spin">Chargement...</div>';
   google.script.run
     .withSuccessHandler(function(d){S._planCache[ck]=d;renderTeam(d);})
     .withFailureHandler(function(e){document.getElementById('team-content').innerHTML='<p style="color:var(--rd);padding:20px">'+e.message+'</p>';})
-    .api_getDashboard(S.teamY,S.teamM);
+    .api_getDashboard(d1,d2,162.5,'month');
 }
 
 function loadAlerts(){
-  var ck='dash_'+S.dashY+'_'+S.dashM;
+  var r=dashRange();
+  var ck='dash_'+r.d1+'_'+r.d2;
   if(S._planCache[ck]&&S._planCache[ck].alerts){renderAlerts(S._planCache[ck]);return;}
   document.getElementById('alerts-content').innerHTML='<div class="spin">Chargement...</div>';
   google.script.run
     .withSuccessHandler(function(d){S._planCache[ck]=d;renderAlerts(d);})
     .withFailureHandler(function(){})
-    .api_getDashboard(S.dashY,S.dashM);
+    .api_getDashboard(r.d1,r.d2,r.target,r.period);
 }
 
 function renderDash(d){
@@ -1772,7 +1833,7 @@ function renderDash(d){
   // ── SECTION 4 : Graphiques ──
   h+='<div class="d-sect"><div class="d-sect-lbl">Analyses graphiques</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
-  h+='<div class="dcard"><div class="dcard-hdr"><h3>Heures vs objectif</h3><span style="font-size:12px;color:var(--ink2)">'+MFR2[S.dashM]+' '+S.dashY+'</span></div><div class="dcard-body"><div style="position:relative;height:200px"><canvas id="c-hours" role="img" aria-label="Heures">H.</canvas></div></div></div>';
+  h+='<div class="dcard"><div class="dcard-hdr"><h3>Heures vs objectif</h3><span style="font-size:12px;color:var(--ink2)">'+dashRange().label+'</span></div><div class="dcard-body"><div style="position:relative;height:200px"><canvas id="c-hours" role="img" aria-label="Heures">H.</canvas></div></div></div>';
   h+='<div class="dcard"><div class="dcard-hdr"><h3>Taux bureau par employe</h3><span style="font-size:12px;color:var(--ink2)">cible 40%</span></div><div class="dcard-body"><div style="position:relative;height:200px"><canvas id="c-bureau" role="img" aria-label="Bureau">B.</canvas></div></div></div>';
   h+='<div class="dcard"><div class="dcard-hdr"><h3>Evolution hebdomadaire</h3><span style="font-size:12px;color:var(--ink2)">cumul equipe</span></div><div class="dcard-body"><div style="position:relative;height:170px"><canvas id="c-weeks" role="img" aria-label="Semaines">S.</canvas></div></div></div>';
   h+='<div class="dcard"><div class="dcard-hdr"><h3>Repartitions</h3></div><div class="dcard-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
@@ -1781,7 +1842,7 @@ function renderDash(d){
   h+='</div></div></div>';
 
   // ── SECTION 5 : Table complète ──
-  h+='<div class="d-sect"><div class="d-sect-lbl">Detail complet &mdash; '+MFR2[S.dashM]+' '+S.dashY+'</div>';
+  h+='<div class="d-sect"><div class="d-sect-lbl">Detail complet &mdash; '+dashRange().label+'</div>';
   h+='<div class="dcard"><div class="dcard-body" style="padding-top:0"><div style="overflow-x:auto"><table class="dtbl"><thead><tr><th>Employe</th><th>Departement</th><th>Poste</th><th>H trav.</th><th>% obj.</th><th>J bureau</th><th>Taux bur.</th><th>H moy/j</th><th>Absences</th><th>Statut</th></tr></thead><tbody>';
   if(d.empStats){d.empStats.forEach(function(e){
     var pc=e.pct>=95?'dp-ok':e.pct>=80?'dp-warn':'dp-err';
@@ -1879,7 +1940,7 @@ function renderAlerts(d){
   var warns=(d.alerts||[]).filter(function(a){return a.level==='warn';});
   var h='';
   if(!errs.length&&!warns.length){
-    h='<div class="dcard"><div class="dcard-body"><div class="ait ai-ok" style="margin:0"><div class="ai-txt"><div class="ai-name">Aucune alerte ce mois</div><div class="ai-detail">Tous les employes sont dans les objectifs pour '+MFR2[S.dashM]+' '+S.dashY+'</div></div><span class="ai-badge ab-ok">Parfait</span></div></div></div>';
+    h='<div class="dcard"><div class="dcard-body"><div class="ait ai-ok" style="margin:0"><div class="ai-txt"><div class="ai-name">Aucune alerte ce mois</div><div class="ai-detail">Tous les employes sont dans les objectifs pour '+dashRange().label+'</div></div><span class="ai-badge ab-ok">Parfait</span></div></div></div>';
   } else {
     if(errs.length){
       h+='<div style="font-size:13px;font-weight:500;color:#A32D2D;margin-bottom:8px">Critiques ('+errs.length+')</div>';
@@ -2024,26 +2085,40 @@ var supabaseAPI = {
     return {h:Math.round(h*10)/10,worked:worked,bur:bur,abs:abs};
   },
 
-  // Dashboard direction
-  getDashboard: async function(y, m) {
-    var plan = await supabaseAPI.getTeamPlanning(y, m);
-    var empsData = await spFetch('rh_employes?select=nom,heures_semaine,departement,poste&actif=eq.true');
-    var TARGET=162.5, today=new Date(); today.setHours(0,0,0,0);
+  // Dashboard direction (signature: d1, d2 ISO yyyy-mm-dd, target H, period)
+  getDashboard: async function(d1, d2, target, period) {
+    target = target || 162.5;
+    period = period || 'month';
+    var [empsData, horaires] = await Promise.all([
+      spFetch('rh_employes?select=nom,heures_semaine,departement,poste&actif=eq.true'),
+      spFetch('rh_horaires?date_pointage=gte.' + d1 + '&date_pointage=lte.' + d2 + '&select=employe,date_pointage,debut,fin,bureau,type_jour&limit=5000')
+    ]);
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayISO = today.getFullYear() + '-' + ('0'+(today.getMonth()+1)).slice(-2) + '-' + ('0'+today.getDate()).slice(-2);
+    var inRange = todayISO >= d1 && todayISO <= d2;
+
+    // Indexer horaires par employé
+    var byEmp = {};
+    (empsData||[]).forEach(function(e){ byEmp[e.nom] = []; });
+    (horaires||[]).forEach(function(r){
+      if(!byEmp[r.employe]) byEmp[r.employe] = [];
+      byEmp[r.employe].push(r);
+    });
+
     var empStats=[],totalH=0,totalBur=0,totalWorked=0,totalAbs=0,compliance=0;
     var deptMap={};
 
     (empsData||[]).forEach(function(e){
-      var dd=plan.data[e.nom]||{};
+      var rows = byEmp[e.nom] || [];
       var h=0,worked=0,bur=0,abs=0;
-      Object.keys(dd).forEach(function(d){
-        var inf=dd[d];
-        if(inf.debut&&inf.fin){
-          var dp=inf.debut.split(':'),fp=inf.fin.split(':');
+      rows.forEach(function(r){
+        if(r.debut && r.fin){
+          var dp=r.debut.split(':'),fp=r.fin.split(':');
           var mn=(parseInt(fp[0])*60+parseInt(fp[1]))-(parseInt(dp[0])*60+parseInt(dp[1]));
-          if(mn>0){h+=mn/60;worked++;if(inf.bureau)bur++;}
-        } else if(inf.type&&inf.type!=='work'){abs++;}
+          if(mn>0){h+=mn/60;worked++;if(r.bureau===true)bur++;}
+        } else if(r.type_jour && r.type_jour !== 'work'){abs++;}
       });
-      var hR=Math.round(h*10)/10,pct=Math.min(100,Math.round(hR/TARGET*100)),bpct=worked>0?Math.round(bur/worked*100):0;
+      var hR=Math.round(h*10)/10,pct=Math.min(100,Math.round(hR/target*100)),bpct=worked>0?Math.round(bur/worked*100):0;
       empStats.push({name:e.nom,h:hR,worked:worked,bur:bur,abs:abs,pct:pct,bureauPct:bpct,dept:e.departement||'Non defini',poste:e.poste||''});
       totalH+=h;totalBur+=bur;totalWorked+=worked;totalAbs+=abs;
       if(pct>=95)compliance++;
@@ -2055,18 +2130,21 @@ var supabaseAPI = {
     });
 
     var todayPresence=[];
-    if(today.getFullYear()===y&&today.getMonth()===m){
-      var td=today.getDate();
+    if(inRange){
       (empsData||[]).forEach(function(e){
-        var dd=plan.data[e.nom]||{};
-        if(dd[td])todayPresence.push({name:e.nom,type:dd[td].type,bureau:dd[td].bureau});
+        var rows = byEmp[e.nom] || [];
+        rows.forEach(function(r){
+          if(r.date_pointage === todayISO){
+            todayPresence.push({name:e.nom,type:r.type_jour,bureau:r.bureau===true});
+          }
+        });
       });
     }
 
     var alerts=[];
     empStats.forEach(function(e){
       if(e.worked===0)alerts.push({level:'warn',name:e.name,msg:'Aucune saisie',detail:'Verifier le pointage'});
-      else if(e.pct<60)alerts.push({level:'err',name:e.name,msg:'Objectif critique',detail:e.h+'h / '+TARGET+'h ('+e.pct+'%)'});
+      else if(e.pct<60)alerts.push({level:'err',name:e.name,msg:'Objectif critique',detail:e.h+'h / '+target+'h ('+e.pct+'%)'});
       else if(e.pct<80)alerts.push({level:'warn',name:e.name,msg:'Objectif insuffisant',detail:e.h+'h ('+e.pct+'%)'});
       if(e.worked>=5&&e.bureauPct<25)alerts.push({level:'warn',name:e.name,msg:'Taux bureau faible',detail:e.bureauPct+'%'});
     });
@@ -2087,13 +2165,13 @@ var supabaseAPI = {
     });
 
     return {
-      kpis:{empCount:N,totalH:Math.round(totalH*10)/10,targetH:Math.round(TARGET*N*10)/10,
+      kpis:{empCount:N,totalH:Math.round(totalH*10)/10,targetH:Math.round(target*N*10)/10,
             bureauRate:totalWorked>0?Math.round(totalBur/totalWorked*100):0,absences:totalAbs,
             compliance:compliance,complianceTotal:N,avgH:avgH,maxH:maxH,minH:minH,
-            totalWorked:totalWorked,totalBur:totalBur,remoteDays:totalWorked-totalBur},
+            totalWorked:totalWorked,totalBur:totalBur,remoteDays:totalWorked-totalBur,target:target,period:period},
       empStats:empStats,todayPresence:todayPresence,alerts:alerts,deptStats:deptStats,
       presRatio:{office:totalBur,remote:totalWorked-totalBur,absent:totalAbs},
-      dist:dist,month:m,year:y
+      dist:dist,period:period,d1:d1,d2:d2
     };
   },
 
@@ -2114,7 +2192,7 @@ var google = {
           api_getTeamPlanning:   function(y,m){ supabaseAPI.getTeamPlanning(y,m).then(_ok).catch(_err); },
           api_getRole:           function(n){ supabaseAPI.getRole(n).then(_ok).catch(_err); },
           api_getMyStats:        function(e,y,m){ supabaseAPI.getMyStats(e,y,m).then(_ok).catch(_err); },
-          api_getDashboard:      function(y,m){ supabaseAPI.getDashboard(y,m).then(_ok).catch(_err); },
+          api_getDashboard:      function(d1,d2,target,period){ supabaseAPI.getDashboard(d1,d2,target,period).then(_ok).catch(_err); },
           api_getCacheVersion:   function(){ supabaseAPI.getCacheVersion().then(_ok).catch(_err); }
         };
         return proxy;
