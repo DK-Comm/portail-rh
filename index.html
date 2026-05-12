@@ -973,6 +973,17 @@ var SUPA = {
       </div>
     </div>
 
+    <!-- ── Augmentation annuelle (revue salariale en masse) ── -->
+    <div class="kpi-section">
+      <div class="kpi-section-title">&#128200; Augmentation annuelle <span style="color:var(--ink3);font-weight:500;font-size:11px">(revue salariale en masse)</span></div>
+      <div style="border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);padding:18px 20px">
+        <div style="font-size:12.5px;color:var(--ink2);margin-bottom:14px;line-height:1.55">
+          Outil pour appliquer une <strong>augmentation salariale en masse</strong> à plusieurs employés en une seule opération. Toutes les modifications sont historisées avec la date d'effet choisie (SCD Type 2). Les calculs des bulletins de paie passés ne sont PAS impactés.
+        </div>
+        <button class="btn-sm btn-primary" onclick="openAnnualReview()" style="padding:10px 18px;font-size:13px">&#128200; Lancer une revue salariale</button>
+      </div>
+    </div>
+
     <!-- ── Rappels de pointage (via Outlook) ── -->
     <div class="kpi-section">
       <div class="kpi-section-title">&#128231; Rappels de pointage <span style="color:var(--ink3);font-weight:500;font-size:11px">(envoi via Outlook, en 1 clic)</span></div>
@@ -1149,6 +1160,72 @@ var SUPA = {
   </div>
 </div>
 
+<!-- MODAL AUGMENTATION ANNUELLE (revue salariale en masse) -->
+<div class="modal-overlay" id="annual-review-modal" style="display:none" onclick="if(event.target===this)closeAnnualReview()">
+  <div class="modal-box" style="max-width:1100px;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:92vh">
+    <div style="padding:18px 22px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--s2)">
+      <div>
+        <div style="font-size:16px;font-weight:700">&#128200; Revue salariale annuelle</div>
+        <div style="font-size:11.5px;color:var(--ink3);margin-top:2px">Appliquez une augmentation à un ou plusieurs employés. Historisé avec date d'effet.</div>
+      </div>
+      <button onclick="closeAnnualReview()" style="background:none;border:0;font-size:22px;color:var(--ink3);cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <div style="padding:18px 22px;overflow:auto;flex:1">
+
+      <!-- Configuration generale -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:18px;padding:14px;background:var(--s2);border:1px solid var(--bd);border-radius:10px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Date d'effet</label>
+          <input type="date" id="ar-valid-from" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card)">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Mode rapide</label>
+          <div style="display:flex;gap:6px">
+            <input type="number" id="ar-bulk-value" step="0.1" value="3" style="width:80px;padding:8px 10px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card)">
+            <select id="ar-bulk-mode" style="padding:8px 10px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card)">
+              <option value="pct">% en plus</option>
+              <option value="abs">$ fixe en plus</option>
+              <option value="set">$ valeur exacte</option>
+            </select>
+            <button class="btn-sm" onclick="arApplyBulk()" style="background:var(--ac);color:#fff;border:0;padding:8px 12px;font-size:12px;font-weight:600">Appliquer à tous ☑</button>
+          </div>
+        </div>
+        <div style="align-self:end;font-size:11px;color:var(--ink3)">
+          <em>Astuce :</em> "Appliquer à tous" remplit la colonne "Nouveau" pour les employés cochés. Vous pouvez ensuite ajuster individuellement.
+        </div>
+      </div>
+
+      <!-- Tableau employes -->
+      <div style="border:1px solid var(--bd);border-radius:10px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+          <thead style="background:var(--s2);border-bottom:2px solid var(--bd)">
+            <tr>
+              <th style="padding:9px 10px;text-align:center;width:32px"><input type="checkbox" id="ar-check-all" onchange="arToggleAll(this.checked)" checked></th>
+              <th style="padding:9px 10px;text-align:left">Employé</th>
+              <th style="padding:9px 10px;text-align:right">Salaire actuel</th>
+              <th style="padding:9px 10px;text-align:right">Nouveau salaire</th>
+              <th style="padding:9px 10px;text-align:right">Variation</th>
+              <th style="padding:9px 10px;text-align:right">Annuel équiv.</th>
+            </tr>
+          </thead>
+          <tbody id="ar-tbody"></tbody>
+          <tfoot id="ar-tfoot" style="background:var(--s2);font-weight:700;border-top:2px solid var(--bd)"></tfoot>
+        </table>
+      </div>
+
+      <!-- Note -->
+      <div style="margin-top:14px;padding:10px 14px;background:#e8f4fd;border:1px solid #b8e0fb;border-radius:8px;font-size:11.5px;color:#1e5582">
+        &#128161; <strong>Comment ça marche :</strong> chaque employé coché aura son salaire mis à jour à la date d'effet choisie. Une ligne sera ajoutée à l'historique pour chaque modification (audit trail complet). Les calculs de paie antérieurs ne sont PAS affectés.
+      </div>
+    </div>
+    <div style="padding:14px 22px;border-top:1px solid var(--bd);display:flex;gap:10px;justify-content:flex-end;background:var(--s2)">
+      <button onclick="closeAnnualReview()" class="btn-sm" style="background:transparent;color:var(--ink2);border:1px solid var(--bd)">Annuler</button>
+      <button onclick="arPreview()" class="btn-sm" style="background:var(--card);color:var(--ink);border:1px solid var(--bd)">&#128065; Aperçu récap</button>
+      <button onclick="arValidate()" class="btn-sm btn-primary" id="ar-validate-btn">&#10003; Valider l'augmentation</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL HISTORIQUE EMPLOYE (timeline des changements) -->
 <div class="modal-overlay" id="emp-history-modal" style="display:none" onclick="if(event.target===this)closeEmpHistoryModal()">
   <div class="modal-box" style="max-width:760px;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:90vh">
@@ -1227,7 +1304,7 @@ var SUPA = {
         <option value="Pigiste">Pigiste</option>
         <option value="Freelance">Freelance</option>
       </select></div>
-      <div class="form-group"><label>H/semaine</label><input id="em-h" type="number" value="37.5" step="0.5"></div>
+      <div class="form-group"><label>H/semaine</label><input id="em-h" type="number" value="37.5" step="0.5" oninput="refreshSalaryConv()"></div>
       <div class="form-group"><label>Actif</label><select id="em-actif"><option value="true">Oui</option><option value="false">Non</option></select></div>
     </div>
     <div class="form-row">
@@ -1242,10 +1319,12 @@ var SUPA = {
       <div class="form-group" style="grid-column:1/-1"><label>Sp&eacute;cialisation <span style="color:var(--ink3);font-weight:400;text-transform:none">(optionnel, sans r&eacute;p&eacute;ter le type de poste)</span></label><input id="em-poste" placeholder="ex: Sant&eacute;, Famille, Communication, Comptable..."></div>
     </div>
     <div class="form-row-3">
-      <div class="form-group"><label>Salaire ($/h ou $/an)</label><input id="em-salaire" type="number" value="25" step="0.5"></div>
-      <div class="form-group"><label>Type salaire</label><select id="em-type-sal"><option value="Horaire">Horaire</option><option value="Annuel">Annuel</option></select></div>
+      <div class="form-group"><label>Salaire ($/h ou $/an)</label><input id="em-salaire" type="number" value="25" step="0.5" oninput="refreshSalaryConv()"></div>
+      <div class="form-group"><label>Type salaire</label><select id="em-type-sal" onchange="refreshSalaryConv()"><option value="Horaire">Horaire</option><option value="Annuel">Annuel</option></select></div>
       <div class="form-group"><label>Charges %</label><input id="em-charges" type="number" value="15.5" step="0.1"></div>
     </div>
+    <!-- Affichage conversions salariales live -->
+    <div id="em-salary-conv" style="margin-top:8px"></div>
     <!-- Date d'effet : pour l'historique versionne -->
     <div style="background:#fef9e7;border:1px solid #f4d35e;border-radius:8px;padding:10px 14px;margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span style="font-size:18px">&#128197;</span>
@@ -1456,6 +1535,75 @@ function esc(s){
     .replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#39;');
+}
+
+// ════════════════════════════════════════════════════════════════
+// CONVERSIONS SALARIALES (horaire / bi-hebdo / mensuel / annuel)
+// ════════════════════════════════════════════════════════════════
+// Convertit un salaire entre 4 unites en fonction du type_salaire de reference
+// et du nombre d'heures travaillees par semaine.
+//
+// Hypothese : annee = 52 semaines, cycle de paie = 14 jours (bi-hebdo) -> 26 cycles/an
+// Heures normales par semaine : selon employe (defaut 37.5)
+//
+// Args :
+//   salaire    : nombre (montant dans l'unite "fromUnit")
+//   fromUnit   : 'horaire' | 'bihebdo' | 'mensuel' | 'annuel'
+//   hSemaine   : nombre d'heures par semaine (utilise pour conversion horaire)
+// Retourne : { horaire, bihebdo, mensuel, annuel } en nombres
+function convertSalary(salaire, fromUnit, hSemaine){
+  if(!salaire || isNaN(salaire)) return {horaire:0, bihebdo:0, mensuel:0, annuel:0};
+  var h = parseFloat(hSemaine) || 37.5;
+  // D'abord convertir tout en annuel (pivot)
+  var annuel;
+  switch(fromUnit){
+    case 'horaire': annuel = salaire * h * 52; break;
+    case 'bihebdo': annuel = salaire * 26; break;
+    case 'mensuel': annuel = salaire * 12; break;
+    case 'annuel':
+    default:        annuel = salaire; break;
+  }
+  // Decliner en 4 unites
+  return {
+    horaire: h>0 ? annuel / 52 / h : 0,
+    bihebdo: annuel / 26,
+    mensuel: annuel / 12,
+    annuel:  annuel
+  };
+}
+// Format monnaie : "1 234,56 $"
+function fmtMoney(n, decimals){
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  var d = decimals===undefined ? 2 : decimals;
+  var s = Number(n).toFixed(d);
+  var parts = s.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return parts.join(',') + ' $';
+}
+// Helper UI : retourne un bloc HTML avec les 4 conversions
+function renderSalaryConversions(salaire, type_salaire, hSemaine, opts){
+  opts = opts || {};
+  var fromUnit = (type_salaire === 'Annuel') ? 'annuel' : 'horaire';
+  var c = convertSalary(salaire, fromUnit, hSemaine);
+  var compact = !!opts.compact;
+  var size = compact ? '11px' : '12.5px';
+  var vSize = compact ? '13px' : '15px';
+  function box(lbl, val, hi){
+    return '<div style="background:'+(hi?'var(--ac-s)':'var(--s2)')+';border:1px solid '+(hi?'var(--ac)':'var(--bd)')+';border-radius:7px;padding:'+(compact?'7px 10px':'10px 12px')+';flex:1;min-width:'+(compact?'105px':'130px')+'">'
+      + '<div style="font-size:'+(compact?'10px':'10.5px')+';color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;font-weight:600">'+lbl+'</div>'
+      + '<div style="font-size:'+vSize+';font-weight:'+(hi?'700':'600')+';color:'+(hi?'var(--ac)':'var(--ink)')+';margin-top:2px">'+fmtMoney(val, lbl==='Horaire'?2:0)+'</div>'
+      + (lbl==='Horaire' ? '<div style="font-size:9.5px;color:var(--ink3);margin-top:1px">/heure</div>' : '')
+      + (lbl==='Bi-hebdo' ? '<div style="font-size:9.5px;color:var(--ink3);margin-top:1px">/2 semaines</div>' : '')
+      + (lbl==='Mensuel' ? '<div style="font-size:9.5px;color:var(--ink3);margin-top:1px">/mois</div>' : '')
+      + (lbl==='Annuel' ? '<div style="font-size:9.5px;color:var(--ink3);margin-top:1px">/an</div>' : '')
+      + '</div>';
+  }
+  return '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + box('Horaire',  c.horaire, fromUnit==='horaire')
+    + box('Bi-hebdo', c.bihebdo, false)
+    + box('Mensuel',  c.mensuel, false)
+    + box('Annuel',   c.annuel,  fromUnit==='annuel')
+    + '</div>';
 }
 
 // === TABS ===
@@ -3395,6 +3543,14 @@ async function loadFiche() {
     // Bouton voir l'historique (changements de salaire, heures_semaine, etc.)
     h += '<div style="width:100%;margin-top:12px;text-align:right"><button onclick="openEmpHistory('+JSON.stringify(emp)+')" class="btn-sm" style="background:var(--s2);color:var(--ink);border:1px solid var(--bd);padding:6px 12px;font-size:12px">&#128218; Voir l\'historique des changements</button></div>';
     h += '</div>';
+    // Carte conversions salariales (horaire / bi-hebdo / mensuel / annuel)
+    if(empData.salaire){
+      h += '<div style="margin-bottom:20px;padding:16px 20px;background:var(--card);border-radius:var(--r);border:1px solid var(--bd)">';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:18px">&#128176;</span><div style="font-size:14px;font-weight:700;color:var(--ink)">Conversions salariales</div>';
+      h += '<small style="color:var(--ink3);font-weight:400;margin-left:auto">Base : '+(empData.type_salaire||'Horaire')+' &middot; '+(empData.heures_semaine||37.5)+'h/sem</small></div>';
+      h += renderSalaryConversions(empData.salaire, empData.type_salaire||'Horaire', empData.heures_semaine||37.5);
+      h += '</div>';
+    }
     
     // Tableau mensuel
     h += '<div class="card-table"><table>';
@@ -4955,6 +5111,7 @@ function openAddEmp() {
   document.getElementById('em-valid-from').value = new Date().toISOString().substring(0,10);
   setPhotoPreview(null, null);
   document.getElementById('emp-modal').style.display = 'flex';
+  refreshSalaryConv();
 }
 
 function openEditEmp(idx) {
@@ -4993,10 +5150,23 @@ function openEditEmp(idx) {
   };
   setPhotoPreview(e.photo_url || '', e.nom);
   document.getElementById('emp-modal').style.display = 'flex';
+  refreshSalaryConv();
 }
 var _empBeforeEdit = null;
 
 function closeEmpModal() { document.getElementById('emp-modal').style.display = 'none'; _pendingPhotoFile = null; }
+
+// Rafraichit l'affichage des conversions salariales sous le champ Salaire
+function refreshSalaryConv(){
+  var el = document.getElementById('em-salary-conv');
+  if(!el) return;
+  var salaire = parseFloat(document.getElementById('em-salaire').value) || 0;
+  var typeSal = document.getElementById('em-type-sal').value || 'Horaire';
+  var hSem    = parseFloat(document.getElementById('em-h').value) || 37.5;
+  if(salaire <= 0){ el.innerHTML = ''; return; }
+  el.innerHTML = '<div style="font-size:10.5px;color:var(--ink3);font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">&#128176; Équivalents (en surbrillance : valeur saisie)</div>'
+    + renderSalaryConversions(salaire, typeSal, hSem, {compact:true});
+}
 
 // ════════════════════════════════════════════════════════════════
 // HELPERS HISTORIQUE — lookup de valeurs valides a une date donnee
@@ -5113,6 +5283,176 @@ async function openEmpHistory(nom){
   }
 }
 function closeEmpHistoryModal(){ document.getElementById('emp-history-modal').style.display = 'none'; }
+
+// ════════════════════════════════════════════════════════════════
+// AUGMENTATION ANNUELLE — revue salariale en masse
+// ════════════════════════════════════════════════════════════════
+var _AR_DATA = [];  // [{nom, id, salaire, type_salaire, hSem, included, newSalaire}, ...]
+
+async function openAnnualReview(){
+  document.getElementById('annual-review-modal').style.display = 'flex';
+  // Date d'effet par defaut : 1er janvier prochain (ou aujourd'hui si janvier deja passe)
+  var now = new Date();
+  var defaultDate;
+  if(now.getMonth() === 0){
+    // Si on est en janvier, date d'effet = 1er janvier de l'annee courante
+    defaultDate = now.getFullYear()+'-01-01';
+  } else {
+    // Sinon, 1er janvier de l'annee prochaine
+    defaultDate = (now.getFullYear()+1)+'-01-01';
+  }
+  document.getElementById('ar-valid-from').value = defaultDate;
+
+  // Charger les employes actifs
+  document.getElementById('ar-tbody').innerHTML = '<tr><td colspan="6" style="padding:18px;text-align:center;color:var(--ink3)">Chargement...</td></tr>';
+  try {
+    var r = await authFetch('/rest/v1/rh_employes?select=id,nom,salaire,type_salaire,heures_semaine&actif=eq.true&order=nom');
+    var emps = r.data || [];
+    _AR_DATA = emps.map(function(e){
+      return {
+        id: e.id,
+        nom: e.nom,
+        salaire: parseFloat(e.salaire) || 0,
+        typeSalaire: e.type_salaire || 'Horaire',
+        hSem: parseFloat(e.heures_semaine) || 37.5,
+        included: true,
+        newSalaire: null  // rempli par mode rapide ou edition manuelle
+      };
+    });
+    renderArTable();
+  } catch(e){
+    document.getElementById('ar-tbody').innerHTML = '<tr><td colspan="6" style="padding:14px;color:var(--rd)">Erreur : '+esc(e.message)+'</td></tr>';
+  }
+}
+
+function closeAnnualReview(){ document.getElementById('annual-review-modal').style.display = 'none'; }
+
+function arToggleAll(checked){
+  _AR_DATA.forEach(function(r){ r.included = checked; });
+  renderArTable();
+}
+
+function renderArTable(){
+  var h = '';
+  _AR_DATA.forEach(function(r, i){
+    var unite = r.typeSalaire === 'Annuel' ? '$/an' : '$/h';
+    var newVal = r.newSalaire;
+    var newDisplay = newVal !== null && newVal !== undefined && !isNaN(newVal) ? newVal : '';
+    var variation = '';
+    var variationColor = 'var(--ink3)';
+    var annuelEq = '';
+    if(newDisplay !== '' && r.salaire > 0){
+      var diff = newVal - r.salaire;
+      var pct = (diff / r.salaire) * 100;
+      var sign = diff>=0 ? '+' : '';
+      variation = sign + Math.round(pct*10)/10 + '% ('+sign+fmtMoney(diff, 2)+')';
+      variationColor = diff>0 ? 'var(--gr)' : diff<0 ? 'var(--rd)' : 'var(--ink3)';
+      var c = convertSalary(newVal, r.typeSalaire==='Annuel'?'annuel':'horaire', r.hSem);
+      annuelEq = fmtMoney(c.annuel, 0) + '<br><small style="color:var(--ink3);font-size:10px">' + fmtMoney(c.mensuel, 0) + '/mois</small>';
+    } else if(r.salaire > 0){
+      var cCur = convertSalary(r.salaire, r.typeSalaire==='Annuel'?'annuel':'horaire', r.hSem);
+      annuelEq = '<small style="color:var(--ink3)">'+fmtMoney(cCur.annuel, 0)+'</small>';
+    }
+    var rowStyle = r.included ? '' : 'opacity:.45';
+    h += '<tr style="'+rowStyle+';border-bottom:1px solid var(--bd)">';
+    h += '<td style="padding:8px 10px;text-align:center"><input type="checkbox" '+(r.included?'checked':'')+' onchange="arSetIncluded('+i+',this.checked)"></td>';
+    h += '<td style="padding:8px 10px"><strong>'+esc(r.nom)+'</strong><br><small style="color:var(--ink3);font-size:10.5px">'+esc(r.typeSalaire)+' &middot; '+r.hSem+'h/sem</small></td>';
+    h += '<td style="padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums">'+fmtMoney(r.salaire, r.typeSalaire==='Annuel'?0:2)+' <small style="color:var(--ink3);font-size:10px">'+unite+'</small></td>';
+    h += '<td style="padding:8px 10px;text-align:right"><input type="number" step="0.01" value="'+newDisplay+'" onchange="arSetNewSalaire('+i+',this.value)" '+(r.included?'':'disabled')+' style="width:110px;padding:5px 7px;border:1px solid var(--bd);border-radius:5px;font-size:12px;text-align:right;background:var(--card);font-variant-numeric:tabular-nums"></td>';
+    h += '<td style="padding:8px 10px;text-align:right;color:'+variationColor+';font-weight:600">'+variation+'</td>';
+    h += '<td style="padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums">'+annuelEq+'</td>';
+    h += '</tr>';
+  });
+  document.getElementById('ar-tbody').innerHTML = h;
+  // Footer : recap
+  var inc = _AR_DATA.filter(function(r){return r.included && r.newSalaire !== null && !isNaN(r.newSalaire);});
+  var totalDiffAnnuel = 0;
+  inc.forEach(function(r){
+    var oldA = convertSalary(r.salaire, r.typeSalaire==='Annuel'?'annuel':'horaire', r.hSem).annuel;
+    var newA = convertSalary(r.newSalaire, r.typeSalaire==='Annuel'?'annuel':'horaire', r.hSem).annuel;
+    totalDiffAnnuel += (newA - oldA);
+  });
+  var tf = '<tr><td colspan="3" style="padding:10px;text-align:right">'+inc.length+' augmentation(s) prevue(s)</td>';
+  tf += '<td colspan="2" style="padding:10px;text-align:right;color:'+(totalDiffAnnuel>=0?'var(--gr)':'var(--rd)')+'">Impact masse salariale annuel :</td>';
+  tf += '<td style="padding:10px;text-align:right;color:'+(totalDiffAnnuel>=0?'var(--gr)':'var(--rd)')+';font-variant-numeric:tabular-nums">'+(totalDiffAnnuel>=0?'+':'')+fmtMoney(totalDiffAnnuel, 0)+'</td></tr>';
+  document.getElementById('ar-tfoot').innerHTML = tf;
+}
+
+function arSetIncluded(idx, checked){
+  _AR_DATA[idx].included = checked;
+  // Check the "check all" master
+  var allChecked = _AR_DATA.every(function(r){return r.included;});
+  document.getElementById('ar-check-all').checked = allChecked;
+  renderArTable();
+}
+
+function arSetNewSalaire(idx, val){
+  var v = parseFloat(val);
+  _AR_DATA[idx].newSalaire = isNaN(v) ? null : v;
+  renderArTable();
+}
+
+function arApplyBulk(){
+  var val = parseFloat(document.getElementById('ar-bulk-value').value);
+  var mode = document.getElementById('ar-bulk-mode').value;
+  if(isNaN(val)){ toast('Valeur invalide',1); return; }
+  _AR_DATA.forEach(function(r){
+    if(!r.included) return;
+    if(mode === 'pct'){
+      r.newSalaire = Math.round(r.salaire * (1 + val/100) * 100) / 100;
+    } else if(mode === 'abs'){
+      r.newSalaire = Math.round((r.salaire + val) * 100) / 100;
+    } else if(mode === 'set'){
+      r.newSalaire = Math.round(val * 100) / 100;
+    }
+  });
+  renderArTable();
+}
+
+function arPreview(){
+  var validFrom = document.getElementById('ar-valid-from').value;
+  if(!validFrom){ toast('Date d\'effet requise',1); return; }
+  var inc = _AR_DATA.filter(function(r){return r.included && r.newSalaire !== null && !isNaN(r.newSalaire) && r.newSalaire !== r.salaire;});
+  if(!inc.length){ toast('Aucune augmentation à valider (cochez et renseignez "Nouveau salaire").',1); return; }
+  var lines = inc.map(function(r){
+    var diff = r.newSalaire - r.salaire;
+    var sign = diff>=0 ? '+' : '';
+    return '• '+r.nom+' : '+fmtMoney(r.salaire,2)+' → '+fmtMoney(r.newSalaire,2)+' ('+sign+fmtMoney(diff,2)+')';
+  });
+  alert('APERÇU — Date d\'effet : '+validFrom+'\n\n'+lines.join('\n')+'\n\n'+inc.length+' employé(s) seront affectés. Cliquez ensuite sur "Valider".');
+}
+
+async function arValidate(){
+  var validFrom = document.getElementById('ar-valid-from').value;
+  if(!validFrom){ toast('Date d\'effet requise',1); return; }
+  var inc = _AR_DATA.filter(function(r){return r.included && r.newSalaire !== null && !isNaN(r.newSalaire) && r.newSalaire !== r.salaire;});
+  if(!inc.length){ toast('Aucune augmentation à valider',1); return; }
+  if(!confirm('Confirmer l\'augmentation de '+inc.length+' employé(s) avec date d\'effet '+validFrom+' ?\n\nCette opération est historisee. Les calculs anterieurs ne seront pas impactes.')) return;
+  var btn = document.getElementById('ar-validate-btn');
+  btn.disabled = true; btn.textContent = 'Application en cours…';
+  var ses = JSON.parse(sessionStorage.getItem('rh_s')||'{}');
+  var changedBy = ses.email || 'unknown';
+  var ok = 0, fail = 0;
+  for(var i=0; i<inc.length; i++){
+    var r = inc[i];
+    try {
+      // 1. Update rh_employes
+      await authFetch('/rest/v1/rh_employes?id=eq.'+r.id, 'PATCH', {salaire: r.newSalaire});
+      // 2. Insert historique
+      await authFetch('/rest/v1/rh_employes_history', 'POST', {
+        employe_id: r.id, nom: r.nom, champ: 'salaire',
+        valeur: String(r.newSalaire), valid_from: validFrom, changed_by: changedBy
+      });
+      ok++;
+    } catch(e){ console.warn('arValidate '+r.nom+':',e.message); fail++; }
+  }
+  // Invalider le cache historique
+  if(typeof invalidateHistoryCache === 'function') invalidateHistoryCache();
+  btn.disabled = false; btn.textContent = '✓ Valider l\'augmentation';
+  if(fail===0){ toast(ok+' augmentation(s) appliquée(s) ✓'); }
+  else { toast(ok+' OK, '+fail+' erreurs (voir console)',1); }
+  closeAnnualReview();
+}
 
 async function saveEmp() {
   var id = document.getElementById('em-id').value;
