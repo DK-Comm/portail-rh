@@ -634,9 +634,6 @@ var SUPA = {
   tok: null
 };
 </script>
-<!-- v:1778446592-1778442322 -->
-<!-- v:1778446592-1778442569 -->
-<!-- v:1778446592-1778443575 -->
 </head>
 <body>
 
@@ -1336,13 +1333,6 @@ function gotoTab(id,el){
 }
 
 // === EMP SELECT ===
-function showSel(){ return; // Bloqué — auth active
-  var _old=function(){
-  document.getElementById('scr-sel').style.display='flex';
-  document.getElementById('main').style.display='none';
-  loadEmps();
-}}
-
 function showApp(){
   document.getElementById('install-screen').style.display='none';
   document.getElementById('app').style.display='flex';
@@ -1443,7 +1433,6 @@ function selEmp(name){
   google.script.run
     .withSuccessHandler(function(r){
       S.role=r&&r.role==='direction'?'direction':'employe';
-      console.log('[role handler]', S.emp, S.role, r);
       var sb=document.getElementById('sidebar');
       var tbp=document.getElementById('tb-period');
       if(S.role==='direction'){
@@ -2466,7 +2455,6 @@ var supabaseAPI = {
   // Rôle de l'employé
   getRole: async function(empName) {
     var rows = await spFetch('rh_employes?select=statut,nom&nom=eq.'+encodeURIComponent(empName)+'&limit=1');
-    console.log('[getRole]', empName, rows);
     if (!rows || !rows.length) return { role: 'employe' };
     var s = (rows[0].statut||'').toLowerCase();
     return { role: (s==='direction'||s==='admin'||s==='dg') ? 'direction' : 'employe' };
@@ -4011,128 +3999,6 @@ async function loadConfig() {
     _empList = r.data || [];
     _empList.forEach(function(e){ if(e.photo_url) EMP_PHOTOS[e.nom]=e.photo_url; });
   } catch(e){ /* non bloquant */ }
-
-  // ── Tout le code ci-dessous (groupement, rendu, kebab) etait pour la section Employes deplacee ──
-  // On le saute en mettant un bloc try/catch silencieux qui ne fait rien si config-emp-table n'existe pas
-  if(false){
-    var empEl = document.getElementById('config-emp-table');
-    empEl.style.background = 'transparent';
-    empEl.style.border = 'none';
-    empEl.style.borderRadius = '0';
-    empEl.style.overflow = 'visible';
-  try {
-    // S'assurer que les referentiels sont charges
-    if(!REF_DEPTS.length || !REF_TYPES.length) await loadReferentiels();
-    var r = await authFetch('/rest/v1/rh_employes?select=*&order=departement,nom');
-    _empList = r.data || [];
-    // Tri custom : Direction d'abord, puis Employe, puis les autres
-    var STATUT_RANK = {'Direction':0,'Employe':1,'Stagiaire':2,'Prestataire externe':3,'Pigiste':4,'Freelance':5};
-    var TYPE_RANK = {};
-    REF_TYPES.forEach(function(t,i){TYPE_RANK[t.nom]=t.ordre||(100+i);});
-    _empList.sort(function(a,b){
-      var da = (a.departement||'').localeCompare(b.departement||'');
-      if(da !== 0) return da;
-      var ra = STATUT_RANK[a.statut] !== undefined ? STATUT_RANK[a.statut] : 99;
-      var rb = STATUT_RANK[b.statut] !== undefined ? STATUT_RANK[b.statut] : 99;
-      if(ra !== rb) return ra - rb;
-      var ta = TYPE_RANK[a.type_poste] !== undefined ? TYPE_RANK[a.type_poste] : 999;
-      var tb = TYPE_RANK[b.type_poste] !== undefined ? TYPE_RANK[b.type_poste] : 999;
-      if(ta !== tb) return ta - tb;
-      return (a.nom||'').localeCompare(b.nom||'');
-    });
-    // Mettre a jour le cache de photos
-    _empList.forEach(function(e){ if(e.photo_url) EMP_PHOTOS[e.nom]=e.photo_url; });
-    // Helper classe tag selon statut
-    function tagClass(s){
-      if(s==='Direction') return 'tag-direction';
-      if(s==='Stagiaire') return 'tag-stagiaire';
-      if(s==='Prestataire externe') return 'tag-prestataire';
-      if(s==='Pigiste') return 'tag-pigiste';
-      if(s==='Freelance') return 'tag-freelance';
-      return 'tag-employe';
-    }
-    // Grouper par departement (ordre depuis la base)
-    var DEPT_ORDER_NAMES = REF_DEPTS.map(function(d){return d.nom;});
-    var DEPT_INFO = {};
-    REF_DEPTS.forEach(function(d){DEPT_INFO[d.nom]={icone:d.icone||'🏢',couleur:d.couleur||'#546e7a'};});
-    var groups = {};
-    _empList.forEach(function(e,i){
-      var d = e.departement || 'Non defini';
-      if (!groups[d]) groups[d] = [];
-      groups[d].push({emp:e, idx:i});
-    });
-    var orderedDepts = DEPT_ORDER_NAMES.filter(function(d){return groups[d];}).concat(
-      Object.keys(groups).filter(function(d){return DEPT_ORDER_NAMES.indexOf(d)<0;})
-    );
-    var h = '';
-    orderedDepts.forEach(function(dept,deptIdx){
-      var info = DEPT_INFO[dept] || {icone:'👥',couleur:'#546e7a'};
-      // Wrapper "carte" avec espace prononce et ombre pour ressortir
-      // overflow:visible pour permettre au menu kebab de deborder
-      h += '<div style="margin-bottom:'+(deptIdx<orderedDepts.length-1?'20px':'0')+';border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);position:relative;border-left:4px solid '+info.couleur+'">';
-      // Header departement avec coins arrondis en haut (compense le retrait de overflow:hidden)
-      h += '<div style="background:var(--s2);padding:12px 16px;font-size:13px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--bd);border-radius:8px 12px 0 0;display:flex;align-items:center;gap:8px">';
-      h += '<span style="font-size:16px">'+info.icone+'</span>'+dept;
-      h += '<span style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.4px">'+groups[dept].length+' employ&eacute;'+(groups[dept].length>1?'s':'')+'</span>';
-      h += '</div>';
-      // Tableau du departement avec largeurs FIXES pour aligner entre depts
-      h += '<table style="width:100%;border-collapse:collapse;table-layout:fixed">';
-      h += '<colgroup>';
-      h += '<col style="width:32%">';   // Nom + photo
-      h += '<col style="width:24%">';   // Email
-      h += '<col style="width:12%">';   // Statut
-      h += '<col style="width:10%">';   // H/semaine
-      h += '<col style="width:12%">';   // Actif
-      h += '<col style="width:10%">';   // Actions
-      h += '</colgroup>';
-      h += '<tbody>';
-      groups[dept].forEach(function(item,rowIdx){
-        var e = item.emp, i = item.idx;
-        var isLast = rowIdx === groups[dept].length-1;
-        var rowBorder = isLast ? '' : 'border-bottom:1px solid var(--bd2);';
-        var av;
-        if (e.photo_url) {
-          av = '<img src="'+e.photo_url+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.outerHTML=\'<div class=&quot;av&quot; style=&quot;width:36px;height:36px;font-size:13px;background:'+col(e.nom)+'&quot;>'+ini(e.nom)+'</div>\'">';
-        } else {
-          av = '<div class="av" style="width:36px;height:36px;font-size:13px;background:'+col(e.nom)+'">'+ini(e.nom)+'</div>';
-        }
-        h += '<tr>';
-        // Nom + photo + "Type · Détail" (sans répétition)
-        var posteAffiche = '';
-        var tp = e.type_poste || '';
-        var pd = e.poste || '';
-        // On masque 'Autre' si pas de detail
-        if (tp === 'Autre' && !pd) posteAffiche = '<em style="color:var(--ink3);font-weight:400">Non précisé</em>';
-        else if (tp && pd) posteAffiche = tp + ' &middot; ' + pd;
-        else if (tp) posteAffiche = tp;
-        else if (pd) posteAffiche = pd;
-        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'">';
-        h += '<div style="display:flex;align-items:center;gap:12px;overflow:hidden">'+av+'<div style="overflow:hidden"><strong>'+e.nom+'</strong><br><small style="color:var(--ink3);font-weight:400">'+posteAffiche+'</small></div></div></td>';
-        // Email
-        h += '<td style="font-size:12px;color:var(--ink2);padding:10px 14px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'+rowBorder+'" title="'+(e.email||'')+'">'+(e.email||'&mdash;')+'</td>';
-        // Statut
-        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span class="tag '+tagClass(e.statut)+'">'+e.statut+'</span></td>';
-        // H/sem
-        h += '<td style="padding:10px 14px;font-size:12px;vertical-align:middle;'+rowBorder+'">'+e.heures_semaine+'h</td>';
-        // Actif
-        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span style="color:'+(e.actif?'var(--gr)':'var(--rd)')+';font-weight:600;font-size:12px">'+(e.actif?'&#10003; Oui':'&#10005; Non')+'</span></td>';
-        // Actions : kebab menu
-        var menuId = 'kmenu-'+i;
-        h += '<td style="padding:10px 14px;vertical-align:middle;text-align:right;'+rowBorder+'">';
-        h += '<div style="position:relative;display:inline-block">';
-        h += '<button class="kebab-btn" onclick="toggleKebab(\''+menuId+'\',event)" title="Actions">&#8942;</button>';
-        h += '<div class="kebab-menu" id="'+menuId+'">';
-        h += '<button class="kebab-item" onclick="closeKebab();openEditEmp('+i+')"><span class="kebab-icon">&#9999;&#65039;</span>Modifier</button>';
-        h += '<button class="kebab-item danger" onclick="closeKebab();deleteEmp('+JSON.stringify(e.id)+','+JSON.stringify(e.nom)+')"><span class="kebab-icon">&#128465;&#65039;</span>Supprimer</button>';
-        h += '</div></div></td>';
-        h += '</tr>';
-      });
-      h += '</tbody></table>';
-      h += '</div>'; // fin wrapper dept
-    });
-    empEl.innerHTML = h;
-  } catch(e) { empEl.innerHTML = '<div style="color:var(--rd);padding:20px">Erreur: ' + e.message + '</div>'; }
-  } // fin if(false) bloc desactive
 
   // Render des referentiels (depts + types de poste)
   renderRefSection();
