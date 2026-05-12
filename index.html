@@ -841,11 +841,44 @@ var SUPA = {
       <div class="card-table" id="config-emp-table"><div style="padding:20px;color:var(--ink3)">Chargement...</div></div>
     </div>
     <div class="kpi-section">
+      <div class="kpi-section-title">R&eacute;f&eacute;rentiels</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div id="config-depts-card"></div>
+        <div id="config-types-card"></div>
+      </div>
+    </div>
+    <div class="kpi-section">
       <div class="kpi-section-title">Param&egrave;tres g&eacute;n&eacute;raux</div>
       <div class="card-table">
         <table><thead><tr><th>Param&egrave;tre</th><th>Valeur</th><th></th></tr></thead>
         <tbody id="config-params-body"><tr><td colspan="3" style="color:var(--ink3)">Chargement...</td></tr></tbody></table>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REFERENTIEL (dept ou type) -->
+<div class="modal-overlay" id="ref-modal" style="display:none" onclick="if(event.target===this)closeRefModal()">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-title" id="ref-modal-title">Ajouter</div>
+    <input type="hidden" id="rf-id">
+    <input type="hidden" id="rf-kind">
+    <div class="form-row" id="rf-dept-extra" style="display:none">
+      <div class="form-group" style="grid-column:1/-1"><label>Ic&ocirc;ne (emoji)</label><input id="rf-icone" placeholder="🏢" maxlength="4" style="font-size:20px;text-align:center"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="grid-column:1/-1"><label>Nom</label><input id="rf-nom" placeholder="Nom"></div>
+    </div>
+    <div class="form-row" id="rf-couleur-row" style="display:none">
+      <div class="form-group"><label>Couleur</label><input id="rf-couleur" type="color" value="#1565c0" style="height:40px;padding:4px"></div>
+      <div class="form-group"><label>Ordre d'affichage</label><input id="rf-ordre" type="number" value="100" step="10"></div>
+    </div>
+    <div class="form-row" id="rf-ordre-row">
+      <div class="form-group" style="grid-column:1/-1"><label>Ordre d'affichage</label><input id="rf-ordre2" type="number" value="100" step="10"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm btn-secondary" onclick="closeRefModal()">Annuler</button>
+      <button class="btn-sm btn-primary" onclick="saveRef()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -889,9 +922,14 @@ var SUPA = {
     </div>
     <div class="form-row">
       <div class="form-group"><label>D&eacute;partement</label>
-        <select id="em-dept"><option>Programmes &amp; services</option><option>Direction administrative</option><option>Communications &amp; evenements</option><option>Non defini</option></select>
+        <select id="em-dept"></select>
       </div>
-      <div class="form-group"><label>Poste</label><input id="em-poste" placeholder="Titre du poste"></div>
+      <div class="form-group"><label>Type de poste</label>
+        <select id="em-type-poste"></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="grid-column:1/-1"><label>D&eacute;tail / sp&eacute;cialisation <span style="color:var(--ink3);font-weight:400;text-transform:none">(optionnel)</span></label><input id="em-poste" placeholder="ex: Enfance/Jeunesse, Sant&eacute;, Famille..."></div>
     </div>
     <div class="form-row-3">
       <div class="form-group"><label>Salaire ($/h ou $/an)</label><input id="em-salaire" type="number" value="25" step="0.5"></div>
@@ -976,6 +1014,9 @@ function col(n){var c=['#2563eb','#16a34a','#7c3aed','#dc2626','#d97706','#0891b
 function ini(n){return n.split(' ').slice(0,2).map(function(w){return w[0]?w[0].toUpperCase():'';}).join('');}
 // Cache global des photos par nom (alimente depuis la base)
 var EMP_PHOTOS = {};
+// Caches globaux des referentiels (departements, types de poste)
+var REF_DEPTS = []; // [{id,nom,icone,couleur,ordre,actif}]
+var REF_TYPES = []; // [{id,nom,ordre,actif}]
 function photo(n){return EMP_PHOTOS[n]||PH[n]||'';}
 async function loadEmpPhotos(){
   try{
@@ -986,6 +1027,17 @@ async function loadEmpPhotos(){
     var rows=await r.json();
     rows.forEach(function(e){ if(e.photo_url) EMP_PHOTOS[e.nom]=e.photo_url; });
   }catch(e){console.warn('loadEmpPhotos:',e);}
+}
+async function loadReferentiels(){
+  try{
+    var h={'apikey':SUPA.key,'Authorization':'Bearer '+(SUPA.tok||SUPA.key)};
+    var [rd,rt]=await Promise.all([
+      fetch(SUPA.url+'/rest/v1/rh_departements?select=*&order=ordre,nom',{headers:h}).then(function(r){return r.json();}),
+      fetch(SUPA.url+'/rest/v1/rh_types_poste?select=*&order=ordre,nom',{headers:h}).then(function(r){return r.json();})
+    ]);
+    REF_DEPTS=Array.isArray(rd)?rd:[];
+    REF_TYPES=Array.isArray(rt)?rt:[];
+  }catch(e){console.warn('loadReferentiels:',e);}
 }
 
 // === PHOTO ELEMENT (safe, no inline handlers) ===
@@ -2556,7 +2608,7 @@ function authStart(nom) {
   document.getElementById('app').style.display = 'flex';
   S._empCache = {}; S._planCache = {};
   // Charger les photos depuis la base (async, en parallèle de selEmp)
-  loadEmpPhotos();
+  loadEmpPhotos(); loadReferentiels();
   selEmp(nom);
 }
 
@@ -2629,7 +2681,7 @@ window.onload = function() {
         SUPA.tok = s.tok;
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
-        loadEmpPhotos();
+        loadEmpPhotos(); loadReferentiels();
         selEmp(s.nom);
         return;
       }
@@ -3118,16 +3170,23 @@ async function loadConfig() {
   empEl.style.borderRadius = '0';
   empEl.style.overflow = 'visible';
   try {
+    // S'assurer que les referentiels sont charges
+    if(!REF_DEPTS.length || !REF_TYPES.length) await loadReferentiels();
     var r = await authFetch('/rest/v1/rh_employes?select=*&order=departement,nom');
     _empList = r.data || [];
     // Tri custom : Direction d'abord, puis Employe, puis les autres
     var STATUT_RANK = {'Direction':0,'Employe':1,'Stagiaire':2,'Prestataire externe':3,'Pigiste':4,'Freelance':5};
+    var TYPE_RANK = {};
+    REF_TYPES.forEach(function(t,i){TYPE_RANK[t.nom]=t.ordre||(100+i);});
     _empList.sort(function(a,b){
       var da = (a.departement||'').localeCompare(b.departement||'');
       if(da !== 0) return da;
       var ra = STATUT_RANK[a.statut] !== undefined ? STATUT_RANK[a.statut] : 99;
       var rb = STATUT_RANK[b.statut] !== undefined ? STATUT_RANK[b.statut] : 99;
       if(ra !== rb) return ra - rb;
+      var ta = TYPE_RANK[a.type_poste] !== undefined ? TYPE_RANK[a.type_poste] : 999;
+      var tb = TYPE_RANK[b.type_poste] !== undefined ? TYPE_RANK[b.type_poste] : 999;
+      if(ta !== tb) return ta - tb;
       return (a.nom||'').localeCompare(b.nom||'');
     });
     // Mettre a jour le cache de photos
@@ -3141,32 +3200,28 @@ async function loadConfig() {
       if(s==='Freelance') return 'tag-freelance';
       return 'tag-employe';
     }
-    // Grouper par departement
-    var DEPT_ORDER = ['Direction administrative','Programmes & services','Communications & evenements','Non defini'];
-    var DEPT_ICON = {
-      'Direction administrative':'&#127970;',
-      'Programmes & services':'&#127760;',
-      'Communications & evenements':'&#128227;',
-      'Non defini':'&#10067;'
-    };
+    // Grouper par departement (ordre depuis la base)
+    var DEPT_ORDER_NAMES = REF_DEPTS.map(function(d){return d.nom;});
+    var DEPT_INFO = {};
+    REF_DEPTS.forEach(function(d){DEPT_INFO[d.nom]={icone:d.icone||'🏢',couleur:d.couleur||'#546e7a'};});
     var groups = {};
     _empList.forEach(function(e,i){
       var d = e.departement || 'Non defini';
       if (!groups[d]) groups[d] = [];
       groups[d].push({emp:e, idx:i});
     });
-    var orderedDepts = DEPT_ORDER.filter(function(d){return groups[d];}).concat(
-      Object.keys(groups).filter(function(d){return DEPT_ORDER.indexOf(d)<0;})
+    var orderedDepts = DEPT_ORDER_NAMES.filter(function(d){return groups[d];}).concat(
+      Object.keys(groups).filter(function(d){return DEPT_ORDER_NAMES.indexOf(d)<0;})
     );
     var h = '';
     orderedDepts.forEach(function(dept,deptIdx){
-      var icon = DEPT_ICON[dept] || '&#128101;';
+      var info = DEPT_INFO[dept] || {icone:'👥',couleur:'#546e7a'};
       // Wrapper "carte" avec espace prononce et ombre pour ressortir
       // overflow:visible pour permettre au menu kebab de deborder
-      h += '<div style="margin-bottom:'+(deptIdx<orderedDepts.length-1?'20px':'0')+';border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);position:relative">';
+      h += '<div style="margin-bottom:'+(deptIdx<orderedDepts.length-1?'20px':'0')+';border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);position:relative;border-left:4px solid '+info.couleur+'">';
       // Header departement avec coins arrondis en haut (compense le retrait de overflow:hidden)
-      h += '<div style="background:var(--s2);padding:12px 16px;font-size:13px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--bd);border-radius:12px 12px 0 0;display:flex;align-items:center;gap:8px">';
-      h += '<span style="font-size:16px">'+icon+'</span>'+dept;
+      h += '<div style="background:var(--s2);padding:12px 16px;font-size:13px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--bd);border-radius:8px 12px 0 0;display:flex;align-items:center;gap:8px">';
+      h += '<span style="font-size:16px">'+info.icone+'</span>'+dept;
       h += '<span style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.4px">'+groups[dept].length+' employ&eacute;'+(groups[dept].length>1?'s':'')+'</span>';
       h += '</div>';
       // Tableau du departement avec largeurs FIXES pour aligner entre depts
@@ -3191,9 +3246,13 @@ async function loadConfig() {
           av = '<div class="av" style="width:36px;height:36px;font-size:13px;background:'+col(e.nom)+'">'+ini(e.nom)+'</div>';
         }
         h += '<tr>';
-        // Nom + photo
+        // Nom + photo + Type de poste — Detail
+        var posteAffiche = '';
+        if (e.type_poste && e.poste) posteAffiche = e.type_poste + ' &mdash; ' + e.poste;
+        else if (e.type_poste) posteAffiche = e.type_poste;
+        else if (e.poste) posteAffiche = e.poste;
         h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'">';
-        h += '<div style="display:flex;align-items:center;gap:12px;overflow:hidden">'+av+'<div style="overflow:hidden;text-overflow:ellipsis"><strong>'+e.nom+'</strong><br><small style="color:var(--ink3);font-weight:400">'+(e.poste||'')+'</small></div></div></td>';
+        h += '<div style="display:flex;align-items:center;gap:12px;overflow:hidden">'+av+'<div style="overflow:hidden"><strong>'+e.nom+'</strong><br><small style="color:var(--ink3);font-weight:400">'+posteAffiche+'</small></div></div></td>';
         // Email
         h += '<td style="font-size:12px;color:var(--ink2);padding:10px 14px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'+rowBorder+'" title="'+(e.email||'')+'">'+(e.email||'&mdash;')+'</td>';
         // Statut
@@ -3218,7 +3277,10 @@ async function loadConfig() {
     });
     empEl.innerHTML = h;
   } catch(e) { empEl.innerHTML = '<div style="color:var(--rd);padding:20px">Erreur: ' + e.message + '</div>'; }
-  
+
+  // Render des referentiels (depts + types de poste)
+  renderRefSection();
+
   // Charger params
   var paramsEl = document.getElementById('config-params-body');
   try {
@@ -3240,6 +3302,136 @@ async function saveParam(id) {
     await authFetch('/rest/v1/rh_config?id=eq.'+id, 'PATCH', {valeur: val});
     toast('Paramètre sauvegardé ✓');
   } catch(e) { toast('Erreur: ' + e.message, 1); }
+}
+
+// ════════════════════════════════════════════════════════════════
+// REFERENTIELS (departements + types de poste)
+// ════════════════════════════════════════════════════════════════
+function renderRefSection(){
+  var dEl = document.getElementById('config-depts-card');
+  var tEl = document.getElementById('config-types-card');
+  if(!dEl || !tEl) return;
+  // Card departements
+  var hd = '<div style="border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);overflow:hidden">';
+  hd += '<div style="background:var(--s2);padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">';
+  hd += '<div style="font-size:13px;font-weight:700">&#128193; D&eacute;partements <span style="color:var(--ink3);font-weight:500;font-size:11px">('+REF_DEPTS.length+')</span></div>';
+  hd += '<button class="btn-sm btn-primary" style="padding:5px 10px;font-size:11px" onclick="openAddRef(\'dept\')">+ Ajouter</button>';
+  hd += '</div><div style="padding:6px">';
+  REF_DEPTS.forEach(function(d,i){
+    var disabled = d.actif === false;
+    hd += '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;'+(disabled?'opacity:.5;':'')+'">';
+    hd += '<div style="width:24px;height:24px;border-radius:6px;background:'+(d.couleur||'#999')+'33;display:flex;align-items:center;justify-content:center;font-size:14px">'+(d.icone||'🏢')+'</div>';
+    hd += '<div style="flex:1;font-size:13px;font-weight:500">'+d.nom+(disabled?' <small style="color:var(--ink3)">(inactif)</small>':'')+'</div>';
+    hd += '<div style="position:relative">';
+    var menuId = 'kd-'+d.id;
+    hd += '<button class="kebab-btn" onclick="toggleKebab(\''+menuId+'\',event)">&#8942;</button>';
+    hd += '<div class="kebab-menu" id="'+menuId+'">';
+    hd += '<button class="kebab-item" onclick="closeKebab();openEditRef(\'dept\',\''+d.id+'\')"><span class="kebab-icon">&#9999;</span>Modifier</button>';
+    hd += '<button class="kebab-item" onclick="closeKebab();toggleRefActif(\'dept\',\''+d.id+'\','+(disabled?'true':'false')+')"><span class="kebab-icon">'+(disabled?'&#10003;':'&#128683;')+'</span>'+(disabled?'Activer':'Désactiver')+'</button>';
+    hd += '<button class="kebab-item danger" onclick="closeKebab();deleteRef(\'dept\',\''+d.id+'\','+JSON.stringify(d.nom)+')"><span class="kebab-icon">&#128465;</span>Supprimer</button>';
+    hd += '</div></div></div>';
+  });
+  hd += '</div></div>';
+  dEl.innerHTML = hd;
+  // Card types de poste
+  var ht = '<div style="border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);overflow:hidden">';
+  ht += '<div style="background:var(--s2);padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">';
+  ht += '<div style="font-size:13px;font-weight:700">&#128188; Types de poste <span style="color:var(--ink3);font-weight:500;font-size:11px">('+REF_TYPES.length+')</span></div>';
+  ht += '<button class="btn-sm btn-primary" style="padding:5px 10px;font-size:11px" onclick="openAddRef(\'type\')">+ Ajouter</button>';
+  ht += '</div><div style="padding:6px">';
+  REF_TYPES.forEach(function(t){
+    var disabled = t.actif === false;
+    ht += '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;'+(disabled?'opacity:.5;':'')+'">';
+    ht += '<div style="flex:1;font-size:13px;font-weight:500">'+t.nom+(disabled?' <small style="color:var(--ink3)">(inactif)</small>':'')+'</div>';
+    ht += '<div style="font-size:11px;color:var(--ink3)">ordre '+t.ordre+'</div>';
+    ht += '<div style="position:relative">';
+    var menuId = 'kt-'+t.id;
+    ht += '<button class="kebab-btn" onclick="toggleKebab(\''+menuId+'\',event)">&#8942;</button>';
+    ht += '<div class="kebab-menu" id="'+menuId+'">';
+    ht += '<button class="kebab-item" onclick="closeKebab();openEditRef(\'type\',\''+t.id+'\')"><span class="kebab-icon">&#9999;</span>Modifier</button>';
+    ht += '<button class="kebab-item" onclick="closeKebab();toggleRefActif(\'type\',\''+t.id+'\','+(disabled?'true':'false')+')"><span class="kebab-icon">'+(disabled?'&#10003;':'&#128683;')+'</span>'+(disabled?'Activer':'Désactiver')+'</button>';
+    ht += '<button class="kebab-item danger" onclick="closeKebab();deleteRef(\'type\',\''+t.id+'\','+JSON.stringify(t.nom)+')"><span class="kebab-icon">&#128465;</span>Supprimer</button>';
+    ht += '</div></div></div>';
+  });
+  ht += '</div></div>';
+  tEl.innerHTML = ht;
+}
+
+function openAddRef(kind){
+  document.getElementById('rf-kind').value = kind;
+  document.getElementById('rf-id').value = '';
+  document.getElementById('rf-nom').value = '';
+  document.getElementById('rf-icone').value = '🏢';
+  document.getElementById('rf-couleur').value = '#1565c0';
+  document.getElementById('rf-ordre').value = '100';
+  document.getElementById('rf-ordre2').value = '100';
+  document.getElementById('ref-modal-title').textContent = kind==='dept'?'Ajouter un département':'Ajouter un type de poste';
+  document.getElementById('rf-dept-extra').style.display = kind==='dept'?'':'none';
+  document.getElementById('rf-couleur-row').style.display = kind==='dept'?'flex':'none';
+  document.getElementById('rf-ordre-row').style.display = kind==='dept'?'none':'flex';
+  document.getElementById('ref-modal').style.display = 'flex';
+}
+function openEditRef(kind, id){
+  var list = kind==='dept'?REF_DEPTS:REF_TYPES;
+  var item = list.find(function(x){return x.id===id;});
+  if(!item) return;
+  document.getElementById('rf-kind').value = kind;
+  document.getElementById('rf-id').value = id;
+  document.getElementById('rf-nom').value = item.nom;
+  document.getElementById('rf-icone').value = item.icone || '🏢';
+  document.getElementById('rf-couleur').value = item.couleur || '#1565c0';
+  document.getElementById('rf-ordre').value = item.ordre || 100;
+  document.getElementById('rf-ordre2').value = item.ordre || 100;
+  document.getElementById('ref-modal-title').textContent = kind==='dept'?'Modifier le département':'Modifier le type de poste';
+  document.getElementById('rf-dept-extra').style.display = kind==='dept'?'':'none';
+  document.getElementById('rf-couleur-row').style.display = kind==='dept'?'flex':'none';
+  document.getElementById('rf-ordre-row').style.display = kind==='dept'?'none':'flex';
+  document.getElementById('ref-modal').style.display = 'flex';
+}
+function closeRefModal(){ document.getElementById('ref-modal').style.display='none'; }
+async function saveRef(){
+  var kind = document.getElementById('rf-kind').value;
+  var id = document.getElementById('rf-id').value;
+  var nom = document.getElementById('rf-nom').value.trim();
+  if(!nom){ toast('Nom requis',1); return; }
+  var table = kind==='dept'?'rh_departements':'rh_types_poste';
+  var data;
+  if(kind==='dept'){
+    data = {nom:nom, icone:document.getElementById('rf-icone').value||'🏢', couleur:document.getElementById('rf-couleur').value, ordre:parseInt(document.getElementById('rf-ordre').value)||100};
+  } else {
+    data = {nom:nom, ordre:parseInt(document.getElementById('rf-ordre2').value)||100};
+  }
+  try {
+    if(id){ await authFetch('/rest/v1/'+table+'?id=eq.'+id, 'PATCH', data); toast(kind==='dept'?'Département modifié ✓':'Type modifié ✓'); }
+    else { await authFetch('/rest/v1/'+table, 'POST', data); toast(kind==='dept'?'Département ajouté ✓':'Type ajouté ✓'); }
+    closeRefModal();
+    await loadReferentiels();
+    loadConfig();
+  } catch(e){ toast('Erreur: '+e.message,1); }
+}
+async function toggleRefActif(kind, id, activate){
+  var table = kind==='dept'?'rh_departements':'rh_types_poste';
+  try {
+    await authFetch('/rest/v1/'+table+'?id=eq.'+id, 'PATCH', {actif: activate});
+    toast(activate?'Activé':'Désactivé');
+    await loadReferentiels();
+    loadConfig();
+  } catch(e){ toast('Erreur: '+e.message,1); }
+}
+async function deleteRef(kind, id, nom){
+  var table = kind==='dept'?'rh_departements':'rh_types_poste';
+  var label = kind==='dept'?'département':'type de poste';
+  var col = kind==='dept'?'departement':'type_poste';
+  // Verifier utilisation
+  var used = _empList.filter(function(e){return e[col]===nom;}).length;
+  if(used>0){ toast(used+' employés utilisent ce '+label+'. Désactivez-le plutôt.',1); return; }
+  if(!confirm('Supprimer le '+label+' « '+nom+' » ?')) return;
+  try {
+    await authFetch('/rest/v1/'+table+'?id=eq.'+id, 'DELETE');
+    toast('Supprimé');
+    await loadReferentiels();
+    loadConfig();
+  } catch(e){ toast('Erreur: '+e.message,1); }
 }
 
 // === KEBAB MENU ===
@@ -3330,6 +3522,39 @@ async function uploadPhotoToStorage(file, empNom){
   return SUPA.url + '/storage/v1/object/public/employee-photos/' + filename;
 }
 
+// Peuple les <select> du modal a partir des referentiels en cache
+function populateModalDropdowns(selectedDept, selectedType){
+  var dSel = document.getElementById('em-dept');
+  dSel.innerHTML = '';
+  var depts = REF_DEPTS.filter(function(d){return d.actif !== false;});
+  if(!depts.length) depts = [{nom:'Non defini'}]; // fallback
+  // Si le dept courant n'est pas dans la liste (ex: ancienne valeur), on l'ajoute en premier
+  if(selectedDept && !depts.find(function(d){return d.nom===selectedDept;})){
+    depts.unshift({nom:selectedDept,icone:'❓'});
+  }
+  depts.forEach(function(d){
+    var o = document.createElement('option');
+    o.value = d.nom;
+    o.textContent = (d.icone?d.icone+' ':'')+d.nom;
+    if(d.nom===selectedDept) o.selected = true;
+    dSel.appendChild(o);
+  });
+
+  var tSel = document.getElementById('em-type-poste');
+  tSel.innerHTML = '';
+  var types = REF_TYPES.filter(function(t){return t.actif !== false;});
+  if(selectedType && !types.find(function(t){return t.nom===selectedType;})){
+    types.unshift({nom:selectedType});
+  }
+  types.forEach(function(t){
+    var o = document.createElement('option');
+    o.value = t.nom;
+    o.textContent = t.nom;
+    if(t.nom===selectedType) o.selected = true;
+    tSel.appendChild(o);
+  });
+}
+
 function openAddEmp() {
   document.getElementById('emp-modal-title').textContent = 'Ajouter un employé';
   document.getElementById('em-id').value = '';
@@ -3338,7 +3563,7 @@ function openAddEmp() {
   document.getElementById('em-statut').value = 'Employe';
   document.getElementById('em-h').value = '37.5';
   document.getElementById('em-actif').value = 'true';
-  document.getElementById('em-dept').value = 'Programmes & services';
+  populateModalDropdowns('Non defini', 'Autre');
   document.getElementById('em-poste').value = '';
   document.getElementById('em-salaire').value = '25';
   document.getElementById('em-type-sal').value = 'Horaire';
@@ -3359,7 +3584,7 @@ function openEditEmp(idx) {
   document.getElementById('em-statut').value = e.statut;
   document.getElementById('em-h').value = e.heures_semaine;
   document.getElementById('em-actif').value = e.actif ? 'true' : 'false';
-  document.getElementById('em-dept').value = e.departement || 'Non defini';
+  populateModalDropdowns(e.departement || 'Non defini', e.type_poste || 'Autre');
   document.getElementById('em-poste').value = e.poste || '';
   document.getElementById('em-salaire').value = e.salaire || 25;
   document.getElementById('em-type-sal').value = e.type_salaire || 'Horaire';
@@ -3392,6 +3617,7 @@ async function saveEmp() {
     heures_semaine: parseFloat(document.getElementById('em-h').value),
     actif: document.getElementById('em-actif').value === 'true',
     departement: document.getElementById('em-dept').value,
+    type_poste: document.getElementById('em-type-poste').value,
     poste: document.getElementById('em-poste').value.trim(),
     salaire: parseFloat(document.getElementById('em-salaire').value),
     type_salaire: document.getElementById('em-type-sal').value,
