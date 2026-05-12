@@ -552,6 +552,9 @@ body.dark{color-scheme:dark}
 .page-subtitle::before{content:'— ';margin-right:2px;opacity:.6}
 /* Selecteurs de date locaux : visibles uniquement pour les employes (Direction utilise le global) */
 body.dir-mode .emp-date-nav{display:none}
+/* Sauf quand un Direction est sur ses silos perso (Mon pointage/resume/planning) : on bascule en mode employe */
+body.dir-mode.viewing-emp .emp-date-nav{display:flex}
+body.dir-mode.viewing-emp .tb-period{display:none}
 .page-header-bar{position:sticky;top:108px;background:var(--card);z-index:50;padding:14px 28px 12px;margin:-24px -28px 16px;border-bottom:1px solid var(--bd)}
 #sc-kpi .page-title,#sc-config .page-title{position:sticky;top:108px;background:var(--card);z-index:50;padding:14px 28px;margin:-24px -28px 16px;border-bottom:1px solid var(--bd)}
 /* Sticky toolbars pour toutes les pages */
@@ -1203,6 +1206,8 @@ function gotoDir(id,el){
   el.classList.add('on');
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
   document.getElementById('sc-'+id).classList.add('on');
+  // Sortir du mode "vue employe" (on est sur un silo Direction)
+  document.body.classList.remove('viewing-emp');
   // Sync vars locales depuis la periode globale (pour que chaque silo utilise la meme date)
   S.dashY=S.gY; S.dashM=S.gM;
   S.teamY=S.gY; S.teamM=S.gM;
@@ -1219,8 +1224,9 @@ function gotoTab(id,el){
   el.classList.add('on');
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
   document.getElementById('sc-'+id).classList.add('on');
-  // Sync depuis periode globale (Direction users : la date globale pilote tout)
+  // Direction sur ses silos perso : mode "viewing-emp" pour basculer en selecteur local
   if(S.role === 'direction'){
+    document.body.classList.add('viewing-emp');
     S.py = S.gY; S.pm = S.gM;
     S.rY = S.gY; S.rM = S.gM;
     S.planY = S.gY; S.planM = S.gM;
