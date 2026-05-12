@@ -652,9 +652,13 @@ var SUPA = {
       <h2>Connexion</h2>
       <p>Connectez-vous avec votre email</p>
       <label>Email</label>
-      <input type="email" id="ai-email" placeholder="votre@email.com" autocomplete="off" autocorrect="off" spellcheck="false">
+      <input type="email" id="ai-email" placeholder="votre@email.com"
+             autocomplete="off" autocorrect="off" spellcheck="false"
+             readonly onfocus="this.removeAttribute('readonly')">
       <label>Mot de passe</label>
-      <input type="password" id="ai-pwd" placeholder="••••••••" autocomplete="new-password">
+      <input type="password" id="ai-pwd" placeholder="••••••••"
+             autocomplete="new-password"
+             readonly onfocus="this.removeAttribute('readonly')">
       <button class="ab-btn" id="ab-login" onclick="authLogin()">Se connecter</button>
       <div id="av-login-msg"></div>
       <div class="ab-links"><a onclick="authShowForgot()">Mot de passe oubli&eacute;</a></div>
@@ -2881,10 +2885,17 @@ function authShowLogin()  {
   document.getElementById('av-signup').style.display='none';
   document.getElementById('av-forgot').style.display='none';
   document.getElementById('av-pick').style.display='none';
-  // Vider les champs (par securite, ne pas laisser les identifiants du user precedent)
-  var elE = document.getElementById('ai-email'); if(elE) elE.value = '';
-  var elP = document.getElementById('ai-pwd');   if(elP) elP.value = '';
+  // Vider les champs + remettre readonly pour empecher le pre-remplissage navigateur
+  var elE = document.getElementById('ai-email');
+  if(elE){ elE.value = ''; elE.setAttribute('readonly','readonly'); }
+  var elP = document.getElementById('ai-pwd');
+  if(elP){ elP.value = ''; elP.setAttribute('readonly','readonly'); }
   var elM = document.getElementById('av-login-msg'); if(elM) elM.textContent = '';
+  // Double-clear apres 100ms au cas ou le navigateur ait re-rempli entre-temps
+  setTimeout(function(){
+    if(elE) elE.value = '';
+    if(elP) elP.value = '';
+  }, 100);
 }
 function authShowSignup() { document.getElementById('av-login').style.display='none'; document.getElementById('av-signup').style.display=''; document.getElementById('av-forgot').style.display='none'; document.getElementById('av-pick').style.display='none'; }
 function authShowForgot() { document.getElementById('av-login').style.display='none'; document.getElementById('av-signup').style.display='none'; document.getElementById('av-forgot').style.display=''; document.getElementById('av-pick').style.display='none'; }
