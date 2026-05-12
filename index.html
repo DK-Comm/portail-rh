@@ -3123,15 +3123,21 @@ async function loadConfig() {
       Object.keys(groups).filter(function(d){return DEPT_ORDER.indexOf(d)<0;})
     );
     var h = '';
-    orderedDepts.forEach(function(dept){
+    orderedDepts.forEach(function(dept,deptIdx){
       var icon = DEPT_ICON[dept] || '&#128101;';
-      h += '<div style="background:var(--s2);padding:10px 16px;font-size:13px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px">';
+      // Wrapper avec espace entre les groupes
+      h += '<div style="margin-bottom:'+(deptIdx<orderedDepts.length-1?'24px':'0')+';border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--card)">';
+      // Header departement
+      h += '<div style="background:var(--s2);padding:12px 16px;font-size:13px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px">';
       h += '<span style="font-size:16px">'+icon+'</span>'+dept;
       h += '<span style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.4px">'+groups[dept].length+' employ&eacute;'+(groups[dept].length>1?'s':'')+'</span>';
       h += '</div>';
+      // Tableau du departement
       h += '<table style="width:100%;border-collapse:collapse"><tbody>';
-      groups[dept].forEach(function(item){
+      groups[dept].forEach(function(item,rowIdx){
         var e = item.emp, i = item.idx;
+        var isLast = rowIdx === groups[dept].length-1;
+        var rowBorder = isLast ? '' : 'border-bottom:1px solid var(--bd2);';
         var av;
         if (e.photo_url) {
           av = '<img src="'+e.photo_url+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.outerHTML=\'<div class=&quot;av&quot; style=&quot;width:36px;height:36px;font-size:13px;background:'+col(e.nom)+'&quot;>'+ini(e.nom)+'</div>\'">';
@@ -3139,17 +3145,21 @@ async function loadConfig() {
           av = '<div class="av" style="width:36px;height:36px;font-size:13px;background:'+col(e.nom)+'">'+ini(e.nom)+'</div>';
         }
         h += '<tr>';
-        h += '<td style="padding:10px 14px;display:flex;align-items:center;gap:12px;min-width:240px">'+av+'<div><strong>'+e.nom+'</strong><br><small style="color:var(--ink3)">'+(e.poste||'')+'</small></div></td>';
-        h += '<td style="font-size:12px;color:var(--ink2);padding:10px 14px">'+(e.email||'&mdash;')+'</td>';
-        h += '<td style="padding:10px 14px"><span class="tag '+(e.statut==='Direction'?'tag-direction':'tag-employe')+'">'+e.statut+'</span></td>';
-        h += '<td style="padding:10px 14px;font-size:12px">'+e.heures_semaine+'h</td>';
-        h += '<td style="padding:10px 14px"><span style="color:'+(e.actif?'var(--gr)':'var(--rd)')+';font-weight:600">'+(e.actif?'&#10003; Oui':'&#10005; Non')+'</span></td>';
-        h += '<td style="padding:10px 14px;display:flex;gap:6px">';
-        h += '<button class="btn-sm btn-secondary" onclick="openEditEmp('+i+')">Modifier</button>';
-        h += '<button class="btn-sm btn-danger" onclick="deleteEmp('+JSON.stringify(e.id)+','+JSON.stringify(e.nom)+')">Supprimer</button>';
-        h += '</td></tr>';
+        // Cellule nom + photo : flex DANS un div, pas sur le td
+        h += '<td style="padding:10px 14px;vertical-align:middle;min-width:240px;'+rowBorder+'">';
+        h += '<div style="display:flex;align-items:center;gap:12px">'+av+'<div><strong>'+e.nom+'</strong><br><small style="color:var(--ink3)">'+(e.poste||'')+'</small></div></div></td>';
+        h += '<td style="font-size:12px;color:var(--ink2);padding:10px 14px;vertical-align:middle;'+rowBorder+'">'+(e.email||'&mdash;')+'</td>';
+        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span class="tag '+(e.statut==='Direction'?'tag-direction':'tag-employe')+'">'+e.statut+'</span></td>';
+        h += '<td style="padding:10px 14px;font-size:12px;vertical-align:middle;'+rowBorder+'">'+e.heures_semaine+'h</td>';
+        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span style="color:'+(e.actif?'var(--gr)':'var(--rd)')+';font-weight:600">'+(e.actif?'&#10003; Oui':'&#10005; Non')+'</span></td>';
+        // Cellule actions : flex DANS un div
+        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'">';
+        h += '<div style="display:flex;gap:6px"><button class="btn-sm btn-secondary" onclick="openEditEmp('+i+')">Modifier</button>';
+        h += '<button class="btn-sm btn-danger" onclick="deleteEmp('+JSON.stringify(e.id)+','+JSON.stringify(e.nom)+')">Supprimer</button></div></td>';
+        h += '</tr>';
       });
       h += '</tbody></table>';
+      h += '</div>'; // fin wrapper dept
     });
     empEl.innerHTML = h;
   } catch(e) { empEl.innerHTML = '<div style="color:var(--rd);padding:20px">Erreur: ' + e.message + '</div>'; }
