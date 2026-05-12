@@ -490,6 +490,16 @@ body.dark{color-scheme:dark}
 .stat-box .sv{font-size:24px;font-weight:800;color:var(--ink)}
 .stat-box .sl{font-size:11px;color:var(--ink3);margin-top:4px}
 .trend-up{color:var(--gr)}.trend-down{color:var(--rd)}.trend-stable{color:var(--am)}
+/* Kebab menu pour actions employes */
+.kebab-btn{width:32px;height:32px;border-radius:6px;border:none;background:transparent;cursor:pointer;color:var(--ink2);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:background .12s;padding:0;line-height:1}
+.kebab-btn:hover{background:var(--s2);color:var(--ink)}
+.kebab-menu{position:absolute;right:0;top:36px;min-width:160px;background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:100;padding:4px;display:none;flex-direction:column;gap:1px}
+.kebab-menu.on{display:flex}
+.kebab-item{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:13px;border:none;background:transparent;cursor:pointer;text-align:left;border-radius:5px;color:var(--ink);font-weight:500;transition:background .1s;width:100%}
+.kebab-item:hover{background:var(--s2)}
+.kebab-item.danger{color:var(--rd)}
+.kebab-item.danger:hover{background:var(--rd-s)}
+.kebab-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
 
 </style>
 
@@ -3157,10 +3167,15 @@ async function loadConfig() {
         h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span class="tag '+(e.statut==='Direction'?'tag-direction':'tag-employe')+'">'+e.statut+'</span></td>';
         h += '<td style="padding:10px 14px;font-size:12px;vertical-align:middle;'+rowBorder+'">'+e.heures_semaine+'h</td>';
         h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span style="color:'+(e.actif?'var(--gr)':'var(--rd)')+';font-weight:600">'+(e.actif?'&#10003; Oui':'&#10005; Non')+'</span></td>';
-        // Cellule actions : flex DANS un div
-        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'">';
-        h += '<div style="display:flex;gap:6px"><button class="btn-sm btn-secondary" onclick="openEditEmp('+i+')">Modifier</button>';
-        h += '<button class="btn-sm btn-danger" onclick="deleteEmp('+JSON.stringify(e.id)+','+JSON.stringify(e.nom)+')">Supprimer</button></div></td>';
+        // Cellule actions : kebab menu (...)
+        var menuId = 'kmenu-'+i;
+        h += '<td style="padding:10px 14px;vertical-align:middle;text-align:right;'+rowBorder+'">';
+        h += '<div style="position:relative;display:inline-block">';
+        h += '<button class="kebab-btn" onclick="toggleKebab(\''+menuId+'\',event)" title="Actions">&#8942;</button>';
+        h += '<div class="kebab-menu" id="'+menuId+'">';
+        h += '<button class="kebab-item" onclick="closeKebab();openEditEmp('+i+')"><span class="kebab-icon">&#9999;&#65039;</span>Modifier</button>';
+        h += '<button class="kebab-item danger" onclick="closeKebab();deleteEmp('+JSON.stringify(e.id)+','+JSON.stringify(e.nom)+')"><span class="kebab-icon">&#128465;&#65039;</span>Supprimer</button>';
+        h += '</div></div></td>';
         h += '</tr>';
       });
       h += '</tbody></table>';
@@ -3191,6 +3206,24 @@ async function saveParam(id) {
     toast('Paramètre sauvegardé ✓');
   } catch(e) { toast('Erreur: ' + e.message, 1); }
 }
+
+// === KEBAB MENU ===
+function toggleKebab(id, ev){
+  if(ev){ev.stopPropagation();}
+  var menu = document.getElementById(id);
+  if(!menu) return;
+  var wasOpen = menu.classList.contains('on');
+  // Fermer tous les autres
+  document.querySelectorAll('.kebab-menu.on').forEach(function(m){m.classList.remove('on');});
+  if(!wasOpen) menu.classList.add('on');
+}
+function closeKebab(){
+  document.querySelectorAll('.kebab-menu.on').forEach(function(m){m.classList.remove('on');});
+}
+// Fermer les kebab menus quand on clique ailleurs
+document.addEventListener('click', function(e){
+  if(!e.target.closest || !e.target.closest('.kebab-menu, .kebab-btn')) closeKebab();
+});
 
 // === PHOTO PREVIEW & UPLOAD ===
 var _pendingPhotoFile = null; // fichier selectionne, uploade au save
