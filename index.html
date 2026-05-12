@@ -450,10 +450,14 @@ body.dark{
 
 /* ── Nouveaux écrans direction ── */
 .page-title{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:20px;display:flex;align-items:center;gap:10px}
-.page-header-bar{position:sticky;top:60px;background:var(--bg);z-index:50;padding:14px 0 12px;margin-bottom:0!important;border-bottom:1px solid var(--bd)}
+.page-header-bar{position:sticky;top:108px;background:var(--bg);z-index:50;padding:14px 0 12px;margin-bottom:0!important;border-bottom:1px solid var(--bd)}
 .page-header-bar + *{margin-top:16px}
-#sc-kpi .page-title,#sc-config .page-title{position:sticky;top:60px;background:var(--bg);z-index:50;padding:14px 0;margin-bottom:0;border-bottom:1px solid var(--bd)}
+#sc-kpi .page-title,#sc-config .page-title{position:sticky;top:108px;background:var(--bg);z-index:50;padding:14px 0;margin-bottom:0;border-bottom:1px solid var(--bd)}
 #sc-kpi .page-title + *,#sc-config .page-title + *{margin-top:16px}
+/* Sticky toolbars pour toutes les pages */
+#sc-ptg .vbar,#sc-rsm .vbar,#sc-plan .vbar{position:sticky;top:108px;background:var(--bg);z-index:50;padding:14px 0 12px;margin-bottom:16px;border-bottom:1px solid var(--bd)}
+#sc-dash .d-topbar{position:sticky;top:108px;z-index:50}
+#sc-team .d-nav-row,#sc-dalerts > .page > div:first-child{position:sticky;top:108px;background:var(--bg);z-index:50;padding:14px 0 12px;margin-bottom:16px;border-bottom:1px solid var(--bd)}
 .card-table{background:var(--card);border-radius:var(--r);border:1px solid var(--bd);overflow:hidden;margin-bottom:20px;overflow-x:auto}
 .card-table table{width:100%;border-collapse:collapse;min-width:600px}
 .card-table th{background:#f8f9fc;padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bd);white-space:nowrap}
