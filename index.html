@@ -1025,19 +1025,73 @@ var SUPA = {
             <div style="font-size:10.5px;color:var(--ink3);margin-top:4px">Par défaut, les employés inactifs et ceux avec statut « Direction » sont exclus automatiquement.</div>
           </div>
 
+          <!-- Mode d'emploi des variables (encadre pedagogique) -->
+          <details style="background:#fef9e7;border:1px solid #f4d35e;border-radius:10px;padding:0;margin-bottom:14px;overflow:hidden">
+            <summary style="cursor:pointer;padding:12px 14px;font-size:12.5px;font-weight:700;color:#7a5d00;list-style:none;display:flex;align-items:center;justify-content:space-between">
+              <span>&#128218; Comment fonctionnent les variables (à lire avant de modifier les modèles)</span>
+              <span style="font-size:11px;color:#a07a00">▼ Déplier</span>
+            </summary>
+            <div style="padding:0 14px 14px;font-size:12px;color:#5c4500;line-height:1.6">
+              <p style="margin-bottom:10px"><strong>Principe :</strong> dans les modèles ci-dessous, tout ce qui est écrit entre <strong>doubles accolades</strong> sera remplacé automatiquement par la vraie valeur au moment de l'envoi du mail.</p>
+
+              <div style="background:#fff;border:1px solid #f4d35e;border-radius:7px;padding:10px 12px;margin-bottom:12px;font-family:monospace;font-size:11.5px">
+                <div style="color:#999;margin-bottom:4px">Ce que vous écrivez :</div>
+                <div style="margin-bottom:8px">Bonjour <strong>{{prenom}}</strong>, votre cycle se termine le <strong>{{date_fin}}</strong>.</div>
+                <div style="color:#999;margin-bottom:4px">Ce que l'employé reçoit :</div>
+                <div style="color:#22863a">Bonjour <strong>Marie</strong>, votre cycle se termine le <strong>24/05/2026</strong>.</div>
+              </div>
+
+              <p style="margin-bottom:8px"><strong>Variables disponibles :</strong></p>
+              <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:12px;background:#fff;border-radius:6px;overflow:hidden">
+                <tr style="background:#fef0c5"><th style="text-align:left;padding:6px 10px;border-bottom:1px solid #f4d35e">Variable</th><th style="text-align:left;padding:6px 10px;border-bottom:1px solid #f4d35e">Signification</th><th style="text-align:left;padding:6px 10px;border-bottom:1px solid #f4d35e">Exemple</th><th style="text-align:left;padding:6px 10px;border-bottom:1px solid #f4d35e">Disponible dans</th></tr>
+                <tr><td style="padding:6px 10px;font-family:monospace">{{prenom}}</td><td style="padding:6px 10px">Prénom de l'employé</td><td style="padding:6px 10px;color:#22863a">Marie</td><td style="padding:6px 10px;color:#666">Individuel seulement</td></tr>
+                <tr style="background:#fffdf4"><td style="padding:6px 10px;font-family:monospace">{{nom}}</td><td style="padding:6px 10px">Nom complet de l'employé</td><td style="padding:6px 10px;color:#22863a">Marie Dubois</td><td style="padding:6px 10px;color:#666">Individuel seulement</td></tr>
+                <tr><td style="padding:6px 10px;font-family:monospace">{{date_fin}}</td><td style="padding:6px 10px">Date de fin du cycle en cours</td><td style="padding:6px 10px;color:#22863a">24/05/2026</td><td style="padding:6px 10px;color:#666">Les deux</td></tr>
+                <tr style="background:#fffdf4"><td style="padding:6px 10px;font-family:monospace">{{jours_restants}}</td><td style="padding:6px 10px">Jours ouvrables restants</td><td style="padding:6px 10px;color:#22863a">3</td><td style="padding:6px 10px;color:#666">Individuel seulement</td></tr>
+                <tr><td style="padding:6px 10px;font-family:monospace">{{h_manquantes}}</td><td style="padding:6px 10px">Heures manquantes estimées</td><td style="padding:6px 10px;color:#22863a">14</td><td style="padding:6px 10px;color:#666">Individuel seulement</td></tr>
+                <tr style="background:#fffdf4"><td style="padding:6px 10px;font-family:monospace">{{jours_sans_pointage}}</td><td style="padding:6px 10px">Nombre de jours non pointés</td><td style="padding:6px 10px;color:#22863a">2</td><td style="padding:6px 10px;color:#666">Individuel seulement</td></tr>
+              </table>
+
+              <div style="background:#fff;border:1px solid #f4a261;border-radius:7px;padding:10px 12px;margin-bottom:10px">
+                <div style="font-weight:700;color:#c44d00;margin-bottom:5px">&#9888; Règles à respecter STRICTEMENT</div>
+                <ul style="margin:0;padding-left:20px;color:#5c4500">
+                  <li><strong>Toujours 2 accolades</strong> de chaque côté : <code style="background:#f0f0f0;padding:1px 4px">&#123;&#123;prenom&#125;&#125;</code> et pas <code style="background:#f0f0f0;padding:1px 4px">&#123;prenom&#125;</code></li>
+                  <li><strong>Pas d'espace</strong> à l'intérieur : <code style="background:#f0f0f0;padding:1px 4px">&#123;&#123;prenom&#125;&#125;</code> et pas <code style="background:#f0f0f0;padding:1px 4px">&#123;&#123; prenom &#125;&#125;</code></li>
+                  <li><strong>Respecter la casse</strong> : <code style="background:#f0f0f0;padding:1px 4px">&#123;&#123;prenom&#125;&#125;</code> et pas <code style="background:#f0f0f0;padding:1px 4px">&#123;&#123;Prenom&#125;&#125;</code> ou <code style="background:#f0f0f0;padding:1px 4px">&#123;&#123;PRENOM&#125;&#125;</code></li>
+                  <li><strong>Orthographe exacte</strong> : <code style="background:#f0f0f0;padding:1px 4px">date_fin</code> avec un <strong>underscore</strong>, pas un tiret ou un espace</li>
+                </ul>
+              </div>
+
+              <div style="background:#fee;border:1px solid #f88;border-radius:7px;padding:10px 12px">
+                <div style="font-weight:700;color:#a00;margin-bottom:5px">&#10060; Exemples d'erreurs (variables qui ne seront PAS remplacées)</div>
+                <table style="width:100%;font-size:11.5px;border-collapse:collapse">
+                  <tr><td style="padding:3px 0;font-family:monospace;color:#a00">{prenom}</td><td style="padding:3px 0;color:#666">— une seule accolade</td></tr>
+                  <tr><td style="padding:3px 0;font-family:monospace;color:#a00">{{ prenom }}</td><td style="padding:3px 0;color:#666">— espaces à l'intérieur</td></tr>
+                  <tr><td style="padding:3px 0;font-family:monospace;color:#a00">{{Prenom}}</td><td style="padding:3px 0;color:#666">— majuscule au début</td></tr>
+                  <tr><td style="padding:3px 0;font-family:monospace;color:#a00">{{date-fin}}</td><td style="padding:3px 0;color:#666">— tiret au lieu d'underscore</td></tr>
+                  <tr><td style="padding:3px 0;font-family:monospace;color:#a00">{{date fin}}</td><td style="padding:3px 0;color:#666">— espace au lieu d'underscore</td></tr>
+                </table>
+                <div style="margin-top:6px;font-size:11px;color:#666;font-style:italic">Si une variable est mal écrite, elle apparaîtra <strong>telle quelle</strong> dans le mail (ex : « Bonjour {{Prenom}}, ... »).</div>
+              </div>
+
+              <p style="margin-top:12px;color:#5c4500"><strong>&#128161; Astuce :</strong> en cas de doute, copiez-collez les variables depuis le tableau ci-dessus plutôt que de les retaper.</p>
+              <p style="margin-top:6px;color:#5c4500"><strong>&#128065; Vérification :</strong> après modification, cliquez sur <em>« Voir qui est en retard »</em> puis sur <em>« Envoyer »</em> à côté d'un employé pour ouvrir Outlook avec le résultat. Si une variable n'a pas été remplacée, vous la verrez immédiatement.</p>
+            </div>
+          </details>
+
           <!-- Templates : 2 modes (groupe / individuel) -->
           <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px">
-            <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:10px">&#128101; Modèle groupé <small style="color:var(--ink3);font-weight:400">(BCC — pas de variables, message commun)</small></div>
+            <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:10px">&#128101; Modèle groupé <small style="color:var(--ink3);font-weight:400">(BCC — message commun à tous)</small></div>
             <input type="text" id="alerts-cfg-subject-group" placeholder="Rappel : pointage à compléter — cycle se terminant le {{date_fin}}" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card);color:var(--ink);margin-bottom:8px">
             <textarea id="alerts-cfg-body-group" rows="6" style="width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
-            <div style="font-size:10.5px;color:var(--ink3);margin-top:5px">Variables disponibles : <code>{{date_fin}}</code></div>
+            <div style="font-size:10.5px;color:var(--ink3);margin-top:5px"><strong>Seule variable utilisable ici :</strong> <code>{{date_fin}}</code> (les autres ne marchent pas car le mail est groupé)</div>
           </div>
 
           <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px">
             <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:10px">&#128100; Modèle individuel <small style="color:var(--ink3);font-weight:400">(personnalisé par employé)</small></div>
             <input type="text" id="alerts-cfg-subject" placeholder="Rappel : votre pointage du cycle en cours" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card);color:var(--ink);margin-bottom:8px">
             <textarea id="alerts-cfg-body" rows="8" style="width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
-            <div style="font-size:10.5px;color:var(--ink3);margin-top:5px">Variables : <code>{{prenom}}</code> <code>{{nom}}</code> <code>{{date_fin}}</code> <code>{{jours_restants}}</code> <code>{{h_manquantes}}</code> <code>{{jours_sans_pointage}}</code></div>
+            <div style="font-size:10.5px;color:var(--ink3);margin-top:5px"><strong>Variables utilisables :</strong> <code>{{prenom}}</code> <code>{{nom}}</code> <code>{{date_fin}}</code> <code>{{jours_restants}}</code> <code>{{h_manquantes}}</code> <code>{{jours_sans_pointage}}</code></div>
           </div>
 
           <!-- Actions -->
