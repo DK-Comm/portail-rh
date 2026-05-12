@@ -2824,6 +2824,30 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+// Re-render la vue active quand la fenetre est redimensionnee (debounce 250ms)
+var _resizeTimer = null;
+var _lastViewportW = window.innerWidth;
+window.addEventListener('resize', function(){
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function(){
+    // Seulement si changement de largeur significatif (>50px) pour eviter re-renders inutiles
+    if (Math.abs(window.innerWidth - _lastViewportW) < 50) return;
+    _lastViewportW = window.innerWidth;
+    var active = document.querySelector('.screen.on');
+    if (!active) return;
+    var id = active.id;
+    try {
+      if (id === 'sc-ptg' && typeof renderPtg === 'function') renderPtg();
+      else if (id === 'sc-plan' && typeof renderPlan === 'function') renderPlan();
+      else if (id === 'sc-rsm' && typeof loadRsm === 'function') loadRsm();
+      else if (id === 'sc-dash' && typeof loadDash === 'function') loadDash();
+      else if (id === 'sc-team' && typeof loadTeam === 'function') loadTeam();
+      else if (id === 'sc-fiche' && _ficheLoaded && typeof loadFiche === 'function') loadFiche();
+      else if (id === 'sc-config' && typeof loadConfig === 'function') loadConfig();
+    } catch(e) { console.warn('resize re-render:', e); }
+  }, 250);
+});
+
 window.onload = async function() {
   initDark();
   ptgSync();
