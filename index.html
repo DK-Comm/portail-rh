@@ -909,21 +909,10 @@ var SUPA = {
 
 <script>
 // === PHOTOS ===
+// Les photos sont desormais stockees dans Supabase Storage (bucket 'employee-photos')
+// et accessibles via rh_employes.photo_url (charge dans EMP_PHOTOS au login).
+// Aucune URL hardcodee : l'admin uploade/modifie via le modal Config.
 var PH = {};
-PH['Anais Fabvre Agnese']       = 'https://espacemuni.org/wp-content/uploads/2025/02/Anais-copie-2-scaled.jpeg';
-PH['Denis Guerin']              = 'https://espacemuni.org/wp-content/uploads/2021/03/Denis-Guerin1-e1770660915588.jpg';
-PH['Emmanuelle Jean-Arsenault'] = 'https://espacemuni.org/wp-content/uploads/2021/11/Emmanuelle_6_CHOIX-e1652377675746-scaled.jpg';
-PH['Isabelle Lizee']            = 'https://espacemuni.org/wp-content/uploads/2021/03/Isabelle_9-e1652211605291-scaled-e1676915236485.jpg';
-PH['Karine Jehelmann']          = 'https://espacemuni.org/wp-content/uploads/2024/06/1706101773766.jpg';
-PH['Marieve Paradis']           = 'https://espacemuni.org/wp-content/uploads/2026/02/marieve_paradis-scaled.jpg';
-PH['Myriam Daigneault']         = 'https://espacemuni.org/wp-content/uploads/2025/02/Myriam-copie-2-scaled.jpeg';
-PH['Rana Boubaker']             = 'https://espacemuni.org/wp-content/uploads/2024/06/Rana.jpg';
-PH['Sandy-Elisa Greene']        = 'https://espacemuni.org/wp-content/uploads/2023/11/Sandy-scaled.jpg';
-PH['Sebastien Truong']          = 'https://espacemuni.org/wp-content/uploads/2023/11/Sebastien-scaled.jpg';
-PH['Steve Fontaine']            = 'https://espacemuni.org/wp-content/uploads/2026/02/sf2.jpg';
-PH['Sylvie Lariviere']          = 'https://espacemuni.org/wp-content/uploads/2021/03/Sylvie-Lariviere2_officielle-scaled-e1676915267806.jpg';
-PH['Veronique Wong Kwan Chuen'] = 'https://espacemuni.org/wp-content/uploads/2025/06/Veronique-scaled-1.jpg';
-PH['Yasmine Benzidane']         = 'https://espacemuni.org/wp-content/uploads/2021/03/yasmine.jpeg';
 
 // === CONSTANTS ===
 var MFR = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
