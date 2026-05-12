@@ -1595,10 +1595,17 @@ function dashPeriod(p,el){
   document.querySelectorAll('.d-pbtn').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
   S.dashPeriod=p;
-  var now=new Date();
-  if(p==='week'){ S.dashW=mon0(now); S.dashY=S.dashW.getFullYear(); S.dashM=S.dashW.getMonth(); }
-  else if(p==='quarter'){ S.dashQ=Math.floor(now.getMonth()/3); S.dashY=now.getFullYear(); S.dashM=S.dashQ*3; }
-  else { S.dashM=now.getMonth(); S.dashY=now.getFullYear(); }
+  // Garder le contexte temporel (mois affiché) — juste changer la granularite
+  if(p==='week'){
+    // Aligner la semaine sur le 1er du mois affiche (sauf si on est deja sur ce mois courant -> garder la semaine courante)
+    var now=new Date();
+    if(S.dashY===now.getFullYear() && S.dashM===now.getMonth()) S.dashW=mon0(now);
+    else S.dashW=mon0(new Date(S.dashY,S.dashM,1));
+  } else if(p==='quarter'){
+    S.dashQ=Math.floor(S.dashM/3);
+    S.dashM=S.dashQ*3;
+  }
+  // Pour 'month' : on garde S.dashY/S.dashM tels quels
   loadDash();
 }
 function teamNav(dir){S.teamM+=dir;if(S.teamM>11){S.teamM=0;S.teamY++;}if(S.teamM<0){S.teamM=11;S.teamY--;}loadTeam();}
