@@ -980,16 +980,16 @@ var SUPA = {
       </div>
     </div>
 
-    <!-- ── Rappels automatiques aux employes ── -->
+    <!-- ── Rappels de pointage (via Outlook) ── -->
     <div class="kpi-section">
-      <div class="kpi-section-title">&#128231; Rappels automatiques de pointage <span style="color:var(--ink3);font-weight:500;font-size:11px">(envoi optionnel aux employés)</span></div>
+      <div class="kpi-section-title">&#128231; Rappels de pointage <span style="color:var(--ink3);font-weight:500;font-size:11px">(envoi via Outlook, en 1 clic)</span></div>
       <div style="border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);padding:18px 20px">
 
         <!-- Toggle master -->
         <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--bd);margin-bottom:16px">
           <div>
-            <div style="font-size:13px;font-weight:700">Activer les rappels automatiques</div>
-            <div style="font-size:11px;color:var(--ink3);margin-top:2px;max-width:520px">Si activé, chaque jour à l'heure choisie, les employés sans pointage suffisant pour le cycle de paie en cours reçoivent un mail de rappel — uniquement à X jours ouvrables de la fin du cycle.</div>
+            <div style="font-size:13px;font-weight:700">Activer le module de rappels</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:2px;max-width:600px">Permet d'identifier les employés sans pointage suffisant pour le cycle en cours et de leur envoyer un mail de rappel via votre Outlook — soit en lot (BCC, confidentiel), soit individuellement (personnalisé).</div>
           </div>
           <label class="switch"><input type="checkbox" id="alerts-cfg-enabled"><span class="slider"></span></label>
         </div>
@@ -997,17 +997,12 @@ var SUPA = {
         <!-- Body -->
         <div id="alerts-cfg-section" style="display:block">
 
-          <!-- Parametres de declenchement -->
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px">
+          <!-- Parametres -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
             <div>
-              <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Jours ouvrables avant fin de cycle</div>
+              <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Fenêtre de rappel (jours ouvrables avant fin de cycle)</div>
               <input type="number" min="1" max="10" id="alerts-cfg-days" value="3" style="width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
-              <div style="font-size:10.5px;color:var(--ink3);margin-top:3px">Ex. 3 = rappel envoyé chaque jour des 3 derniers jours ouvrables du cycle si pointage manquant</div>
-            </div>
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Heure d'envoi quotidien</div>
-              <input type="time" id="alerts-cfg-hour" value="08:00" style="width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
-              <div style="font-size:10.5px;color:var(--ink3);margin-top:3px">Heure locale (America/Toronto)</div>
+              <div style="font-size:10.5px;color:var(--ink3);margin-top:3px">La simulation indique « fenêtre active » uniquement à X jours ouvrables de la fin. Vous pouvez quand même envoyer hors fenêtre.</div>
             </div>
             <div>
               <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Seuil heures manquantes</div>
@@ -1018,54 +1013,36 @@ var SUPA = {
 
           <!-- Exclusions -->
           <div style="margin-bottom:16px">
-            <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Exclusions <small style="color:var(--ink3);font-weight:400">(emails à ne JAMAIS notifier — séparés par virgule)</small></div>
+            <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Exclusions <small style="color:var(--ink3);font-weight:400">(emails à ne jamais notifier — séparés par virgule)</small></div>
             <input type="text" id="alerts-cfg-exclude" placeholder="direction@exemple.com, stagiaire@exemple.com" style="width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
             <div style="font-size:10.5px;color:var(--ink3);margin-top:4px">Par défaut, les employés inactifs et ceux avec statut « Direction » sont exclus automatiquement.</div>
           </div>
 
-          <!-- Expediteur + Copie -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Expéditeur</div>
-              <input type="text" id="alerts-cfg-from" placeholder="RH Espace Muni &lt;rh@espacemuni.qc.ca&gt;" style="width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
-              <div style="font-size:10.5px;color:var(--ink3);margin-top:3px">Format : « Nom &lt;email&gt; ». Le domaine doit être vérifié dans Resend.</div>
-            </div>
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Copie systématique (CC)</div>
-              <input type="text" id="alerts-cfg-cc" placeholder="rh@exemple.com (optionnel)" style="width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
-              <div style="font-size:10.5px;color:var(--ink3);margin-top:3px">Reçoit une copie de tous les rappels envoyés.</div>
-            </div>
+          <!-- Templates : 2 modes (groupe / individuel) -->
+          <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:10px">&#128101; Modèle groupé <small style="color:var(--ink3);font-weight:400">(BCC — pas de variables, message commun)</small></div>
+            <input type="text" id="alerts-cfg-subject-group" placeholder="Rappel : pointage à compléter — cycle se terminant le {{date_fin}}" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card);color:var(--ink);margin-bottom:8px">
+            <textarea id="alerts-cfg-body-group" rows="6" style="width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
+            <div style="font-size:10.5px;color:var(--ink3);margin-top:5px">Variables disponibles : <code>{{date_fin}}</code></div>
           </div>
 
-          <!-- Template sujet -->
-          <div style="margin-bottom:14px">
-            <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Objet du mail <small style="color:var(--ink3);font-weight:400">— variables : {{prenom}}, {{nom}}, {{date_fin}}, {{jours_restants}}</small></div>
-            <input type="text" id="alerts-cfg-subject" placeholder="Rappel : pointage à compléter avant le {{date_fin}}" style="width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
-          </div>
-
-          <!-- Template corps -->
-          <div style="margin-bottom:14px">
-            <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Corps du mail <small style="color:var(--ink3);font-weight:400">— variables : {{prenom}}, {{nom}}, {{date_fin}}, {{jours_restants}}, {{h_manquantes}}, {{jours_sans_pointage}}</small></div>
-            <textarea id="alerts-cfg-body" rows="10" style="width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
-          </div>
-
-          <!-- Statut dernier envoi -->
-          <div id="alerts-last-run" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--ink2);display:none">
-            <span style="color:var(--ink3)">Dernier envoi :</span> <strong id="alerts-last-run-when">—</strong> · <span id="alerts-last-run-count">—</span>
+          <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:10px">&#128100; Modèle individuel <small style="color:var(--ink3);font-weight:400">(personnalisé par employé)</small></div>
+            <input type="text" id="alerts-cfg-subject" placeholder="Rappel : votre pointage du cycle en cours" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card);color:var(--ink);margin-bottom:8px">
+            <textarea id="alerts-cfg-body" rows="8" style="width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
+            <div style="font-size:10.5px;color:var(--ink3);margin-top:5px">Variables : <code>{{prenom}}</code> <code>{{nom}}</code> <code>{{date_fin}}</code> <code>{{jours_restants}}</code> <code>{{h_manquantes}}</code> <code>{{jours_sans_pointage}}</code></div>
           </div>
 
           <!-- Actions -->
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
             <button class="btn-sm btn-primary" onclick="saveAlertsConfig()">&#128190; Sauvegarder</button>
-            <button class="btn-sm" onclick="simulateReminders()" style="background:var(--s2);color:var(--ink);border:1px solid var(--bd)">&#128269; Simuler aujourd'hui</button>
-            <button class="btn-sm" onclick="sendTestReminder()" style="background:var(--s2);color:var(--ink);border:1px solid var(--bd)" title="Envoie un mail de test à votre adresse">&#128231; Envoyer test</button>
-            <button class="btn-sm" onclick="resetAlertsTemplate()" style="background:transparent;color:var(--ink3);border:1px dashed var(--bd)">Restaurer le modèle par défaut</button>
+            <button class="btn-sm" onclick="simulateReminders()" style="background:var(--s2);color:var(--ink);border:1px solid var(--bd)">&#128269; Voir qui est en retard</button>
+            <button class="btn-sm" onclick="resetAlertsTemplate()" style="background:transparent;color:var(--ink3);border:1px dashed var(--bd)">Restaurer modèles par défaut</button>
             <span id="alerts-cfg-status" style="font-size:11px;color:var(--ink3);margin-left:auto"></span>
           </div>
 
-          <!-- Note Phase 2 -->
-          <div style="margin-top:14px;padding:10px 14px;background:#fff3cd;border:1px solid #ffe69c;border-radius:8px;font-size:11.5px;color:#856404">
-            &#9888; <strong>L'envoi réel n'est pas encore activé.</strong> Ce panneau permet déjà de configurer et simuler. L'activation finale nécessite : compte Resend + clé API + déploiement Edge Function Supabase. Voir <code>RAPPELS_SETUP.md</code> dans le repo.
+          <div style="margin-top:14px;padding:10px 14px;background:#e8f4fd;border:1px solid #b8e0fb;border-radius:8px;font-size:11.5px;color:#1e5582">
+            &#128161; <strong>Comment ça marche :</strong> cliquez sur « Voir qui est en retard » pour afficher la liste des employés concernés aujourd'hui. Depuis cette liste, vous pouvez envoyer un mail groupé (tous en CCi/BCC, confidentiel) ou un mail personnalisé par employé. Chaque envoi ouvre votre Outlook avec le mail pré-rempli — il vous suffit de valider.
           </div>
         </div>
       </div>
@@ -4123,20 +4100,20 @@ async function saveParam(id, cle) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// RAPPELS AUTOMATIQUES DE POINTAGE (config + simulation + test)
+// RAPPELS DE POINTAGE (config + simulation + envoi mailto)
 // ════════════════════════════════════════════════════════════════
 var ALERTS_CFG = {
   enabled: false,
   daysBefore: 3,
-  hour: '08:00',
   threshold: 0,
   exclude: '',
-  fromAddr: '',
-  ccAddr: '',
-  subject: 'Rappel : pointage à compléter avant le {{date_fin}}',
-  body: ''
+  subject: '',
+  body: '',
+  subjectGroup: '',
+  bodyGroup: ''
 };
-var ALERTS_DEFAULT_SUBJECT = 'Rappel : pointage à compléter avant le {{date_fin}}';
+var ALERTS_DEFAULT_SUBJECT       = 'Rappel : votre pointage du cycle en cours';
+var ALERTS_DEFAULT_SUBJECT_GROUP = 'Rappel : pointage à compléter — cycle se terminant le {{date_fin}}';
 var ALERTS_DEFAULT_BODY =
   'Bonjour {{prenom}},\n\n' +
   'Le cycle de paie en cours se termine le {{date_fin}} ({{jours_restants}} jour(s) ouvrable(s) restant(s)).\n\n' +
@@ -4146,6 +4123,13 @@ var ALERTS_DEFAULT_BODY =
   'Merci de bien vouloir compléter votre pointage sur le portail RH :\n' +
   'https://dk-comm.github.io/portail-rh/\n\n' +
   'Cordialement,\nÉquipe RH — Espace Muni';
+var ALERTS_DEFAULT_BODY_GROUP =
+  'Bonjour,\n\n' +
+  'Le cycle de paie en cours se termine le {{date_fin}}.\n\n' +
+  'Si vous recevez ce mail, votre pointage est encore incomplet. ' +
+  'Merci de le compléter dès que possible sur le portail RH :\n' +
+  'https://dk-comm.github.io/portail-rh/\n\n' +
+  'Cordialement,\nÉquipe RH — Espace Muni';
 
 async function loadAlertsConfig(){
   try {
@@ -4153,38 +4137,24 @@ async function loadAlertsConfig(){
     var rows = r.data || [];
     var map = {};
     rows.forEach(function(p){ map[p.cle] = p.valeur; });
-    ALERTS_CFG.enabled    = (map.alerts_enabled === 'true');
-    ALERTS_CFG.daysBefore = parseInt(map.alerts_days_before) || 3;
-    ALERTS_CFG.hour       = map.alerts_hour || '08:00';
-    ALERTS_CFG.threshold  = parseFloat(map.alerts_threshold) || 0;
-    ALERTS_CFG.exclude    = map.alerts_exclude || '';
-    ALERTS_CFG.fromAddr   = map.alerts_from || '';
-    ALERTS_CFG.ccAddr     = map.alerts_cc || '';
-    ALERTS_CFG.subject    = map.alerts_subject || ALERTS_DEFAULT_SUBJECT;
-    ALERTS_CFG.body       = map.alerts_body || ALERTS_DEFAULT_BODY;
-    ALERTS_CFG.lastRunAt  = map.alerts_last_run_at || '';
-    ALERTS_CFG.lastRunCnt = map.alerts_last_run_count || '';
+    ALERTS_CFG.enabled      = (map.alerts_enabled === 'true');
+    ALERTS_CFG.daysBefore   = parseInt(map.alerts_days_before) || 3;
+    ALERTS_CFG.threshold    = parseFloat(map.alerts_threshold) || 0;
+    ALERTS_CFG.exclude      = map.alerts_exclude || '';
+    ALERTS_CFG.subject      = map.alerts_subject       || ALERTS_DEFAULT_SUBJECT;
+    ALERTS_CFG.body         = map.alerts_body          || ALERTS_DEFAULT_BODY;
+    ALERTS_CFG.subjectGroup = map.alerts_subject_group || ALERTS_DEFAULT_SUBJECT_GROUP;
+    ALERTS_CFG.bodyGroup    = map.alerts_body_group    || ALERTS_DEFAULT_BODY_GROUP;
   } catch(e){ /* defaults */ }
   // Hydrater l'UI
   var elEn = document.getElementById('alerts-cfg-enabled'); if(elEn){ elEn.checked = ALERTS_CFG.enabled; }
-  ['days','hour','thresh','exclude','from','cc','subject','body'].forEach(function(){});
-  var elD = document.getElementById('alerts-cfg-days'); if(elD) elD.value = ALERTS_CFG.daysBefore;
-  var elH = document.getElementById('alerts-cfg-hour'); if(elH) elH.value = ALERTS_CFG.hour;
-  var elT = document.getElementById('alerts-cfg-thresh'); if(elT) elT.value = ALERTS_CFG.threshold;
-  var elX = document.getElementById('alerts-cfg-exclude'); if(elX) elX.value = ALERTS_CFG.exclude;
-  var elF = document.getElementById('alerts-cfg-from'); if(elF) elF.value = ALERTS_CFG.fromAddr;
-  var elC = document.getElementById('alerts-cfg-cc'); if(elC) elC.value = ALERTS_CFG.ccAddr;
-  var elS = document.getElementById('alerts-cfg-subject'); if(elS) elS.value = ALERTS_CFG.subject;
-  var elB = document.getElementById('alerts-cfg-body'); if(elB) elB.value = ALERTS_CFG.body;
-  // Dernier envoi
-  if(ALERTS_CFG.lastRunAt){
-    var lr = document.getElementById('alerts-last-run');
-    if(lr){
-      lr.style.display = 'block';
-      document.getElementById('alerts-last-run-when').textContent = ALERTS_CFG.lastRunAt;
-      document.getElementById('alerts-last-run-count').textContent = (ALERTS_CFG.lastRunCnt||'0') + ' mail(s) envoyé(s)';
-    }
-  }
+  var elD  = document.getElementById('alerts-cfg-days');   if(elD)  elD.value  = ALERTS_CFG.daysBefore;
+  var elT  = document.getElementById('alerts-cfg-thresh'); if(elT)  elT.value  = ALERTS_CFG.threshold;
+  var elX  = document.getElementById('alerts-cfg-exclude');if(elX)  elX.value  = ALERTS_CFG.exclude;
+  var elS  = document.getElementById('alerts-cfg-subject'); if(elS) elS.value  = ALERTS_CFG.subject;
+  var elB  = document.getElementById('alerts-cfg-body');    if(elB) elB.value  = ALERTS_CFG.body;
+  var elSG = document.getElementById('alerts-cfg-subject-group'); if(elSG) elSG.value = ALERTS_CFG.subjectGroup;
+  var elBG = document.getElementById('alerts-cfg-body-group');    if(elBG) elBG.value = ALERTS_CFG.bodyGroup;
   refreshAlertsCfgVisibility();
   if(elEn && !elEn._wired){ elEn.addEventListener('change', refreshAlertsCfgVisibility); elEn._wired=true; }
 }
@@ -4192,7 +4162,7 @@ async function loadAlertsConfig(){
 function refreshAlertsCfgVisibility(){
   var elEn = document.getElementById('alerts-cfg-enabled');
   var on = elEn ? elEn.checked : false;
-  var controls = document.querySelectorAll('#alerts-cfg-days, #alerts-cfg-hour, #alerts-cfg-thresh, #alerts-cfg-exclude, #alerts-cfg-from, #alerts-cfg-cc, #alerts-cfg-subject, #alerts-cfg-body');
+  var controls = document.querySelectorAll('#alerts-cfg-days, #alerts-cfg-thresh, #alerts-cfg-exclude, #alerts-cfg-subject, #alerts-cfg-body, #alerts-cfg-subject-group, #alerts-cfg-body-group');
   controls.forEach(function(c){
     c.disabled = !on;
     c.style.opacity = on?'1':'.55';
@@ -4201,25 +4171,23 @@ function refreshAlertsCfgVisibility(){
 
 async function saveAlertsConfig(){
   var elEn = document.getElementById('alerts-cfg-enabled');
-  ALERTS_CFG.enabled    = !!(elEn && elEn.checked);
-  ALERTS_CFG.daysBefore = parseInt(document.getElementById('alerts-cfg-days').value)||3;
-  ALERTS_CFG.hour       = document.getElementById('alerts-cfg-hour').value || '08:00';
-  ALERTS_CFG.threshold  = parseFloat(document.getElementById('alerts-cfg-thresh').value)||0;
-  ALERTS_CFG.exclude    = (document.getElementById('alerts-cfg-exclude').value||'').trim();
-  ALERTS_CFG.fromAddr   = (document.getElementById('alerts-cfg-from').value||'').trim();
-  ALERTS_CFG.ccAddr     = (document.getElementById('alerts-cfg-cc').value||'').trim();
-  ALERTS_CFG.subject    = (document.getElementById('alerts-cfg-subject').value||'').trim() || ALERTS_DEFAULT_SUBJECT;
-  ALERTS_CFG.body       = (document.getElementById('alerts-cfg-body').value||'').trim() || ALERTS_DEFAULT_BODY;
+  ALERTS_CFG.enabled      = !!(elEn && elEn.checked);
+  ALERTS_CFG.daysBefore   = parseInt(document.getElementById('alerts-cfg-days').value)||3;
+  ALERTS_CFG.threshold    = parseFloat(document.getElementById('alerts-cfg-thresh').value)||0;
+  ALERTS_CFG.exclude      = (document.getElementById('alerts-cfg-exclude').value||'').trim();
+  ALERTS_CFG.subject      = (document.getElementById('alerts-cfg-subject').value||'').trim() || ALERTS_DEFAULT_SUBJECT;
+  ALERTS_CFG.body         = (document.getElementById('alerts-cfg-body').value||'').trim()    || ALERTS_DEFAULT_BODY;
+  ALERTS_CFG.subjectGroup = (document.getElementById('alerts-cfg-subject-group').value||'').trim() || ALERTS_DEFAULT_SUBJECT_GROUP;
+  ALERTS_CFG.bodyGroup    = (document.getElementById('alerts-cfg-body-group').value||'').trim()    || ALERTS_DEFAULT_BODY_GROUP;
   var payload = [
-    {cle:'alerts_enabled',     valeur:String(ALERTS_CFG.enabled),    categorie:'alertes'},
-    {cle:'alerts_days_before', valeur:String(ALERTS_CFG.daysBefore), categorie:'alertes'},
-    {cle:'alerts_hour',        valeur:ALERTS_CFG.hour,                categorie:'alertes'},
-    {cle:'alerts_threshold',   valeur:String(ALERTS_CFG.threshold),   categorie:'alertes'},
-    {cle:'alerts_exclude',     valeur:ALERTS_CFG.exclude,             categorie:'alertes'},
-    {cle:'alerts_from',        valeur:ALERTS_CFG.fromAddr,            categorie:'alertes'},
-    {cle:'alerts_cc',          valeur:ALERTS_CFG.ccAddr,              categorie:'alertes'},
-    {cle:'alerts_subject',     valeur:ALERTS_CFG.subject,             categorie:'alertes'},
-    {cle:'alerts_body',        valeur:ALERTS_CFG.body,                categorie:'alertes'}
+    {cle:'alerts_enabled',       valeur:String(ALERTS_CFG.enabled),    categorie:'alertes'},
+    {cle:'alerts_days_before',   valeur:String(ALERTS_CFG.daysBefore), categorie:'alertes'},
+    {cle:'alerts_threshold',     valeur:String(ALERTS_CFG.threshold),  categorie:'alertes'},
+    {cle:'alerts_exclude',       valeur:ALERTS_CFG.exclude,            categorie:'alertes'},
+    {cle:'alerts_subject',       valeur:ALERTS_CFG.subject,            categorie:'alertes'},
+    {cle:'alerts_body',          valeur:ALERTS_CFG.body,               categorie:'alertes'},
+    {cle:'alerts_subject_group', valeur:ALERTS_CFG.subjectGroup,       categorie:'alertes'},
+    {cle:'alerts_body_group',    valeur:ALERTS_CFG.bodyGroup,          categorie:'alertes'}
   ];
   var statusEl = document.getElementById('alerts-cfg-status');
   if(statusEl) statusEl.textContent = 'Sauvegarde…';
@@ -4244,10 +4212,12 @@ async function saveAlertsConfig(){
 }
 
 function resetAlertsTemplate(){
-  if(!confirm('Restaurer le sujet et le corps par défaut ?')) return;
-  document.getElementById('alerts-cfg-subject').value = ALERTS_DEFAULT_SUBJECT;
-  document.getElementById('alerts-cfg-body').value = ALERTS_DEFAULT_BODY;
-  toast('Modèle restauré (pensez à sauvegarder)');
+  if(!confirm('Restaurer les sujets et corps par défaut ?')) return;
+  document.getElementById('alerts-cfg-subject').value       = ALERTS_DEFAULT_SUBJECT;
+  document.getElementById('alerts-cfg-body').value          = ALERTS_DEFAULT_BODY;
+  document.getElementById('alerts-cfg-subject-group').value = ALERTS_DEFAULT_SUBJECT_GROUP;
+  document.getElementById('alerts-cfg-body-group').value    = ALERTS_DEFAULT_BODY_GROUP;
+  toast('Modèles restaurés (pensez à sauvegarder)');
 }
 
 // ───────── Calcul cycle de paie courant (helpers JS) ─────────
@@ -4281,55 +4251,49 @@ function _currentPayCycle(){
   return { start: cstart, end: cend };
 }
 
-// ───────── Simulation ─────────
+// ───────── Simulation + Envois mailto ─────────
+var _LAST_SIM = { emps:[], cycle:null, bizDaysUntilEnd:0 };
+function _fmtFR(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+
 async function simulateReminders(){
   var modal = document.getElementById('alert-mail-modal');
-  document.getElementById('amm-title').textContent = '🔍 Simulation — qui recevrait un rappel aujourd\'hui ?';
+  document.getElementById('amm-title').textContent = '🔍 Employés en retard de pointage';
   document.getElementById('amm-list').innerHTML = '<div class="spin" style="padding:18px">Calcul en cours…</div>';
   document.getElementById('amm-context').innerHTML = '';
   modal.style.display = 'flex';
 
-  // Lire la config courante (depuis l'UI, pas le cache)
+  // Lire la config courante (depuis l'UI)
   var daysBefore = parseInt(document.getElementById('alerts-cfg-days').value)||3;
   var threshold  = parseFloat(document.getElementById('alerts-cfg-thresh').value)||0;
   var exclude    = (document.getElementById('alerts-cfg-exclude').value||'').split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean);
-  var subjectTpl = document.getElementById('alerts-cfg-subject').value || ALERTS_DEFAULT_SUBJECT;
-  var bodyTpl    = document.getElementById('alerts-cfg-body').value    || ALERTS_DEFAULT_BODY;
 
-  // Calculer le cycle courant
   var cycle = _currentPayCycle();
   if(!cycle){
-    document.getElementById('amm-list').innerHTML = '<div style="padding:14px;color:var(--rd)">Cycle de paie non configuré (param <code>paie_cycle_start</code>).</div>';
+    document.getElementById('amm-list').innerHTML = '<div style="padding:14px;color:var(--rd)">Cycle de paie non configuré (paramètre <code>paie_cycle_start</code>).</div>';
     return;
   }
   var today = new Date(); today.setHours(0,0,0,0);
-  var bizDaysUntilEnd = _countBusinessDays(today, cycle.end) - 1; // -1 = jours restants APRÈS aujourd'hui
+  var bizDaysUntilEnd = _countBusinessDays(today, cycle.end) - 1;
   if(bizDaysUntilEnd < 0) bizDaysUntilEnd = 0;
   var inWindow = (today <= cycle.end) && (bizDaysUntilEnd < daysBefore);
-  var fmtFR = function(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); };
+  _LAST_SIM.cycle = cycle; _LAST_SIM.bizDaysUntilEnd = bizDaysUntilEnd;
 
   // Contexte affiché
   var ctxHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;font-size:11.5px">';
-  ctxHtml += '<div><span style="color:var(--ink3)">Cycle en cours :</span> <strong>'+fmtFR(cycle.start)+' → '+fmtFR(cycle.end)+'</strong></div>';
+  ctxHtml += '<div><span style="color:var(--ink3)">Cycle en cours :</span> <strong>'+_fmtFR(cycle.start)+' → '+_fmtFR(cycle.end)+'</strong></div>';
   ctxHtml += '<div><span style="color:var(--ink3)">Jours ouvrables restants :</span> <strong>'+bizDaysUntilEnd+'</strong></div>';
-  ctxHtml += '<div><span style="color:var(--ink3)">Fenêtre de rappel :</span> <strong style="color:'+(inWindow?'var(--gn)':'var(--ink3)')+'">'+(inWindow?'✓ Active aujourd\'hui':'Inactive (>'+daysBefore+'j de la fin)')+'</strong></div>';
+  ctxHtml += '<div><span style="color:var(--ink3)">Fenêtre de rappel :</span> <strong style="color:'+(inWindow?'var(--gn)':'var(--or,#e67e22)')+'">'+(inWindow?'✓ Active':'⚠ Inactive (>'+daysBefore+'j)')+'</strong></div>';
   ctxHtml += '</div>';
   document.getElementById('amm-context').innerHTML = ctxHtml;
 
-  if(!inWindow){
-    document.getElementById('amm-list').innerHTML = '<div style="padding:18px;text-align:center;color:var(--ink3);background:var(--s2);border-radius:8px;border:1px solid var(--bd)">Aucun rappel ne serait envoyé aujourd\'hui.<br><small>La fenêtre s\'ouvre '+daysBefore+' jour(s) ouvrable(s) avant la fin du cycle.</small></div>';
-    return;
-  }
-
-  // Charger employes actifs + horaires du cycle
   try {
-    var emp = await authFetchAll('/rest/v1/rh_employes?select=nom,email,statut,actif,type_poste,heures_norm_sem&order=nom');
+    var emp = await authFetchAll('/rest/v1/rh_employes?select=nom,email,statut,actif,heures_norm_sem&order=nom');
     var fromIso = cycle.start.toISOString().substring(0,10);
     var toIso   = cycle.end.toISOString().substring(0,10);
     var hor = await authFetchAll('/rest/v1/rh_horaires?select=nom,date_pointage,debut,fin,type_jour&date_pointage=gte.'+fromIso+'&date_pointage=lte.'+toIso);
     var byEmp = {}; (hor||[]).forEach(function(r){ (byEmp[r.nom]=byEmp[r.nom]||[]).push(r); });
 
-    var bizDaysInCycle = _businessDaysBetween(cycle.start, today); // jusqu'à aujourd'hui
+    var bizDaysInCycle = _businessDaysBetween(cycle.start, today);
     var todoEmps = [];
     (emp||[]).forEach(function(e){
       if(e.actif===false) return;
@@ -4338,18 +4302,16 @@ async function simulateReminders(){
       if(!emailLower) return;
       if(exclude.indexOf(emailLower)>=0) return;
       var rows = byEmp[e.nom] || [];
-      // Compter jours pointes (avec debut/fin OU absence reportee) dans la periode jusqu'a aujourd'hui
       var pointed = {};
       rows.forEach(function(r){
         var d = r.date_pointage; if(!d) return;
         if(r.debut && r.fin) pointed[d]=1;
-        else if(r.type_jour && r.type_jour!=='work') pointed[d]=1; // absence renseignee = OK
+        else if(r.type_jour && r.type_jour!=='work') pointed[d]=1;
       });
       var bizDaysExpected = bizDaysInCycle.length;
       var bizDaysDone = bizDaysInCycle.filter(function(d){ return pointed[d.toISOString().substring(0,10)]; }).length;
       var missingDays = bizDaysExpected - bizDaysDone;
       if(missingDays <= 0) return;
-      // Heures manquantes estimees : missingDays * (heures_norm_sem/5) ou 7
       var perDay = e.heures_norm_sem ? (parseFloat(e.heures_norm_sem)/5) : 7;
       var missingH = Math.round(missingDays * perDay * 10)/10;
       if(missingH < threshold) return;
@@ -4358,18 +4320,33 @@ async function simulateReminders(){
         prenom:(e.nom||'').split(' ')[0]
       });
     });
+    _LAST_SIM.emps = todoEmps;
 
-    // Affichage
     if(!todoEmps.length){
       document.getElementById('amm-list').innerHTML = '<div style="padding:18px;text-align:center;color:var(--gn);background:#e8f5e9;border-radius:8px;border:1px solid #c8e6c9">✓ Tous les employés sont à jour. Aucun rappel à envoyer.</div>';
       return;
     }
-    var h = '<div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:8px">'+todoEmps.length+' employé(s) recevrai(en)t un rappel :</div>';
+
+    // Liste + boutons d'action
+    var h = '';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap">';
+    h += '<div style="font-size:12.5px;font-weight:600;color:var(--ink)"><span style="color:var(--rd)">'+todoEmps.length+'</span> employé(s) en retard de pointage</div>';
+    h += '<button onclick="sendRemindersGroup()" class="btn-sm btn-primary" style="padding:8px 14px">&#128231; Envoyer rappel groupé (BCC)</button>';
+    h += '</div>';
     h += '<div style="border:1px solid var(--bd);border-radius:8px;overflow:hidden">';
     todoEmps.forEach(function(e, i){
       h += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;'+(i>0?'border-top:1px solid var(--bd);':'')+'background:var(--card)">';
-      h += '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ink)">'+e.nom+'</div><div style="font-size:11px;color:var(--ink3)">'+(e.email||'<em>email manquant</em>')+'</div></div>';
-      h += '<div style="text-align:right;font-size:11.5px"><div style="color:var(--rd);font-weight:600">'+e.missingDays+' jour(s) manqué(s)</div><div style="color:var(--ink3)">≈ '+e.missingH+' h</div></div>';
+      h += '<div style="flex:1;min-width:0">';
+      h += '<div style="font-size:13px;font-weight:600;color:var(--ink)">'+e.nom+'</div>';
+      h += '<div style="font-size:11px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.email||'<em style="color:var(--rd)">email manquant</em>')+'</div>';
+      h += '</div>';
+      h += '<div style="text-align:right;font-size:11.5px;flex-shrink:0">';
+      h += '<div style="color:var(--rd);font-weight:600">'+e.missingDays+' jour(s)</div>';
+      h += '<div style="color:var(--ink3)">≈ '+e.missingH+' h</div>';
+      h += '</div>';
+      if(e.email){
+        h += '<button onclick="sendReminderIndividual('+i+')" class="btn-sm" style="background:var(--ac-s);color:var(--ac);border:1px solid var(--ac);padding:6px 10px;flex-shrink:0" title="Envoyer mail personnalisé">&#9993; Envoyer</button>';
+      }
       h += '</div>';
     });
     h += '</div>';
@@ -4380,12 +4357,14 @@ async function simulateReminders(){
     var vars = {
       prenom: first.prenom,
       nom: first.nom,
-      date_fin: fmtFR(cycle.end),
+      date_fin: _fmtFR(cycle.end),
       jours_restants: String(bizDaysUntilEnd),
       h_manquantes: String(first.missingH),
       jours_sans_pointage: String(first.missingDays)
     };
     function fill(s){ return s.replace(/\{\{(\w+)\}\}/g, function(_,k){ return vars[k]||'{{'+k+'}}'; }); }
+    var subjectTpl = document.getElementById('alerts-cfg-subject').value || ALERTS_DEFAULT_SUBJECT;
+    var bodyTpl    = document.getElementById('alerts-cfg-body').value    || ALERTS_DEFAULT_BODY;
     document.getElementById('amm-to').textContent = first.email;
     document.getElementById('amm-subject').textContent = fill(subjectTpl);
     document.getElementById('amm-body').textContent = fill(bodyTpl);
@@ -4397,31 +4376,47 @@ async function simulateReminders(){
 
 function closeAlertMailModal(){ document.getElementById('alert-mail-modal').style.display='none'; }
 
-async function sendTestReminder(){
-  // Phase 1 : l'Edge Function n'est pas encore deployee
-  // On affiche un message explicatif + on propose d'ouvrir mailto
+// Envoi groupé (un seul mailto, BCC = tous les retardataires)
+function sendRemindersGroup(){
+  if(!_LAST_SIM.emps || !_LAST_SIM.emps.length){ toast('Aucun destinataire',1); return; }
   var ses = JSON.parse(sessionStorage.getItem('rh_s')||'{}');
   var myEmail = ses.email || '';
-  if(!myEmail){ toast('Email utilisateur introuvable',1); return; }
-  if(!confirm('L\'envoi automatique réel nécessite le déploiement de l\'Edge Function Supabase (voir RAPPELS_SETUP.md).\n\nEn attendant, voulez-vous ouvrir un mail de test pré-rempli dans votre client mail ?\n\nDestinataire : '+myEmail)) return;
-  // Construire un mail de demo
-  var cycle = _currentPayCycle();
-  if(!cycle){ toast('Cycle de paie non configuré',1); return; }
-  var fmtFR = function(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); };
-  var subject = (document.getElementById('alerts-cfg-subject').value||ALERTS_DEFAULT_SUBJECT)
-    .replace(/\{\{prenom\}\}/g,'Test')
-    .replace(/\{\{nom\}\}/g,'Utilisateur')
-    .replace(/\{\{date_fin\}\}/g,fmtFR(cycle.end))
-    .replace(/\{\{jours_restants\}\}/g,'2');
-  var body = '[TEST] '+
-    (document.getElementById('alerts-cfg-body').value||ALERTS_DEFAULT_BODY)
-    .replace(/\{\{prenom\}\}/g,'Test')
-    .replace(/\{\{nom\}\}/g,'Utilisateur')
-    .replace(/\{\{date_fin\}\}/g,fmtFR(cycle.end))
-    .replace(/\{\{jours_restants\}\}/g,'2')
-    .replace(/\{\{h_manquantes\}\}/g,'14')
-    .replace(/\{\{jours_sans_pointage\}\}/g,'2');
-  var url = 'mailto:'+encodeURIComponent(myEmail)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  var bccList = _LAST_SIM.emps.map(function(e){return e.email;}).filter(Boolean).join(',');
+  var cycle = _LAST_SIM.cycle;
+  var subject = (document.getElementById('alerts-cfg-subject-group').value || ALERTS_DEFAULT_SUBJECT_GROUP)
+                  .replace(/\{\{date_fin\}\}/g, cycle ? _fmtFR(cycle.end) : '');
+  var body    = (document.getElementById('alerts-cfg-body-group').value || ALERTS_DEFAULT_BODY_GROUP)
+                  .replace(/\{\{date_fin\}\}/g, cycle ? _fmtFR(cycle.end) : '');
+  // TO = soi-même (pour avoir une copie dans Envoyés) ; BCC = tous les retardataires
+  var url = 'mailto:' + encodeURIComponent(myEmail || bccList.split(',')[0]) +
+            '?bcc=' + encodeURIComponent(bccList) +
+            '&subject=' + encodeURIComponent(subject) +
+            '&body=' + encodeURIComponent(body);
+  if(url.length > 1900){
+    if(!confirm('Le mail contient '+_LAST_SIM.emps.length+' destinataires. Certaines versions d\'Outlook tronquent les longs mailto: — préférez le mode individuel si problème.\n\nContinuer ?')) return;
+  }
+  window.location.href = url;
+}
+
+// Envoi individuel (mailto personnalisé pour 1 employé)
+function sendReminderIndividual(idx){
+  var e = _LAST_SIM.emps && _LAST_SIM.emps[idx];
+  if(!e || !e.email){ toast('Email manquant',1); return; }
+  var cycle = _LAST_SIM.cycle;
+  var vars = {
+    prenom: e.prenom,
+    nom: e.nom,
+    date_fin: cycle ? _fmtFR(cycle.end) : '',
+    jours_restants: String(_LAST_SIM.bizDaysUntilEnd),
+    h_manquantes: String(e.missingH),
+    jours_sans_pointage: String(e.missingDays)
+  };
+  function fill(s){ return s.replace(/\{\{(\w+)\}\}/g, function(_,k){ return vars[k]||''; }); }
+  var subject = fill(document.getElementById('alerts-cfg-subject').value || ALERTS_DEFAULT_SUBJECT);
+  var body    = fill(document.getElementById('alerts-cfg-body').value    || ALERTS_DEFAULT_BODY);
+  var url = 'mailto:' + encodeURIComponent(e.email) +
+            '?subject=' + encodeURIComponent(subject) +
+            '&body=' + encodeURIComponent(body);
   window.location.href = url;
 }
 
