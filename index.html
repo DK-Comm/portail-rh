@@ -3541,7 +3541,10 @@ async function loadFiche() {
     h += '<div class="stat-box"><div class="sv">' + totalConge + 'j</div><div class="sl">Congés</div></div>';
     h += '</div>';
     // Bouton voir l'historique (changements de salaire, heures_semaine, etc.)
-    h += '<div style="width:100%;margin-top:12px;text-align:right"><button onclick="openEmpHistory('+JSON.stringify(emp)+')" class="btn-sm" style="background:var(--s2);color:var(--ink);border:1px solid var(--bd);padding:6px 12px;font-size:12px">&#128218; Voir l\'historique des changements</button></div>';
+    // Note : on stocke le nom dans une variable globale et on appelle sans argument
+    // pour eviter le conflit de quotes dans l'attribut onclick.
+    window._FICHE_EMP_NOM = emp;
+    h += '<div style="width:100%;margin-top:12px;text-align:right"><button onclick="openEmpHistory(window._FICHE_EMP_NOM)" class="btn-sm" style="background:var(--s2);color:var(--ink);border:1px solid var(--bd);padding:6px 12px;font-size:12px">&#128218; Voir l\'historique des changements</button></div>';
     h += '</div>';
     // Carte conversions salariales (horaire / bi-hebdo / mensuel / annuel)
     if(empData.salaire){
