@@ -379,8 +379,8 @@ body.dark .sb-item.on{color:#60a5fa;background:var(--ac-s);border-left-color:#60
 body.dark .navbtn,body.dark .nav-sel{background:var(--card);color:var(--ink);border-color:var(--bd)}
 body.dark .navbtn:hover{background:var(--s2)}
 body.dark .nav-sel option{background:var(--card);color:var(--ink)}
-body.dark .kebab-btn{color:var(--ink2)}
-body.dark .kebab-btn:hover{background:var(--s2);color:var(--ink)}
+body.dark .kebab-btn{color:var(--ink);background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12)}
+body.dark .kebab-btn:hover{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.25)}
 body.dark .kebab-menu{background:var(--card);border-color:var(--bd)}
 body.dark .kebab-item{color:var(--ink)}
 body.dark .kebab-item:hover{background:var(--s2)}
@@ -591,8 +591,8 @@ body.dir-mode.viewing-emp .tb-period{display:none}
 .stat-box .sl{font-size:13px;color:var(--ink3);margin-top:4px}
 .trend-up{color:var(--gr)}.trend-down{color:var(--rd)}.trend-stable{color:var(--am)}
 /* Kebab menu pour actions employes */
-.kebab-btn{width:32px;height:32px;border-radius:6px;border:none;background:transparent;cursor:pointer;color:var(--ink2);font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:background .12s;padding:0;line-height:1}
-.kebab-btn:hover{background:var(--s2);color:var(--ink)}
+.kebab-btn{width:32px;height:32px;border-radius:6px;border:1px solid var(--bd);background:var(--card);cursor:pointer;color:var(--ink);font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:background .12s,border-color .12s,color .12s;padding:0;line-height:1}
+.kebab-btn:hover{background:var(--s2);color:var(--ink);border-color:var(--bd2)}
 .kebab-menu{position:absolute;right:0;top:36px;min-width:160px;background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:1000;padding:4px;display:none;flex-direction:column;gap:1px}
 .kebab-menu.on{display:flex}
 .kebab-menu.up{top:auto;bottom:36px}
