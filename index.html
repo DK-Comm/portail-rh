@@ -1367,7 +1367,84 @@ var MFR = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Sep
 var MFR2= ['Janvier','F\u00e9vrier','Mars','Avril','Mai','Juin','Juillet','Ao\u00fbt','Septembre','Octobre','Novembre','D\u00e9cembre'];
 var WS  = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 var WL  = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
-var FER = {'2026-0-1':1,'2026-3-3':1,'2026-3-6':1,'2026-4-18':1,'2026-4-25':1,'2026-5-24':1,'2026-6-1':1,'2026-8-7':1,'2026-9-12':1,'2026-10-11':1,'2026-11-25':1,'2026-11-26':1};
+// ════════════════════════════════════════════════════════════════
+// JOURS FERIES DU QUEBEC - calcul dynamique (valable pour toutes les annees)
+// ════════════════════════════════════════════════════════════════
+// Algorithme de Pâques (Meeus/Jones/Butcher) — base pour Vendredi saint & Lundi de Pâques
+function _easterSunday(y){
+  var a=y%19, b=Math.floor(y/100), c=y%100, d=Math.floor(b/4), e=b%4;
+  var f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3);
+  var h=(19*a+b-d-g+15)%30;
+  var i=Math.floor(c/4), k=c%4;
+  var l=(32+2*e+2*i-h-k)%7;
+  var m=Math.floor((a+11*h+22*l)/451);
+  var month=Math.floor((h+l-7*m+114)/31)-1;  // 0-indexed
+  var day=((h+l-7*m+114)%31)+1;
+  return {m:month, d:day};
+}
+// Jours feries officiels du Quebec (jours feries chomes payes Loi Normes Travail + ceux courants)
+function _quebecHolidays(year){
+  var H = {};
+  function add(m, d){ H[year+'-'+m+'-'+d] = 1; }
+  // Jour de l'An : 1er janvier
+  add(0, 1);
+  // Vendredi saint (Pâques - 2 jours) et Lundi de Pâques (Pâques + 1)
+  var e = _easterSunday(year);
+  var ed = new Date(year, e.m, e.d);
+  var fri = new Date(ed.getTime()); fri.setDate(ed.getDate() - 2);
+  var mon = new Date(ed.getTime()); mon.setDate(ed.getDate() + 1);
+  add(fri.getMonth(), fri.getDate());
+  add(mon.getMonth(), mon.getDate());
+  // Journee nationale des patriotes : lundi precedant le 25 mai
+  var may25 = new Date(year, 4, 25);
+  var patrioteOffset = (may25.getDay() + 6) % 7; // jours depuis le lundi
+  var patriote = new Date(may25.getTime()); patriote.setDate(25 - patrioteOffset);
+  add(patriote.getMonth(), patriote.getDate());
+  // Fete nationale du Quebec : 24 juin
+  add(5, 24);
+  // Fete du Canada : 1er juillet
+  add(6, 1);
+  // Fete du travail : 1er lundi de septembre
+  var sept1 = new Date(year, 8, 1);
+  var travailOffset = (sept1.getDay() === 0) ? 1 : (8 - sept1.getDay()) % 7;
+  if(travailOffset === 0) travailOffset = 7;
+  if(sept1.getDay() === 1) travailOffset = 0;
+  var travail = new Date(year, 8, 1 + travailOffset);
+  add(travail.getMonth(), travail.getDate());
+  // Action de grâces : 2e lundi d'octobre
+  var oct1 = new Date(year, 9, 1);
+  var actionOffset = (oct1.getDay() === 0) ? 1 : (8 - oct1.getDay()) % 7;
+  if(actionOffset === 0) actionOffset = 7;
+  if(oct1.getDay() === 1) actionOffset = 0;
+  var action = new Date(year, 9, 1 + actionOffset + 7);  // +7 pour 2e lundi
+  add(action.getMonth(), action.getDate());
+  // Noel : 25 decembre
+  add(11, 25);
+  // Lendemain de Noel (Boxing Day, parfois ferie) : 26 decembre
+  add(11, 26);
+  return H;
+}
+// Cache des jours feries calcules par annee (calcul une fois par session)
+var _FER_CACHE = {};
+function getFER(year){
+  if(!_FER_CACHE[year]) _FER_CACHE[year] = _quebecHolidays(year);
+  return _FER_CACHE[year];
+}
+// Compat : ancienne variable FER conservee pour le code existant qui fait FER[y+'-'+m+'-'+d]
+// Proxy via Object.defineProperty pour comportement dynamique
+var FER = new Proxy({}, {
+  get: function(_, key){
+    if(typeof key !== 'string') return undefined;
+    var parts = key.split('-');
+    if(parts.length !== 3) return undefined;
+    var year = parseInt(parts[0], 10);
+    if(isNaN(year)) return undefined;
+    return getFER(year)[key];
+  },
+  has: function(_, key){
+    return this.get(undefined, key) !== undefined;
+  }
+});
 var TODAY = (function(){var d=new Date();d.setHours(0,0,0,0);return d;})();
 
 // === STATE ===
@@ -3270,7 +3347,7 @@ async function authShowPickScreen(email) {
     rows.forEach(function(e) {
       var btn = document.createElement('button');
       btn.style.cssText = 'padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;background:#f8fafc;cursor:pointer;text-align:left;font-size:15px;font-weight:500;width:100%';
-      btn.innerHTML = e.nom + (e.statut==='Direction' ? ' <span style="color:#7c3aed;font-size:12px;background:#ede9fe;padding:2px 5px;border-radius:3px">Direction</span>' : '');
+      btn.innerHTML = esc(e.nom) + (e.statut==='Direction' ? ' <span style="color:#7c3aed;font-size:12px;background:#ede9fe;padding:2px 5px;border-radius:3px">Direction</span>' : '');
       btn.onclick = async function() {
         list.querySelectorAll('button').forEach(function(b){ b.disabled=true; b.style.opacity='.5'; });
         try {
@@ -3527,24 +3604,24 @@ async function loadFiche() {
     // Photo (URL Supabase ou initiale)
     var photoUrl = empData.photo_url || photo(emp);
     var photoHTML = photoUrl
-      ? '<img src="'+photoUrl+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--bd)">'
-      : '<div style="width:64px;height:64px;border-radius:50%;background:' + col2 + ';display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0">' + ini(emp) + '</div>';
+      ? '<img src="'+encodeURI(photoUrl)+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--bd)">'
+      : '<div style="width:64px;height:64px;border-radius:50%;background:' + col2 + ';display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0">' + esc(ini(emp)) + '</div>';
     var contactBits = [];
-    if(empData.email) contactBits.push('<a href="mailto:'+empData.email+'" style="color:var(--ac);text-decoration:none"> '+empData.email+'</a>');
+    if(empData.email) contactBits.push('<a href="mailto:'+encodeURIComponent(empData.email)+'" style="color:var(--ac);text-decoration:none"> '+esc(empData.email)+'</a>');
     if(empData.telephone){
       var phoneTxt = empData.telephone + (empData.poste_tel ? ' poste ' + empData.poste_tel : '');
-      contactBits.push('<span> '+phoneTxt+'</span>');
+      contactBits.push('<span> '+esc(phoneTxt)+'</span>');
     }
     var h = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:20px;background:var(--card);border-radius:var(--r);border:1px solid var(--bd);flex-wrap:wrap">';
     h += photoHTML;
-    h += '<div style="min-width:200px"><div style="font-size:20px;font-weight:700">' + emp + '</div>';
+    h += '<div style="min-width:200px"><div style="font-size:20px;font-weight:700">' + esc(emp) + '</div>';
     var posteAffiche = '';
     if(empData.type_poste && empData.poste) posteAffiche = empData.type_poste + ' · ' + empData.poste;
     else posteAffiche = empData.type_poste || empData.poste || empData.departement || '';
-    h += '<div style="color:var(--ink2);font-size:15px;margin-top:2px">' + posteAffiche + '</div>';
-    if(empData.departement) h += '<div style="color:var(--ink3);font-size:14px;margin-top:2px">' + empData.departement + '</div>';
+    h += '<div style="color:var(--ink2);font-size:15px;margin-top:2px">' + esc(posteAffiche) + '</div>';
+    if(empData.departement) h += '<div style="color:var(--ink3);font-size:14px;margin-top:2px">' + esc(empData.departement) + '</div>';
     if(contactBits.length) h += '<div style="color:var(--ink2);font-size:14px;margin-top:6px;display:flex;gap:14px;flex-wrap:wrap">' + contactBits.join('') + '</div>';
-    h += '<div style="margin-top:6px"><span class="tag ' + (empData.statut==='Direction'?'tag-direction':'tag-employe') + '">' + (empData.statut||'') + '</span></div></div>';
+    h += '<div style="margin-top:6px"><span class="tag ' + (empData.statut==='Direction'?'tag-direction':'tag-employe') + '">' + esc(empData.statut||'') + '</span></div></div>';
     h += '<div style="margin-left:auto;display:flex;gap:16px;flex-wrap:wrap">';
     h += '<div class="stat-box"><div class="sv">' + hR + 'h</div><div class="sl">Heures travaillées</div></div>';
     h += '<div class="stat-box"><div class="sv">' + pct + '%</div><div class="sl">Objectif annuel</div></div>';
