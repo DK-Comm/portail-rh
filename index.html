@@ -1206,8 +1206,10 @@ function gotoDir(id,el){
   el.classList.add('on');
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
   document.getElementById('sc-'+id).classList.add('on');
-  // Sortir du mode "vue employe" (on est sur un silo Direction)
+  // Sortir du mode "vue employe" (on est sur un silo Direction) + reafficher le selecteur global
   document.body.classList.remove('viewing-emp');
+  var tbp = document.getElementById('tb-period');
+  if(tbp && S.role==='direction') tbp.style.display = 'flex';
   // Sync vars locales depuis la periode globale (pour que chaque silo utilise la meme date)
   S.dashY=S.gY; S.dashM=S.gM;
   S.teamY=S.gY; S.teamM=S.gM;
@@ -1227,6 +1229,9 @@ function gotoTab(id,el){
   // Direction sur ses silos perso : mode "viewing-emp" pour basculer en selecteur local
   if(S.role === 'direction'){
     document.body.classList.add('viewing-emp');
+    // Cacher le selecteur global de la topbar (pour eviter 2 selecteurs sur la meme page)
+    var tbp = document.getElementById('tb-period');
+    if(tbp) tbp.style.display = 'none';
     S.py = S.gY; S.pm = S.gM;
     S.rY = S.gY; S.rM = S.gM;
     S.planY = S.gY; S.planM = S.gM;
