@@ -1592,7 +1592,6 @@ function dashNav(dir){
   loadDash();
 }
 function dashPeriod(p,el){
-  console.log('[dashPeriod] click', p, 'avant:', S.dashPeriod, S.dashY, S.dashM);
   document.querySelectorAll('.d-pbtn').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
   S.dashPeriod=p;
@@ -1605,15 +1604,6 @@ function dashPeriod(p,el){
     S.dashQ=Math.floor(S.dashM/3);
     S.dashM=S.dashQ*3;
   }
-  console.log('[dashPeriod] apres:', S.dashPeriod, S.dashY, S.dashM);
-  // Force la mise a jour du label IMMEDIATEMENT (bypass cache potentiel)
-  var r=dashRange();
-  console.log('[dashPeriod] label calcule:', r.label, 'periode:', r.period);
-  var sub=document.getElementById('dash-sub');
-  if(sub) sub.textContent=r.label;
-  // Invalider le cache du dashboard pour forcer un reload propre quand on switch
-  var oldCk='dash_'+r.d1+'_'+r.d2;
-  delete S._planCache[oldCk];
   loadDash();
 }
 function teamNav(dir){S.teamM+=dir;if(S.teamM>11){S.teamM=0;S.teamY++;}if(S.teamM<0){S.teamM=11;S.teamY--;}loadTeam();}
@@ -1689,7 +1679,7 @@ function dashRange(){
     var lastDM=new Date(S.dashY,S.dashM+1,0).getDate();
     d2=S.dashY+'-'+('0'+(S.dashM+1)).slice(-2)+'-'+lastDM;
     target=TARGET_MONTH;
-    label=dashRange().label;
+    label=MFR2[S.dashM]+' '+S.dashY;
   }
   return {d1:d1,d2:d2,target:target,label:label,period:S.dashPeriod};
 }
