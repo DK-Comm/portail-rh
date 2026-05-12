@@ -23,6 +23,10 @@
 html,body{overflow-x:hidden;max-width:100vw}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;min-height:100vh}
 .main-area{min-width:0}
+/* Sur mobile/tablette : laisser le scroll horizontal pour pouvoir naviguer dans la page (app non mobile-optimized) */
+@media (max-width:768px){
+  html,body{overflow-x:auto;max-width:none}
+}
 
 /* TOPBAR */
 .tb{background:var(--dk);height:60px;display:flex;align-items:center;padding:0 28px;gap:20px;position:sticky;top:0;z-index:200}
