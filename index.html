@@ -791,6 +791,7 @@ var SUPA = {
       <button class="sb-item" onclick="gotoDir('kpi',this)">&#128200; KPI</button>
       <button class="sb-item" onclick="gotoDir('recap',this)">&#128197; Recap</button>
       <button class="sb-item" onclick="gotoDir('paie',this)">&#128176; Paie</button>
+      <button class="sb-item" onclick="gotoDir('rep',this)">&#128206; R&eacute;pertoire</button>
       <button class="sb-item" onclick="gotoDir('config',this)">&#9881; Config</button>
     </div>
     <div class="main-area">
@@ -798,6 +799,7 @@ var SUPA = {
         <button class="tab on" id="tab-ptg" onclick="gotoTab('ptg',this)">&#128336; Mon pointage</button>
         <button class="tab" id="tab-rsm" onclick="gotoTab('rsm',this)">&#128202; Mon resume</button>
         <button class="tab" id="tab-plan" onclick="gotoTab('plan',this)">&#128197; Planning equipe</button>
+        <button class="tab" id="tab-rep" onclick="gotoTab('rep',this)">&#128206; R&eacute;pertoire</button>
       </div>
 
 
@@ -984,6 +986,27 @@ var SUPA = {
         <tbody id="config-params-body"><tr><td colspan="3" style="color:var(--ink3)">Chargement...</td></tr></tbody></table>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ─── REPERTOIRE ─── -->
+<div class="screen" id="sc-rep">
+  <div class="page">
+    <div class="page-title">&#128206; R&eacute;pertoire <span class="page-subtitle" id="rep-subtitle">Chargement...</span></div>
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+      <input type="text" id="rep-search" oninput="renderRepertoire()" placeholder="&#128269; Rechercher un nom, poste, d&eacute;partement..." style="flex:1;min-width:240px;padding:10px 14px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
+      <select id="rep-dept-filter" onchange="renderRepertoire()" style="padding:10px 14px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink);min-width:200px">
+        <option value="">Tous les d&eacute;partements</option>
+      </select>
+    </div>
+    <div id="rep-content"><div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div></div>
+  </div>
+</div>
+
+<!-- MODAL FICHE CONTACT (vCard) -->
+<div class="modal-overlay" id="rep-card-modal" style="display:none" onclick="if(event.target===this)closeRepCard()">
+  <div class="modal-box" style="max-width:480px;padding:0;overflow:hidden">
+    <div id="rep-card-content"></div>
   </div>
 </div>
 
@@ -1219,7 +1242,10 @@ function gotoDir(id,el){
   // Sortir du mode "vue employe" (on est sur un silo Direction) + reafficher le selecteur global
   document.body.classList.remove('viewing-emp');
   var tbp = document.getElementById('tb-period');
-  if(tbp && S.role==='direction') tbp.style.display = 'flex';
+  if(tbp && S.role==='direction'){
+    // Repertoire/Config : pas de date, on cache le selecteur global
+    tbp.style.display = (id==='rep' || id==='config') ? 'none' : 'flex';
+  }
   // Sync vars locales depuis la periode globale (pour que chaque silo utilise la meme date)
   S.dashY=S.gY; S.dashM=S.gM;
   S.teamY=S.gY; S.teamM=S.gM;
@@ -1229,6 +1255,7 @@ function gotoDir(id,el){
   if(id==='dash') loadDash();
   if(id==='team') loadTeam();
   if(id==='dalerts') loadAlerts();
+  if(id==='rep') loadRepertoire();
 }
 
 function gotoTab(id,el){
@@ -1250,6 +1277,13 @@ function gotoTab(id,el){
   if(id==='rsm'){S.rM=S.pm;S.rY=S.py;loadRsm();}
   if(id==='plan'){loadPlanData();renderPlan();}
   if(id==='ptg'){loadPtgData();renderPtg();}
+  if(id==='rep'){
+    // Repertoire ne depend pas de la date : sortir du viewing-emp + cacher le selecteur global
+    document.body.classList.remove('viewing-emp');
+    var tbp=document.getElementById('tb-period');
+    if(tbp) tbp.style.display = (S.role==='direction'?'none':'none');
+    loadRepertoire();
+  }
 }
 
 // === EMP SELECT ===
@@ -3559,6 +3593,147 @@ function exportPaieXLSX() {
   XLSX.writeFile(wb, 'ESPACE_MUNI_Paie_' + _paieData.mois + '_' + _paieData.y + '.xlsx');
   toast('Excel Paie exporté ✓');
 }
+
+// ════════════════════════════════════════════════════════════════
+// REPERTOIRE (annuaire des employes)
+// ════════════════════════════════════════════════════════════════
+var _repList = [];
+
+async function loadRepertoire() {
+  var sub = document.getElementById('rep-subtitle');
+  var el = document.getElementById('rep-content');
+  el.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div>';
+  try {
+    var r = await authFetch('/rest/v1/rh_employes?select=*&actif=eq.true&order=nom');
+    _repList = r.data || [];
+    // Peupler le filtre departement avec les dept actifs
+    var filterSel = document.getElementById('rep-dept-filter');
+    var currentVal = filterSel.value;
+    var depts = {};
+    _repList.forEach(function(e){ if(e.departement) depts[e.departement]=true; });
+    // Garder le premier "Tous", reconstruire les autres
+    var optsHTML = '<option value="">Tous les départements</option>';
+    Object.keys(depts).sort().forEach(function(d){
+      optsHTML += '<option value="'+d+'"'+(d===currentVal?' selected':'')+'>'+d+'</option>';
+    });
+    filterSel.innerHTML = optsHTML;
+    if(sub) sub.textContent = _repList.length + ' employé' + (_repList.length>1?'s':'') + ' actif' + (_repList.length>1?'s':'');
+    renderRepertoire();
+  } catch(e){ el.innerHTML = '<div style="color:var(--rd);padding:20px">Erreur: '+e.message+'</div>'; }
+}
+
+function renderRepertoire() {
+  var el = document.getElementById('rep-content');
+  if(!_repList || !_repList.length){ el.innerHTML='<div style="color:var(--ink3);padding:40px;text-align:center">Aucun employé</div>'; return; }
+  var q = (document.getElementById('rep-search').value || '').toLowerCase().trim();
+  var deptFilter = document.getElementById('rep-dept-filter').value;
+  // Filtrage
+  var filtered = _repList.filter(function(e){
+    if(deptFilter && e.departement !== deptFilter) return false;
+    if(q){
+      var hay = (e.nom + ' ' + (e.poste||'') + ' ' + (e.type_poste||'') + ' ' + (e.departement||'') + ' ' + (e.email||'') + ' ' + (e.telephone||'') + ' ' + (e.poste_tel||'')).toLowerCase();
+      if(hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+  if(!filtered.length){ el.innerHTML='<div style="color:var(--ink3);padding:40px;text-align:center">Aucun résultat</div>'; return; }
+  // Tri custom (Direction d'abord)
+  var STATUT_RANK = {'Direction':0,'Employe':1,'Stagiaire':2,'Prestataire externe':3,'Pigiste':4,'Freelance':5};
+  filtered.sort(function(a,b){
+    var da = (a.departement||'').localeCompare(b.departement||'');
+    if(da !== 0) return da;
+    var ra = STATUT_RANK[a.statut]!==undefined?STATUT_RANK[a.statut]:99;
+    var rb = STATUT_RANK[b.statut]!==undefined?STATUT_RANK[b.statut]:99;
+    if(ra !== rb) return ra - rb;
+    return (a.nom||'').localeCompare(b.nom||'');
+  });
+  // Render grille
+  var h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">';
+  filtered.forEach(function(e, idx){
+    var c = col(e.nom);
+    var photoHTML = e.photo_url
+      ? '<img src="'+e.photo_url+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--bd)">'
+      : '<div style="width:56px;height:56px;border-radius:50%;background:'+c+';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">'+ini(e.nom)+'</div>';
+    var posteTxt = '';
+    if(e.type_poste && e.poste) posteTxt = e.type_poste + ' · ' + e.poste;
+    else posteTxt = e.type_poste || e.poste || '';
+    h += '<div onclick="openRepCard('+idx+')" style="background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:var(--sh)" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'var(--shd)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'var(--sh)\'">';
+    h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">';
+    h += photoHTML;
+    h += '<div style="overflow:hidden">';
+    h += '<div style="font-weight:700;font-size:14px;line-height:1.2">'+e.nom+'</div>';
+    h += '<div style="font-size:12px;color:var(--ink2);margin-top:3px;line-height:1.3">'+posteTxt+'</div>';
+    h += '</div></div>';
+    if(e.departement) h += '<div style="font-size:11px;color:var(--ink3);margin-bottom:8px">'+e.departement+'</div>';
+    if(e.email) h += '<div style="font-size:12px;color:var(--ink2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">&#9993; '+e.email+'</div>';
+    if(e.telephone) h += '<div style="font-size:12px;color:var(--ink2)">&#9742; '+e.telephone + (e.poste_tel?' p. '+e.poste_tel:'')+'</div>';
+    h += '</div>';
+    // Sauver l'index pour openRepCard
+    _repList[idx]._filteredIdx = idx;
+  });
+  h += '</div>';
+  // On stocke aussi la liste filtree pour openRepCard
+  _repFiltered = filtered;
+  el.innerHTML = h;
+}
+
+var _repFiltered = [];
+
+function openRepCard(idx) {
+  var e = _repFiltered[idx];
+  if(!e) return;
+  var c = col(e.nom);
+  var photoHTML = e.photo_url
+    ? '<img src="'+e.photo_url+'" style="width:140px;height:140px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.15)">'
+    : '<div style="width:140px;height:140px;border-radius:50%;background:'+c+';display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:700;color:#fff;border:4px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.15)">'+ini(e.nom)+'</div>';
+  var posteTxt = '';
+  if(e.type_poste && e.poste) posteTxt = e.type_poste + ' · ' + e.poste;
+  else posteTxt = e.type_poste || e.poste || '';
+  // Tag statut
+  function tcls(s){
+    if(s==='Direction') return 'tag-direction';
+    if(s==='Stagiaire') return 'tag-stagiaire';
+    if(s==='Prestataire externe') return 'tag-prestataire';
+    if(s==='Pigiste') return 'tag-pigiste';
+    if(s==='Freelance') return 'tag-freelance';
+    return 'tag-employe';
+  }
+  var h = '<div style="background:linear-gradient(135deg,'+c+','+c+'dd);padding:30px 24px 50px;text-align:center;position:relative">';
+  h += '<button onclick="closeRepCard()" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center">&#10005;</button>';
+  h += '<div style="display:inline-block">'+photoHTML+'</div>';
+  h += '</div>';
+  h += '<div style="padding:0 24px 24px;margin-top:-30px;text-align:center">';
+  h += '<div style="font-size:22px;font-weight:800;color:var(--ink)">'+e.nom+'</div>';
+  if(posteTxt) h += '<div style="font-size:14px;color:var(--ink2);margin-top:4px">'+posteTxt+'</div>';
+  if(e.statut) h += '<div style="margin-top:10px"><span class="tag '+tcls(e.statut)+'">'+e.statut+'</span></div>';
+  h += '</div>';
+  h += '<div style="padding:0 24px 24px;display:flex;flex-direction:column;gap:8px">';
+  if(e.departement){
+    h += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px">';
+    h += '<span style="font-size:18px">&#127970;</span>';
+    h += '<div><div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">D&eacute;partement</div><div style="font-size:13px;font-weight:600;margin-top:2px">'+e.departement+'</div></div>';
+    h += '</div>';
+  }
+  if(e.email){
+    h += '<a href="mailto:'+e.email+'" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px;transition:background .12s" onmouseover="this.style.background=\'var(--ac-s)\'" onmouseout="this.style.background=\'var(--s2)\'">';
+    h += '<span style="font-size:18px">&#9993;</span>';
+    h += '<div style="flex:1"><div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">Courriel</div><div style="font-size:13px;font-weight:600;margin-top:2px">'+e.email+'</div></div>';
+    h += '<span style="color:var(--ac);font-size:14px">&rarr;</span>';
+    h += '</a>';
+  }
+  if(e.telephone){
+    var telLink = 'tel:'+e.telephone.replace(/\s/g,'')+(e.poste_tel?',,'+e.poste_tel:'');
+    h += '<a href="'+telLink+'" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px;transition:background .12s" onmouseover="this.style.background=\'var(--ac-s)\'" onmouseout="this.style.background=\'var(--s2)\'">';
+    h += '<span style="font-size:18px">&#9742;</span>';
+    h += '<div style="flex:1"><div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">T&eacute;l&eacute;phone</div><div style="font-size:13px;font-weight:600;margin-top:2px">'+e.telephone+(e.poste_tel?' &middot; poste '+e.poste_tel:'')+'</div></div>';
+    h += '<span style="color:var(--ac);font-size:14px">&rarr;</span>';
+    h += '</a>';
+  }
+  h += '</div>';
+  document.getElementById('rep-card-content').innerHTML = h;
+  document.getElementById('rep-card-modal').style.display = 'flex';
+}
+function closeRepCard(){ document.getElementById('rep-card-modal').style.display='none'; }
 
 // ════════════════════════════════════════════════════════════════
 // CONFIG
