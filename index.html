@@ -46,7 +46,10 @@ strong,b,h1,h2,h3,h4,h5,h6{font-weight:700}
 .av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0;object-fit:cover}
 
 /* TABS */
-.tabs{background:var(--card);border-bottom:2px solid var(--bd);display:flex;padding:0 28px;position:sticky;top:60px;z-index:100}
+.tabs{background:var(--card);border-bottom:2px solid var(--bd);display:flex;padding:0 28px;position:fixed;top:60px;left:0;right:0;z-index:100}
+body.dir-mode .tabs{left:200px}
+/* Padding-top sur .main-area pour eviter que le contenu passe sous la barre fixe d'onglets */
+.main-area:has(> .tabs){padding-top:48px}
 .tab{padding:14px 20px;font-size:16px;font-weight:500;color:var(--ink3);cursor:pointer;border:none;border-bottom:2.5px solid transparent;background:none;white-space:nowrap;display:flex;align-items:center;gap:7px;transition:all .15s;margin-bottom:-2px}
 .tab.on{color:var(--ac);border-bottom-color:var(--ac);font-weight:700}
 .tab:hover:not(.on){color:var(--ink2);background:var(--s2)}
