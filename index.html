@@ -493,8 +493,9 @@ body.dark{color-scheme:dark}
 /* Kebab menu pour actions employes */
 .kebab-btn{width:32px;height:32px;border-radius:6px;border:none;background:transparent;cursor:pointer;color:var(--ink2);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:background .12s;padding:0;line-height:1}
 .kebab-btn:hover{background:var(--s2);color:var(--ink)}
-.kebab-menu{position:absolute;right:0;top:36px;min-width:160px;background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:100;padding:4px;display:none;flex-direction:column;gap:1px}
+.kebab-menu{position:absolute;right:0;top:36px;min-width:160px;background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:1000;padding:4px;display:none;flex-direction:column;gap:1px}
 .kebab-menu.on{display:flex}
+.kebab-menu.up{top:auto;bottom:36px}
 .kebab-item{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:13px;border:none;background:transparent;cursor:pointer;text-align:left;border-radius:5px;color:var(--ink);font-weight:500;transition:background .1s;width:100%}
 .kebab-item:hover{background:var(--s2)}
 .kebab-item.danger{color:var(--rd)}
@@ -3141,9 +3142,10 @@ async function loadConfig() {
     orderedDepts.forEach(function(dept,deptIdx){
       var icon = DEPT_ICON[dept] || '&#128101;';
       // Wrapper "carte" avec espace prononce et ombre pour ressortir
-      h += '<div style="margin-bottom:'+(deptIdx<orderedDepts.length-1?'20px':'0')+';border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:var(--card);box-shadow:var(--sh)">';
-      // Header departement
-      h += '<div style="background:var(--s2);padding:12px 16px;font-size:13px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px">';
+      // overflow:visible pour permettre au menu kebab de deborder
+      h += '<div style="margin-bottom:'+(deptIdx<orderedDepts.length-1?'20px':'0')+';border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);position:relative">';
+      // Header departement avec coins arrondis en haut (compense le retrait de overflow:hidden)
+      h += '<div style="background:var(--s2);padding:12px 16px;font-size:13px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--bd);border-radius:12px 12px 0 0;display:flex;align-items:center;gap:8px">';
       h += '<span style="font-size:16px">'+icon+'</span>'+dept;
       h += '<span style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.4px">'+groups[dept].length+' employ&eacute;'+(groups[dept].length>1?'s':'')+'</span>';
       h += '</div>';
@@ -3227,8 +3229,15 @@ function toggleKebab(id, ev){
   if(!menu) return;
   var wasOpen = menu.classList.contains('on');
   // Fermer tous les autres
-  document.querySelectorAll('.kebab-menu.on').forEach(function(m){m.classList.remove('on');});
-  if(!wasOpen) menu.classList.add('on');
+  document.querySelectorAll('.kebab-menu.on').forEach(function(m){m.classList.remove('on');m.classList.remove('up');});
+  if(!wasOpen){
+    menu.classList.add('on');
+    // Flip up si le menu deborderait en bas du viewport
+    var rect = menu.getBoundingClientRect();
+    if(rect.bottom > window.innerHeight - 12){
+      menu.classList.add('up');
+    }
+  }
 }
 function closeKebab(){
   document.querySelectorAll('.kebab-menu.on').forEach(function(m){m.classList.remove('on');});
