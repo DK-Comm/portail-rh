@@ -597,6 +597,22 @@ body.dark{color-scheme:dark}
 .kebab-item.danger:hover{background:var(--rd-s)}
 .kebab-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
 
+/* Sélecteur de période global (topbar) */
+.tb-period{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 14px;color:#fff;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s}
+.tb-period:hover{background:rgba(255,255,255,.15)}
+.tb-period-arrow{color:rgba(255,255,255,.5);font-size:10px}
+#period-menu{position:absolute;top:58px;background:#fff;border:1px solid var(--bd);border-radius:10px;box-shadow:var(--shd);padding:14px;z-index:1100;min-width:280px;display:none}
+body.dark #period-menu{background:#1a1d2e;border-color:var(--bd)}
+.pm-presets{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.pm-preset{padding:8px 12px;background:transparent;border:none;text-align:left;cursor:pointer;border-radius:6px;font-size:13px;color:var(--ink);font-weight:500;transition:background .12s;display:flex;align-items:center;gap:8px}
+.pm-preset:hover{background:var(--s2)}
+.pm-preset.active{background:var(--ac-s);color:var(--ac);font-weight:700}
+.pm-divider{height:1px;background:var(--bd);margin:6px 0}
+.pm-nav{display:flex;align-items:center;gap:6px;justify-content:space-between}
+.pm-nav-btn{width:30px;height:30px;border-radius:6px;background:var(--s2);border:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--ink);transition:background .12s}
+.pm-nav-btn:hover{background:var(--bd)}
+.pm-sel{flex:1;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer}
+
 </style>
 
 <script>
@@ -705,6 +721,30 @@ var SUPA = {
     ESPACE <span>MUNI</span> &middot; RH
   </div>
   <div class="tb-sp"></div>
+  <!-- Sélecteur de période global -->
+  <div class="tb-period" id="tb-period" onclick="togglePeriodMenu(event)" style="display:none;position:relative">
+    <span style="font-size:14px">&#128197;</span>
+    <span id="tb-period-label">Mai 2026</span>
+    <span class="tb-period-arrow">&#9660;</span>
+  </div>
+  <!-- Menu déroulant période -->
+  <div id="period-menu" style="right:280px">
+    <div class="pm-presets">
+      <button class="pm-preset" onclick="periodGoToday()"><span>&#128197;</span>Aujourd'hui</button>
+      <button class="pm-preset" onclick="periodPreset('thismonth')"><span>&#128203;</span>Ce mois</button>
+      <button class="pm-preset" onclick="periodPreset('lastmonth')"><span>&#8617;</span>Mois précédent</button>
+      <button class="pm-preset" onclick="periodPreset('thisyear')"><span>&#128197;</span>Cette année</button>
+      <button class="pm-preset" onclick="periodPreset('lastyear')"><span>&#8617;</span>Année précédente</button>
+    </div>
+    <div class="pm-divider"></div>
+    <div style="font-size:11px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Personnalisé</div>
+    <div class="pm-nav">
+      <button class="pm-nav-btn" onclick="periodNav(-1)">&#8249;</button>
+      <select class="pm-sel" id="period-month" onchange="periodOnChange()"></select>
+      <select class="pm-sel" id="period-year" onchange="periodOnChange()"></select>
+      <button class="pm-nav-btn" onclick="periodNav(1)">&#8250;</button>
+    </div>
+  </div>
   <div class="tb-chip" id="chip" onclick="toggleUserMenu(event)" style="display:none;position:relative">
     <div id="chip-av" class="av" style="width:36px;height:36px;font-size:13px"></div>
     <span class="tb-chip-name" id="chip-name"></span>
@@ -914,7 +954,7 @@ var SUPA = {
     <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div class="page-title" style="margin-bottom:0">&#128176; Paie</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <select id="paie-month-sel" onchange="loadPaie()" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card)"></select>
+        <select id="paie-month-sel" onchange="S.gM=parseInt(this.value);updateGlobalPeriodLabel();loadPaie()" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card)"></select>
         <button class="btn-sm btn-success" onclick="exportPaieCSV()">&#11015; CSV Comptable</button>
       </div>
     </div>
@@ -1087,6 +1127,8 @@ var S = {
   dashY:new Date().getFullYear(), dashM:new Date().getMonth(),
   dashPeriod:'month', dashW:mon0(new Date()), dashQ:Math.floor(new Date().getMonth()/3),
   teamY:new Date().getFullYear(), teamM:new Date().getMonth(),
+  // PERIODE GLOBALE - utilisee par toutes les vues
+  gY:new Date().getFullYear(), gM:new Date().getMonth(),
   // Cache client — evite les appels réseau répétés sur le même mois
   _empCache:{},   // {y_m_emp: data}
   _planCache:{}   // {y_m: planData}
@@ -1170,6 +1212,12 @@ function gotoDir(id,el){
   el.classList.add('on');
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
   document.getElementById('sc-'+id).classList.add('on');
+  // Sync vars locales depuis la periode globale (pour que chaque silo utilise la meme date)
+  S.dashY=S.gY; S.dashM=S.gM;
+  S.teamY=S.gY; S.teamM=S.gM;
+  S.rY=S.gY; S.rM=S.gM;
+  if(S.dashPeriod==='quarter') S.dashQ=Math.floor(S.gM/3);
+  if(S.dashPeriod==='week') S.dashW=mon0(new Date(S.gY,S.gM,1));
   if(id==='dash') loadDash();
   if(id==='team') loadTeam();
   if(id==='dalerts') loadAlerts();
@@ -1294,8 +1342,11 @@ function selEmp(name){
       S.role=r&&r.role==='direction'?'direction':'employe';
       console.log('[role handler]', S.emp, S.role, r);
       var sb=document.getElementById('sidebar');
+      var tbp=document.getElementById('tb-period');
       if(S.role==='direction'){
         sb.style.display='flex';
+        // Activer le selecteur de periode global dans la topbar
+        if(tbp){ tbp.style.display='flex'; updateGlobalPeriodLabel(); }
         // Reset tabs vers dashboard pour direction
         document.querySelectorAll('.sb-item,.tab').forEach(function(b){b.classList.remove('on');});
         document.querySelector('.sb-item').classList.add('on');
@@ -1304,6 +1355,7 @@ function selEmp(name){
         loadDash();
       } else {
         sb.style.display='none';
+        if(tbp) tbp.style.display='none';
       }
     })
     .withFailureHandler(function(){})
@@ -1769,6 +1821,9 @@ function dashNav(dir){
     if(S.dashM>11){S.dashM=0;S.dashY++;}
     if(S.dashM<0){S.dashM=11;S.dashY--;}
   }
+  // Sync vers periode globale
+  S.gY=S.dashY; S.gM=S.dashM;
+  updateGlobalPeriodLabel();
   loadDash();
 }
 function dashPeriod(p,el){
@@ -1870,6 +1925,9 @@ function loadDash(){
       S.dashM=m;S.dashY=y;
       if(S.dashPeriod==='week') S.dashW=mon0(new Date(y,m,1));
       if(S.dashPeriod==='quarter') S.dashQ=Math.floor(m/3);
+      // Sync vers periode globale
+      S.gY=y; S.gM=m;
+      updateGlobalPeriodLabel();
       loadDash();
     },null,null);
   var r=dashRange();
@@ -1885,7 +1943,7 @@ function loadDash(){
 
 function loadTeam(){
   buildSelWrap('team-nav-wrap','month',S.teamY,S.teamM,null,
-    function(m,y){S.teamM=m;S.teamY=y;loadTeam();},null,null);
+    function(m,y){S.teamM=m;S.teamY=y;S.gM=m;S.gY=y;updateGlobalPeriodLabel();loadTeam();},null,null);
   var d1=S.teamY+'-'+('0'+(S.teamM+1)).slice(-2)+'-01';
   var lastD=new Date(S.teamY,S.teamM+1,0).getDate();
   var d2=S.teamY+'-'+('0'+(S.teamM+1)).slice(-2)+'-'+lastD;
@@ -2931,7 +2989,7 @@ async function loadFiche() {
   if (!emp) { el.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">Sélectionnez un employé</div>'; return; }
   el.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div>';
   try {
-    var y = new Date().getFullYear();
+    var y = S.gY;
     // Charger infos employé + horaires annuels
     var [empR, horR] = await Promise.all([
       authFetch('/rest/v1/rh_employes?select=*&nom=eq.' + encodeURIComponent(emp) + '&limit=1'),
@@ -3021,7 +3079,7 @@ async function loadKPI() {
   var el = document.getElementById('kpi-content');
   el.innerHTML = '<div style="color:var(--ink3);padding:20px">Chargement des KPI...</div>';
   try {
-    var y = new Date().getFullYear();
+    var y = S.gY;
     var [empR, horR] = await Promise.all([
       authFetch('/rest/v1/rh_employes?select=nom,statut,heures_semaine,departement&actif=eq.true&order=nom'),
       authFetch('/rest/v1/rh_horaires?select=employe,date_pointage,debut,fin,bureau,type_jour&date_pointage=gte.' + y + '-01-01&date_pointage=lte.' + y + '-12-31&limit=5000')
@@ -3156,7 +3214,7 @@ async function loadRecap() {
   var el = document.getElementById('recap-content');
   el.innerHTML = '<div style="color:var(--ink3);padding:20px">Chargement...</div>';
   try {
-    var y = new Date().getFullYear();
+    var y = S.gY;
     var [empR, horR] = await Promise.all([
       authFetch('/rest/v1/rh_employes?select=nom&actif=eq.true&order=nom'),
       authFetch('/rest/v1/rh_horaires?select=employe,date_pointage,debut,fin&date_pointage=gte.' + y + '-01-01&date_pointage=lte.' + y + '-12-31&limit=5000')
@@ -3224,15 +3282,14 @@ function exportRecapCSV() {
 var _paieData = null;
 async function loadPaieInit() {
   var sel = document.getElementById('paie-month-sel');
-  if (sel.children.length === 0) {
-    var now = new Date();
-    for (var m = 0; m < 12; m++) {
-      var opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = MOIS[m] + ' ' + now.getFullYear();
-      if (m === now.getMonth()) opt.selected = true;
-      sel.appendChild(opt);
-    }
+  // Reconstruire le selecteur a chaque fois pour refleter l'annee globale
+  sel.innerHTML = '';
+  for (var m = 0; m < 12; m++) {
+    var opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = MOIS[m] + ' ' + S.gY;
+    if (m === S.gM) opt.selected = true;
+    sel.appendChild(opt);
   }
   loadPaie();
 }
@@ -3242,7 +3299,7 @@ async function loadPaie() {
   var el = document.getElementById('paie-content');
   el.innerHTML = '<div style="color:var(--ink3);padding:20px">Chargement...</div>';
   try {
-    var y = new Date().getFullYear();
+    var y = S.gY;
     var d1 = y+'-'+('0'+(m+1)).slice(-2)+'-01';
     var lastD = new Date(y,m+1,0).getDate();
     var d2 = y+'-'+('0'+(m+1)).slice(-2)+'-'+lastD;
@@ -3625,6 +3682,125 @@ async function deleteRef(kind, id, nom){
     await loadReferentiels();
     loadConfig();
   } catch(e){ toast('Erreur: '+e.message,1); }
+}
+
+// ════════════════════════════════════════════════════════════════
+// PERIODE GLOBALE (1 seul curseur temporel partage)
+// ════════════════════════════════════════════════════════════════
+function updateGlobalPeriodLabel(){
+  var el = document.getElementById('tb-period-label');
+  if(el) el.textContent = MFR2[S.gM] + ' ' + S.gY;
+}
+
+function populatePeriodSelects(){
+  var ms = document.getElementById('period-month');
+  if(!ms) return;
+  ms.innerHTML = '';
+  MFR2.forEach(function(m,i){
+    var o = document.createElement('option');
+    o.value = i; o.textContent = m;
+    if(i === S.gM) o.selected = true;
+    ms.appendChild(o);
+  });
+  var ys = document.getElementById('period-year');
+  ys.innerHTML = '';
+  for(var y = 2024; y <= 2030; y++){
+    var o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    if(y === S.gY) o.selected = true;
+    ys.appendChild(o);
+  }
+}
+
+function togglePeriodMenu(ev){
+  if(ev) ev.stopPropagation();
+  var menu = document.getElementById('period-menu');
+  if(!menu) return;
+  var isOpen = menu.style.display === 'block';
+  if(isOpen){ menu.style.display = 'none'; return; }
+  populatePeriodSelects();
+  menu.style.display = 'block';
+}
+function closePeriodMenu(){
+  var menu = document.getElementById('period-menu');
+  if(menu) menu.style.display = 'none';
+}
+// Fermer le menu si on clique ailleurs
+document.addEventListener('click', function(e){
+  if(!e.target.closest) return;
+  if(!e.target.closest('#period-menu') && !e.target.closest('#tb-period')){
+    closePeriodMenu();
+  }
+});
+
+function periodNav(dir){
+  S.gM += dir;
+  if(S.gM > 11){ S.gM = 0; S.gY++; }
+  if(S.gM < 0){ S.gM = 11; S.gY--; }
+  applyGlobalPeriod();
+}
+function periodGoToday(){
+  var now = new Date();
+  S.gM = now.getMonth(); S.gY = now.getFullYear();
+  applyGlobalPeriod();
+  closePeriodMenu();
+}
+function periodPreset(p){
+  var now = new Date();
+  if(p === 'thismonth'){ S.gM = now.getMonth(); S.gY = now.getFullYear(); }
+  else if(p === 'lastmonth'){
+    S.gM = now.getMonth() - 1;
+    S.gY = now.getFullYear();
+    if(S.gM < 0){ S.gM = 11; S.gY--; }
+  }
+  else if(p === 'thisyear'){ S.gY = now.getFullYear(); }
+  else if(p === 'lastyear'){ S.gY = now.getFullYear() - 1; }
+  applyGlobalPeriod();
+  closePeriodMenu();
+}
+function periodOnChange(){
+  S.gM = parseInt(document.getElementById('period-month').value);
+  S.gY = parseInt(document.getElementById('period-year').value);
+  applyGlobalPeriod();
+}
+
+function applyGlobalPeriod(){
+  // Synchroniser toutes les vars locales depuis le global
+  S.dashY = S.gY; S.dashM = S.gM;
+  S.teamY = S.gY; S.teamM = S.gM;
+  S.rY = S.gY; S.rM = S.gM;
+  // Ajuster les granularites du Dashboard
+  if(S.dashPeriod === 'quarter') S.dashQ = Math.floor(S.gM/3);
+  if(S.dashPeriod === 'week') S.dashW = mon0(new Date(S.gY, S.gM, 1));
+  // Invalider les flags de chargement pour KPI/Recap/Fiche (re-fetch a la prochaine visite)
+  if(typeof _kpiLoaded !== 'undefined') _kpiLoaded = false;
+  if(typeof _recapLoaded !== 'undefined') _recapLoaded = false;
+  // Vider le cache du dashboard
+  S._planCache = {};
+  updateGlobalPeriodLabel();
+  refreshActiveScreen();
+}
+
+function refreshActiveScreen(){
+  var active = document.querySelector('.screen.on');
+  if(!active) return;
+  var id = active.id;
+  try {
+    if(id === 'sc-ptg' && typeof renderPtg === 'function') renderPtg();
+    else if(id === 'sc-plan' && typeof renderPlan === 'function') renderPlan();
+    else if(id === 'sc-rsm' && typeof loadRsm === 'function') loadRsm();
+    else if(id === 'sc-dash' && typeof loadDash === 'function') loadDash();
+    else if(id === 'sc-team' && typeof loadTeam === 'function') loadTeam();
+    else if(id === 'sc-dalerts' && typeof loadAlerts === 'function') loadAlerts();
+    else if(id === 'sc-fiche' && _ficheLoaded && typeof loadFiche === 'function') loadFiche();
+    else if(id === 'sc-kpi'){ _kpiLoaded = false; if(typeof loadKPI === 'function') loadKPI(); }
+    else if(id === 'sc-recap'){ _recapLoaded = false; if(typeof loadRecap === 'function') loadRecap(); }
+    else if(id === 'sc-paie'){
+      var sel = document.getElementById('paie-month-sel');
+      if(sel) sel.value = S.gM;
+      if(typeof loadPaie === 'function') loadPaie();
+    }
+  } catch(e){ console.warn('refresh:', e); }
 }
 
 // === KEBAB MENU ===
