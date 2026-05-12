@@ -1340,6 +1340,11 @@ var SUPA = {
     </div>
     <!-- Affichage conversions salariales live -->
     <div id="em-salary-conv" style="margin-top:8px"></div>
+    <!-- Banques d'absences -->
+    <div class="form-row" style="margin-top:14px">
+      <div class="form-group"><label>Banque jours maladie / an</label><input id="em-banque-mal" type="number" value="10" step="1" min="0"></div>
+      <div class="form-group"><label>Banque jours perso / an</label><input id="em-banque-perso" type="number" value="3" step="1" min="0"></div>
+    </div>
     <!-- Date d'effet : pour l'historique versionne -->
     <div style="background:#fef9e7;border:1px solid #f4d35e;border-radius:8px;padding:10px 14px;margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span style="font-size:20px"></span>
@@ -2000,10 +2005,35 @@ function renderForm(d,inf){
   var hc='';
   if(isW&&inf.debut&&inf.fin){var dp=inf.debut.split(':'),fp=inf.fin.split(':');var mn=(parseInt(fp[0])*60+parseInt(fp[1]))-(parseInt(dp[0])*60+parseInt(dp[1]));if(mn>0)hc='<div class="hcalc"><div class="hcalc-n" id="hcn">'+Math.round(mn/6)/10+'h</div><div><div style="font-size:14px;color:var(--ac);font-weight:700">calcule auto</div><div class="hcalc-l">duree</div></div></div>';}
   var h='<div class="tchips"><div class="tc'+(isW?' tc-w':'')+'" onclick="setTyp(\'work\','+d+')"> Travail</div><div class="tc'+(isC?' tc-c':'')+'" onclick="setTyp(\'conge\','+d+')"> Conge</div><div class="tc'+(isM?' tc-m':'')+'" onclick="setTyp(\'maladie\','+d+')"> Maladie</div><div class="tc'+(isF?' tc-f':'')+'" onclick="setTyp(\'formation\','+d+')"> Formation</div></div>';
-  if(isW){h+=hc+'<div class="fgrid"><div class="frow"><label>Arrivee</label><input type="time" id="f-d" value="'+(inf.debut||'')+'" oninput="calcHForm('+d+')"></div><div class="frow"><label>Depart</label><input type="time" id="f-f" value="'+(inf.fin||'')+'" oninput="calcHForm('+d+')"></div></div><div class="togrow"><span> Au bureau</span><div class="tog'+(inf.bureau?' on':'')+'" id="bt" onclick="this.classList.toggle(\'on\')"></div></div>';}
-  else h+='<div style="background:var(--s2);border-radius:var(--r2);padding:14px;font-size:16px;color:var(--ink2);margin-bottom:14px">Statut enregistre automatiquement.</div>';
+  if(isW){
+    h+=hc+'<div class="fgrid"><div class="frow"><label>Arrivee</label><input type="time" id="f-d" value="'+(inf.debut||'')+'" oninput="calcHForm('+d+')"></div><div class="frow"><label>Depart</label><input type="time" id="f-f" value="'+(inf.fin||'')+'" oninput="calcHForm('+d+')"></div></div>';
+    // Selecteur de lieu : Bureau / Teletravail / Deplacement
+    // Determiner le lieu actuel : utilise inf.lieu si dispo, sinon fallback sur inf.bureau (bool)
+    var curLieu = inf.lieu || (inf.bureau===true ? 'bureau' : (inf.debut ? 'teletravail' : 'bureau'));
+    h+='<div style="margin-bottom:14px"><div style="font-size:12.5px;color:var(--ink2);font-weight:600;margin-bottom:6px">Lieu de travail</div>';
+    h+='<div id="lieu-chips" style="display:flex;gap:6px;flex-wrap:wrap">';
+    h+='<div data-lieu="bureau" onclick="setLieu(\'bureau\')" class="lieu-chip'+(curLieu==='bureau'?' active':'')+'" style="flex:1;min-width:90px;padding:9px 12px;border:1.5px solid '+(curLieu==='bureau'?'var(--ac)':'var(--bd)')+';border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;background:'+(curLieu==='bureau'?'var(--ac-s)':'var(--card)')+';color:'+(curLieu==='bureau'?'var(--ac)':'var(--ink)')+'">Bureau</div>';
+    h+='<div data-lieu="teletravail" onclick="setLieu(\'teletravail\')" class="lieu-chip'+(curLieu==='teletravail'?' active':'')+'" style="flex:1;min-width:90px;padding:9px 12px;border:1.5px solid '+(curLieu==='teletravail'?'var(--ac)':'var(--bd)')+';border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;background:'+(curLieu==='teletravail'?'var(--ac-s)':'var(--card)')+';color:'+(curLieu==='teletravail'?'var(--ac)':'var(--ink)')+'">Télétravail</div>';
+    h+='<div data-lieu="deplacement" onclick="setLieu(\'deplacement\')" class="lieu-chip'+(curLieu==='deplacement'?' active':'')+'" style="flex:1;min-width:90px;padding:9px 12px;border:1.5px solid '+(curLieu==='deplacement'?'var(--ac)':'var(--bd)')+';border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;background:'+(curLieu==='deplacement'?'var(--ac-s)':'var(--card)')+';color:'+(curLieu==='deplacement'?'var(--ac)':'var(--ink)')+'">Déplacement</div>';
+    h+='</div><input type="hidden" id="f-lieu" value="'+curLieu+'"></div>';
+  } else {
+    h+='<div style="background:var(--s2);border-radius:var(--r2);padding:14px;font-size:16px;color:var(--ink2);margin-bottom:14px">Statut enregistre automatiquement.</div>';
+  }
+  // Champ Note (toujours visible)
+  h+='<div style="margin-bottom:14px"><label style="font-size:12.5px;color:var(--ink2);font-weight:600;display:block;margin-bottom:5px">Note <small style="color:var(--ink3);font-weight:400">(optionnelle, visible dans Planning equipe)</small></label>';
+  h+='<textarea id="f-note" rows="2" placeholder="Ex: Reunion client, contexte particulier..." style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical">'+esc(inf.note||'')+'</textarea></div>';
   h+='<button class="savebtn" id="sbtn" onclick="saveDay('+d+')"> Enregistrer</button>'+(inf.type?'<button class="clrbtn" onclick="clrDay('+d+')"> Effacer</button>':'');
   document.getElementById('fp-body').innerHTML=h;
+}
+// Selecteur de lieu : applique l'effet visuel + stocke dans le hidden input
+function setLieu(lieu){
+  document.getElementById('f-lieu').value = lieu;
+  document.querySelectorAll('#lieu-chips .lieu-chip').forEach(function(c){
+    var active = c.getAttribute('data-lieu') === lieu;
+    c.style.borderColor = active ? 'var(--ac)' : 'var(--bd)';
+    c.style.background = active ? 'var(--ac-s)' : 'var(--card)';
+    c.style.color = active ? 'var(--ac)' : 'var(--ink)';
+  });
 }
 function setNow(fid){
   var n=new Date(),h=('0'+n.getHours()).slice(-2),m=('0'+n.getMinutes()).slice(-2);
@@ -2019,16 +2049,25 @@ function calcHForm(d){
 function setTyp(t,d){var sm={work:'work',conge:'CONGE',maladie:'Malade',formation:'Formation'};var inf=S.dd[d]||{type:'',debut:'',fin:'',bureau:false};inf.type=sm[t]||t;S.dd[d]=inf;renderForm(d,inf);}
 function saveDay(d){
   if(S.saving)return;if(!S.emp){toast('Selectionnez votre nom',1);return;}
-  var inf=S.dd[d]||{},type=inf.type||'work',deb='',fin='',bur=false;
-  if(type==='work'){var di=document.getElementById('f-d'),fi=document.getElementById('f-f');if(!di||!fi||!di.value||!fi.value){toast('Entrez les heures',1);return;}deb=di.value;fin=fi.value;var bt=document.getElementById('bt');bur=!!(bt&&bt.classList.contains('on'));}
-  S.dd[d]={type:type,debut:deb,fin:fin,bureau:bur};S.saving=true;
+  var inf=S.dd[d]||{},type=inf.type||'work',deb='',fin='',bur=false,lieu=null,note=null;
+  if(type==='work'){
+    var di=document.getElementById('f-d'),fi=document.getElementById('f-f');
+    if(!di||!fi||!di.value||!fi.value){toast('Entrez les heures',1);return;}
+    deb=di.value;fin=fi.value;
+    var lieuEl=document.getElementById('f-lieu');
+    lieu = lieuEl ? (lieuEl.value || null) : null;
+    bur = (lieu === 'bureau');  // bureau (bool) derive du lieu pour retrocompat
+  }
+  var noteEl=document.getElementById('f-note');
+  note = noteEl ? (noteEl.value.trim() || null) : null;
+  S.dd[d]={type:type,debut:deb,fin:fin,bureau:bur,lieu:lieu,note:note};S.saving=true;
   var btn=document.getElementById('sbtn');if(btn){btn.disabled=true;btn.textContent='Enregistrement...';}
   google.script.run
     .withSuccessHandler(function(res){S.saving=false;if(res&&res.ok){delete S._empCache[_empKey(S.saveY,S.saveM,S.emp)];delete S._planCache[_planKey(S.saveY,S.saveM)];toast(' Enregistré — '+d+' '+MFR2[S.saveM]+' '+S.saveY); loadPtgData();}else toast((res&&res.msg)||'Erreur',1);var b=document.getElementById('sbtn');if(b){b.disabled=false;b.textContent='\ud83d\udcbe Enregistrer';}})
     .withFailureHandler(function(e){S.saving=false;toast('Erreur: '+e.message,1);var b=document.getElementById('sbtn');if(b){b.disabled=false;b.textContent='\ud83d\udcbe Enregistrer';}})
-    .api_saveDay(S.emp,S.saveY,S.saveM,d,deb,fin,type,bur);
+    .api_saveDay(S.emp,S.saveY,S.saveM,d,deb,fin,type,bur,lieu,note);
 }
-function clrDay(d){if(!confirm('Effacer le '+d+' '+MFR2[S.saveM]+' ?'))return;delete S.dd[d];renderPtg();google.script.run.withSuccessHandler(function(){toast('Efface');}).api_saveDay(S.emp,S.saveY,S.saveM,d,'','','',false);}
+function clrDay(d){if(!confirm('Effacer le '+d+' '+MFR2[S.saveM]+' ?'))return;delete S.dd[d];renderPtg();google.script.run.withSuccessHandler(function(){toast('Efface');}).api_saveDay(S.emp,S.saveY,S.saveM,d,'','','',false,null,null);}
 
 // === RESUME ===
 function rsmNav(dir){
@@ -2171,8 +2210,13 @@ function bldPMo(){
         else if(inf.type){badge='?';}
         if(inf.debut&&inf.fin&&inf.type==='work')times='<div style="font-size:11px;line-height:1.2;margin-top:2px;opacity:.85">'+inf.debut.slice(0,5)+'<br>'+inf.fin.slice(0,5)+'</div>';
       }
-      var wkBgCell=w.wk&&!cls?'background:#f5f0ff':'';h+='<td class="dc" style="height:52px;'+wkBgCell+'"><div class="dc-in '+cls+'" style="flex-direction:column;padding:2px">'+
-        (badge?'<span style="font-size:13px;font-weight:800">'+badge+'</span>':'')+times+'</div></td>';
+      var wkBgCell=w.wk&&!cls?'background:#f5f0ff':'';
+      var hasNote = inf && inf.note;
+      var clickAttr = inf ? ' onclick="showCellInfo('+JSON.stringify(n).replace(/"/g,'&quot;')+','+w.d+','+S.planM+','+S.planY+')" style="cursor:pointer"' : '';
+      h+='<td class="dc" style="height:52px;position:relative;'+wkBgCell+'"'+clickAttr+'><div class="dc-in '+cls+'" style="flex-direction:column;padding:2px">'+
+        (badge?'<span style="font-size:13px;font-weight:800">'+badge+'</span>':'')+times+
+        (hasNote?'<span style="position:absolute;top:1px;right:3px;color:#ff9800;font-weight:900;font-size:16px;line-height:1" title="Note presente">*</span>':'')+
+        '</div></td>';
     });
     // Colonne total
     h+='<td style="border-left:2px solid var(--bd);border-bottom:1px solid var(--bd);padding:6px 10px;background:var(--s2);vertical-align:middle">';
@@ -2199,7 +2243,10 @@ function bldPWk(){
     var totH=0,totBur=0;
     days.forEach(function(dt){
       var fr=isFer(dt.getFullYear(),dt.getMonth(),dt.getDate()),inf=ed[dt.getDate()];
-      h+='<div class="pw-cell" style="min-height:90px;flex-direction:column;gap:4px">';
+      var hasNote = inf && inf.note;
+      var clickAttr = inf ? ' onclick="showCellInfo('+JSON.stringify(n).replace(/"/g,'&quot;')+','+dt.getDate()+','+dt.getMonth()+','+dt.getFullYear()+')"' : '';
+      h+='<div class="pw-cell" style="min-height:90px;flex-direction:column;gap:4px;position:relative;'+(inf?'cursor:pointer':'')+'"'+clickAttr+'>';
+      if(hasNote){ h+='<span style="position:absolute;top:2px;right:4px;color:#ff9800;font-weight:900;font-size:18px;line-height:1" title="Note presente">*</span>'; }
       if(fr){h+='<div class="pwb pb-f">F\u00e9ri\u00e9</div>';}
       else if(inf){
         var bc='',txt='',h2=calcH(inf.debut,inf.fin);
@@ -2782,19 +2829,23 @@ var supabaseAPI = {
   },
 
   // Sauvegarder un jour (upsert)
-  saveDay: async function(emp, y, m, d, deb, fin, type, bur) {
+  saveDay: async function(emp, y, m, d, deb, fin, type, bur, lieu, note) {
     // UPSERT : on_conflict cible la contrainte UNIQUE (employe, date_pointage)
+    var body = {
+      employe: emp,
+      date_pointage: dateISO(y,m,d),
+      debut: deb||'',
+      fin: fin||'',
+      bureau: bur===true,
+      type_jour: type||'work'
+    };
+    // Colonnes optionnelles (ajoutees par migration ulterieure)
+    if(lieu !== undefined) body.lieu = lieu || null;
+    if(note !== undefined) body.note = note || null;
     await spFetch('rh_horaires?on_conflict=employe,date_pointage', {
       method: 'POST',
       prefer: 'resolution=merge-duplicates,return=minimal',
-      body: {
-        employe: emp,
-        date_pointage: dateISO(y,m,d),
-        debut: deb||'',
-        fin: fin||'',
-        bureau: bur===true,
-        type_jour: type||'work'
-      }
+      body: body
     });
     return { ok: true };
   },
@@ -2804,7 +2855,7 @@ var supabaseAPI = {
     var d1 = dateISO(y,m,1), d2 = dateISO(y,m,lastDayOfMonth(y,m));
     var [emps, rows] = await Promise.all([
       spFetch('rh_employes?select=nom&actif=eq.true&order=nom'),
-      spFetchAll('rh_horaires?date_pointage=gte.'+d1+'&date_pointage=lte.'+d2+'&select=employe,date_pointage,debut,fin,bureau,type_jour&order=date_pointage')
+      spFetchAll('rh_horaires?date_pointage=gte.'+d1+'&date_pointage=lte.'+d2+'&select=employe,date_pointage,debut,fin,bureau,lieu,note,type_jour&order=date_pointage')
     ]);
     var empNames = emps.map(function(e){ return e.nom; });
     var empSet = {};
@@ -2812,7 +2863,14 @@ var supabaseAPI = {
     (rows||[]).forEach(function(r){
       var dt = new Date(r.date_pointage+'T00:00:00'), day = dt.getDate();
       if(!empSet[r.employe]) empSet[r.employe]={};
-      empSet[r.employe][day]={type:r.type_jour||'work',debut:r.debut||'',fin:r.fin||'',bureau:r.bureau===true};
+      empSet[r.employe][day]={
+        type:r.type_jour||'work',
+        debut:r.debut||'',
+        fin:r.fin||'',
+        bureau:r.bureau===true,
+        lieu:r.lieu||null,
+        note:r.note||null
+      };
     });
     return { emps: empNames, data: empSet };
   },
@@ -2994,7 +3052,7 @@ var google = {
           withFailureHandler: function(fn){ _err=fn; return proxy; },
           api_getEmployeeNames:  function(){ supabaseAPI.getEmployeeNames().then(_ok).catch(_err); },
           api_getMonthData:      function(e,y,m){ supabaseAPI.getMonthData(e,y,m).then(_ok).catch(_err); },
-          api_saveDay:           function(e,y,m,d,db,fn,tp,br){ supabaseAPI.saveDay(e,y,m,d,db,fn,tp,br).then(_ok).catch(_err); },
+          api_saveDay:           function(e,y,m,d,db,fn,tp,br,lieu,note){ supabaseAPI.saveDay(e,y,m,d,db,fn,tp,br,lieu,note).then(_ok).catch(_err); },
           api_getTeamPlanning:   function(y,m){ supabaseAPI.getTeamPlanning(y,m).then(_ok).catch(_err); },
           api_getRole:           function(n){ supabaseAPI.getRole(n).then(_ok).catch(_err); },
           api_getMyStats:        function(e,y,m){ supabaseAPI.getMyStats(e,y,m).then(_ok).catch(_err); },
@@ -3567,7 +3625,8 @@ async function loadFiche() {
     var byMonth = {};
     for (var m = 0; m < 12; m++) byMonth[m] = { h: 0, worked: 0, bur: 0, abs: 0, conge: 0 };
     var totalH = 0, totalWorked = 0, totalBur = 0, totalAbs = 0, totalConge = 0;
-    
+    var totalMaladie = 0, totalPerso = 0;
+
     horaires.forEach(function(r) {
       var dt = new Date(r.date_pointage + 'T00:00:00');
       var m = dt.getMonth();
@@ -3578,14 +3637,27 @@ async function loadFiche() {
           var h = mn/60;
           byMonth[m].h += h; byMonth[m].worked++;
           totalH += h; totalWorked++;
-          if (r.bureau) { byMonth[m].bur++; totalBur++; }
+          // Bureau = lieu='bureau' OU (legacy) bureau=true. Teletravail et Deplacement sont distincts.
+          var isBureau = r.lieu ? (r.lieu === 'bureau') : (r.bureau === true);
+          if (isBureau) { byMonth[m].bur++; totalBur++; }
         }
       } else if (r.type_jour && r.type_jour !== 'work') {
         byMonth[m].abs++;
         totalAbs++;
-        if (r.type_jour === 'CONGE' || r.type_jour === 'VACANCES') { byMonth[m].conge++; totalConge++; }
+        if (r.type_jour === 'CONGE' || r.type_jour === 'VACANCES') { byMonth[m].conge++; totalConge++; totalPerso++; }
+        else if (r.type_jour === 'Malade') totalMaladie++;
       }
     });
+    // Calcul jours ouvrables total de l'annee (excl. weekends + jours feries)
+    var ouvrablesAnnee = 0;
+    var dStart = new Date(y, 0, 1), dEnd = new Date(y, 11, 31);
+    for(var cur = new Date(dStart); cur <= dEnd; cur.setDate(cur.getDate()+1)){
+      var wd = cur.getDay();
+      if(wd === 0 || wd === 6) continue;  // dim/sam
+      var isFerie = !!(typeof FER !== 'undefined' && FER[cur.getFullYear()+'-'+cur.getMonth()+'-'+cur.getDate()]);
+      if(isFerie) continue;
+      ouvrablesAnnee++;
+    }
     
     // Charger l'historique si pas encore fait
     await loadHistoryCache();
@@ -3628,9 +3700,28 @@ async function loadFiche() {
     h += '<div style="margin-left:auto;display:flex;gap:16px;flex-wrap:wrap">';
     h += '<div class="stat-box"><div class="sv">' + hR + 'h</div><div class="sl">Heures travaillées</div></div>';
     h += '<div class="stat-box"><div class="sv">' + pct + '%</div><div class="sl">Objectif annuel</div></div>';
-    h += '<div class="stat-box"><div class="sv">' + bureauPct + '%</div><div class="sl">Taux bureau</div></div>';
+    h += '<div class="stat-box"><div class="sv">' + totalBur + ' / ' + totalWorked + '</div><div class="sl">Bureau / j. travaillés (' + bureauPct + '%)</div></div>';
     h += '<div class="stat-box"><div class="sv">' + hSupp + 'h</div><div class="sl">Heures supp.</div></div>';
     h += '<div class="stat-box"><div class="sv">' + totalConge + 'j</div><div class="sl">Congés</div></div>';
+    h += '</div>';
+    // Banques d'absences (decompte)
+    var banqueMaladie = parseInt(empData.banque_maladie); if(isNaN(banqueMaladie)) banqueMaladie = 10;
+    var banquePerso = parseInt(empData.banque_perso); if(isNaN(banquePerso)) banquePerso = 3;
+    var restantMaladie = Math.max(0, banqueMaladie - totalMaladie);
+    var restantPerso = Math.max(0, banquePerso - totalPerso);
+    h += '<div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap">';
+    h += '<div style="flex:1;min-width:240px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 18px">';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-size:13px;font-weight:700;color:var(--ink)">Banque maladie</div><div style="font-size:11px;color:var(--ink3)">Année ' + y + '</div></div>';
+    h += '<div style="font-size:24px;font-weight:800;color:'+(restantMaladie<=2?'var(--rd)':restantMaladie<=4?'var(--am)':'var(--gr)')+'">' + restantMaladie + ' <span style="font-size:13px;color:var(--ink3);font-weight:500">/ ' + banqueMaladie + ' j restant(s)</span></div>';
+    h += '<div style="font-size:12px;color:var(--ink2);margin-top:4px">Utilisé : <strong>' + totalMaladie + ' j</strong></div>';
+    h += '<div style="height:6px;background:var(--bd);border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;background:'+(restantMaladie<=2?'var(--rd)':restantMaladie<=4?'var(--am)':'var(--gr)')+';width:'+(banqueMaladie>0?Math.round((restantMaladie/banqueMaladie)*100):0)+'%"></div></div>';
+    h += '</div>';
+    h += '<div style="flex:1;min-width:240px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 18px">';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-size:13px;font-weight:700;color:var(--ink)">Banque perso (congés)</div><div style="font-size:11px;color:var(--ink3)">Année ' + y + '</div></div>';
+    h += '<div style="font-size:24px;font-weight:800;color:'+(restantPerso<=0?'var(--rd)':restantPerso<=1?'var(--am)':'var(--gr)')+'">' + restantPerso + ' <span style="font-size:13px;color:var(--ink3);font-weight:500">/ ' + banquePerso + ' j restant(s)</span></div>';
+    h += '<div style="font-size:12px;color:var(--ink2);margin-top:4px">Utilisé : <strong>' + totalPerso + ' j</strong></div>';
+    h += '<div style="height:6px;background:var(--bd);border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;background:'+(restantPerso<=0?'var(--rd)':restantPerso<=1?'var(--am)':'var(--gr)')+';width:'+(banquePerso>0?Math.round((restantPerso/banquePerso)*100):0)+'%"></div></div>';
+    h += '</div>';
     h += '</div>';
     // Bouton voir l'historique (changements de salaire, heures_semaine, etc.)
     // Note : on stocke le nom dans une variable globale et on appelle sans argument
@@ -5201,6 +5292,8 @@ function openAddEmp() {
   document.getElementById('em-charges').value = '15.5';
   document.getElementById('em-photo-url').value = '';
   document.getElementById('em-photo-file').value = '';
+  document.getElementById('em-banque-mal').value = '10';
+  document.getElementById('em-banque-perso').value = '3';
   _pendingPhotoFile = null;
   // Date d'effet : aujourd'hui par defaut pour un nouvel employe
   document.getElementById('em-valid-from').value = new Date().toISOString().substring(0,10);
@@ -5225,6 +5318,8 @@ function openEditEmp(idx) {
   document.getElementById('em-salaire').value = e.salaire || 25;
   document.getElementById('em-type-sal').value = e.type_salaire || 'Horaire';
   document.getElementById('em-charges').value = e.charges_pct || 15.5;
+  document.getElementById('em-banque-mal').value = (e.banque_maladie !== undefined && e.banque_maladie !== null) ? e.banque_maladie : 10;
+  document.getElementById('em-banque-perso').value = (e.banque_perso !== undefined && e.banque_perso !== null) ? e.banque_perso : 3;
   document.getElementById('em-photo-url').value = e.photo_url || '';
   document.getElementById('em-photo-file').value = '';
   _pendingPhotoFile = null;
@@ -5378,6 +5473,35 @@ async function openEmpHistory(nom){
   }
 }
 function closeEmpHistoryModal(){ document.getElementById('emp-history-modal').style.display = 'none'; }
+
+// ════════════════════════════════════════════════════════════════
+// AFFICHAGE NOTE / DETAIL CELLULE PLANNING EQUIPE
+// ════════════════════════════════════════════════════════════════
+function showCellInfo(nom, day, month, year){
+  // Recupere les donnees de la cellule depuis le cache de planning
+  var data = (S.pd2 && S.pd2.data && S.pd2.data[nom]) ? S.pd2.data[nom][day] : null;
+  if(!data){ toast('Aucune donnee pour cette cellule',1); return; }
+  var dateStr = String(day).padStart(2,'0') + '/' + String(month+1).padStart(2,'0') + '/' + year;
+  var lieuLabel = '';
+  if(data.lieu === 'bureau') lieuLabel = 'Bureau';
+  else if(data.lieu === 'teletravail') lieuLabel = 'Teletravail';
+  else if(data.lieu === 'deplacement') lieuLabel = 'Deplacement';
+  else if(data.bureau) lieuLabel = 'Bureau';
+  else lieuLabel = data.debut ? 'Teletravail' : '';
+  var typeLabel = data.type === 'work' ? 'Travail' : (data.type === 'CONGE' ? 'Conge' : (data.type === 'Malade' ? 'Maladie' : data.type||'—'));
+  var msg = '';
+  msg += 'Employé : ' + nom + '\n';
+  msg += 'Date : ' + dateStr + '\n';
+  msg += 'Type : ' + typeLabel + '\n';
+  if(data.debut && data.fin) msg += 'Horaires : ' + data.debut + ' → ' + data.fin + '\n';
+  if(lieuLabel) msg += 'Lieu : ' + lieuLabel + '\n';
+  if(data.note){
+    msg += '\n--- NOTE ---\n' + data.note;
+  } else {
+    msg += '\n(Aucune note pour cette journée)';
+  }
+  alert(msg);
+}
 
 // ════════════════════════════════════════════════════════════════
 // AUGMENTATION ANNUELLE — revue salariale en masse
@@ -5593,6 +5717,8 @@ async function saveEmp() {
     salaire: parseFloat(document.getElementById('em-salaire').value),
     type_salaire: document.getElementById('em-type-sal').value,
     charges_pct: parseFloat(document.getElementById('em-charges').value),
+    banque_maladie: parseInt(document.getElementById('em-banque-mal').value) || 0,
+    banque_perso: parseInt(document.getElementById('em-banque-perso').value) || 0,
     photo_url: photoUrl
   };
   // Date d'effet pour l'historique
