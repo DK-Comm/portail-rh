@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
 
     // Charger employes actifs (hors direction + exclusions) + horaires du cycle
     const { data: emps } = await sb.from('rh_employes')
-      .select('nom,email,statut,actif,heures_norm_sem')
+      .select('nom,email,statut,actif,heures_semaine')
       .eq('actif', true);
     const fromIso = isoDay(cycle.start);
     const toIso   = isoDay(cycle.end);
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       const bizDone = bizDaysInCycle.filter(d => pointed[isoDay(d)]).length;
       const missingDays = bizExpected - bizDone;
       if (missingDays <= 0) { skipped.push({nom:e.nom, reason:'ok'}); continue; }
-      const perDay = e.heures_norm_sem ? (parseFloat(e.heures_norm_sem) / 5) : 7;
+      const perDay = e.heures_semaine ? (parseFloat(e.heures_semaine) / 5) : 7;
       const missingH = Math.round(missingDays * perDay * 10) / 10;
       if (missingH < cfg.threshold) { skipped.push({nom:e.nom, reason:'below_threshold', missingH}); continue; }
 
