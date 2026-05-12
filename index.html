@@ -2063,18 +2063,29 @@ function renderAlerts(d){
 
 async function spFetch(path, opts) {
   var url = SUPA.url + '/rest/v1/' + path;
-  var headers = {
-    'apikey': SUPA.key,
-    'Authorization': 'Bearer ' + (SUPA.tok || SUPA.key),
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
+  var doRequest = function() {
+    var headers = {
+      'apikey': SUPA.key,
+      'Authorization': 'Bearer ' + (SUPA.tok || SUPA.key),
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    if (opts && opts.prefer) headers['Prefer'] = opts.prefer;
+    return fetch(url, {
+      method: opts && opts.method ? opts.method : 'GET',
+      headers: headers,
+      body: opts && opts.body ? JSON.stringify(opts.body) : undefined
+    });
   };
-  if (opts && opts.prefer) headers['Prefer'] = opts.prefer;
-  var res = await fetch(url, {
-    method: opts && opts.method ? opts.method : 'GET',
-    headers: headers,
-    body: opts && opts.body ? JSON.stringify(opts.body) : undefined
-  });
+  var res = await doRequest();
+  // Auto-refresh + retry sur JWT expire
+  if (res.status === 401 && typeof refreshSession === 'function' && SUPA.rtok) {
+    var preview = await res.clone().text();
+    if (typeof _isJwtExpired === 'function' && _isJwtExpired(res.status, preview)) {
+      var ok = await refreshSession();
+      if (ok) res = await doRequest();
+    }
+  }
   if (!res.ok) {
     var txt = await res.text();
     throw new Error('Supabase ' + res.status + ': ' + txt.slice(0,120));
@@ -2470,12 +2481,60 @@ function authShowSignup() { document.getElementById('av-login').style.display='n
 function authShowForgot() { document.getElementById('av-login').style.display='none'; document.getElementById('av-signup').style.display='none'; document.getElementById('av-forgot').style.display=''; document.getElementById('av-pick').style.display='none'; }
 function authShowPick()   { document.getElementById('av-login').style.display='none'; document.getElementById('av-signup').style.display='none'; document.getElementById('av-forgot').style.display='none'; document.getElementById('av-pick').style.display=''; }
 
+// Refresh du token Supabase si expire (retourne true si OK)
+var _refreshInFlight = null;
+async function refreshSession() {
+  if (!SUPA.rtok) return false;
+  // Eviter les refresh en parallele
+  if (_refreshInFlight) return _refreshInFlight;
+  _refreshInFlight = (async function(){
+    try {
+      var r = await fetch(SUPA.url + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'apikey': SUPA.key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: SUPA.rtok })
+      });
+      if (!r.ok) {
+        // Refresh impossible -> forcer le logout
+        SUPA.tok = null; SUPA.rtok = null;
+        sessionStorage.removeItem('rh_s');
+        toast('Session expirée, reconnexion requise', 1);
+        setTimeout(function(){ if(typeof authLogout==='function') authLogout(); }, 1500);
+        return false;
+      }
+      var data = await r.json();
+      SUPA.tok = data.access_token;
+      if (data.refresh_token) SUPA.rtok = data.refresh_token;
+      var s = JSON.parse(sessionStorage.getItem('rh_s') || '{}');
+      s.tok = SUPA.tok; s.rtok = SUPA.rtok;
+      sessionStorage.setItem('rh_s', JSON.stringify(s));
+      return true;
+    } catch(e) { console.error('refreshSession:', e); return false; }
+    finally { _refreshInFlight = null; }
+  })();
+  return _refreshInFlight;
+}
+
+// Detecte si une reponse est un token expire
+function _isJwtExpired(status, txt) {
+  return status === 401 && (txt.indexOf('JWT expired') >= 0 || txt.indexOf('PGRST303') >= 0 || txt.indexOf('expired') >= 0);
+}
+
 async function authFetch(path, method, body) {
-  var h = { 'apikey': SUPA.key, 'Content-Type': 'application/json', 'Accept': 'application/json' };
-  if (SUPA.tok) h['Authorization'] = 'Bearer ' + SUPA.tok;
-  else h['Authorization'] = 'Bearer ' + SUPA.key;
-  if (method==='PATCH'||method==='POST') h['Prefer']='return=minimal';
-  var r = await fetch(SUPA.url + path, { method: method || 'GET', headers: h, body: body ? JSON.stringify(body) : undefined });
+  var doFetch = function() {
+    var h = { 'apikey': SUPA.key, 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    h['Authorization'] = 'Bearer ' + (SUPA.tok || SUPA.key);
+    if (method==='PATCH'||method==='POST') h['Prefer']='return=minimal';
+    return fetch(SUPA.url + path, { method: method || 'GET', headers: h, body: body ? JSON.stringify(body) : undefined });
+  };
+  var r = await doFetch();
+  if (r.status === 401 && SUPA.rtok) {
+    var preview = await r.clone().text();
+    if (_isJwtExpired(r.status, preview)) {
+      var ok = await refreshSession();
+      if (ok) r = await doFetch();
+    }
+  }
   if (!r.ok && r.status !== 204) {
     var txt = await r.text();
     throw new Error(r.status + ': ' + txt.slice(0, 100));
@@ -2501,7 +2560,8 @@ async function authLogin() {
     var data = await r.json();
     if (!r.ok) throw new Error(data.error_description || data.msg || 'Identifiants incorrects');
     SUPA.tok = data.access_token;
-    sessionStorage.setItem('rh_s', JSON.stringify({ email: email, tok: data.access_token }));
+    SUPA.rtok = data.refresh_token;
+    sessionStorage.setItem('rh_s', JSON.stringify({ email: email, tok: data.access_token, rtok: data.refresh_token }));
     await authAfterLogin(email);
   } catch(e) {
     authMsg('av-login-msg', e.message);
@@ -2528,8 +2588,9 @@ async function authSignup() {
     var data = await r.json();
     if (!r.ok) throw new Error(data.error_description || data.msg || 'Erreur création');
     SUPA.tok = data.session ? data.session.access_token : null;
+    SUPA.rtok = data.session ? data.session.refresh_token : null;
     if (SUPA.tok) {
-      sessionStorage.setItem('rh_s', JSON.stringify({ email: email, tok: SUPA.tok }));
+      sessionStorage.setItem('rh_s', JSON.stringify({ email: email, tok: SUPA.tok, rtok: SUPA.rtok }));
       await authAfterLogin(email);
     } else {
       authMsg('av-signup-msg', 'Compte créé ! Connectez-vous maintenant.', true);
@@ -2679,6 +2740,7 @@ window.onload = function() {
       var s = JSON.parse(stored);
       if (s.tok && s.nom) {
         SUPA.tok = s.tok;
+        SUPA.rtok = s.rtok || null;
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
         loadEmpPhotos(); loadReferentiels();
