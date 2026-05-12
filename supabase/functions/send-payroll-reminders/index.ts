@@ -151,10 +151,10 @@ Deno.serve(async (req) => {
     const fromIso = isoDay(cycle.start);
     const toIso   = isoDay(cycle.end);
     const { data: hor } = await sb.from('rh_horaires')
-      .select('nom,date_pointage,debut,fin,type_jour')
+      .select('employe,date_pointage,debut,fin,type_jour')
       .gte('date_pointage', fromIso).lte('date_pointage', toIso);
     const byEmp: Record<string, any[]> = {};
-    for (const r of (hor || [])) (byEmp[r.nom] = byEmp[r.nom] || []).push(r);
+    for (const r of (hor || [])) (byEmp[r.employe] = byEmp[r.employe] || []).push(r);
 
     const bizDaysInCycle = businessDaysBetween(cycle.start, today);
     const sent: any[] = [];
