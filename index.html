@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ESPACE MUNI - Portail RH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -21,7 +24,11 @@
   --r:12px;--r2:8px;
 }
 html,body{overflow-x:hidden;max-width:100vw}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;min-height:100vh}
+body{font-family:'Be Vietnam Pro','Segoe UI',system-ui,sans-serif;font-weight:500;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;min-height:100vh}
+/* Be Vietnam Pro : 2 graisses chargees (500 Medium + 700 Bold) */
+body,button,input,textarea,select{font-family:'Be Vietnam Pro','Segoe UI',system-ui,sans-serif}
+body{font-weight:500}
+strong,b,h1,h2,h3,h4,h5,h6{font-weight:700}
 .main-area{min-width:0}
 /* Sur mobile/tablette : laisser le scroll horizontal pour pouvoir naviguer dans la page (app non mobile-optimized) */
 @media (max-width:768px){
@@ -4287,7 +4294,7 @@ async function simulateReminders(){
   document.getElementById('amm-context').innerHTML = ctxHtml;
 
   try {
-    var emp = await authFetchAll('/rest/v1/rh_employes?select=nom,email,statut,actif,heures_norm_sem&order=nom');
+    var emp = await authFetchAll('/rest/v1/rh_employes?select=nom,email,statut,actif,heures_semaine&order=nom');
     var fromIso = cycle.start.toISOString().substring(0,10);
     var toIso   = cycle.end.toISOString().substring(0,10);
     var hor = await authFetchAll('/rest/v1/rh_horaires?select=nom,date_pointage,debut,fin,type_jour&date_pointage=gte.'+fromIso+'&date_pointage=lte.'+toIso);
@@ -4312,7 +4319,7 @@ async function simulateReminders(){
       var bizDaysDone = bizDaysInCycle.filter(function(d){ return pointed[d.toISOString().substring(0,10)]; }).length;
       var missingDays = bizDaysExpected - bizDaysDone;
       if(missingDays <= 0) return;
-      var perDay = e.heures_norm_sem ? (parseFloat(e.heures_norm_sem)/5) : 7;
+      var perDay = e.heures_semaine ? (parseFloat(e.heures_semaine)/5) : (S.hNormSem ? S.hNormSem/5 : 7);
       var missingH = Math.round(missingDays * perDay * 10)/10;
       if(missingH < threshold) return;
       todoEmps.push({
