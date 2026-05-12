@@ -657,21 +657,14 @@ var SUPA = {
       <input type="password" id="ai-pwd" placeholder="••••••••">
       <button class="ab-btn" id="ab-login" onclick="authLogin()">Se connecter</button>
       <div id="av-login-msg"></div>
-      <div class="ab-links"><a onclick="authShowSignup()">Cr&eacute;er un compte</a> &middot; <a onclick="authShowForgot()">Mot de passe oubli&eacute;</a></div>
+      <div class="ab-links"><a onclick="authShowForgot()">Mot de passe oubli&eacute;</a></div>
+      <div style="margin-top:18px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:11.5px;color:#64748b;line-height:1.5;text-align:center">
+        <strong>Acc&egrave;s r&eacute;serv&eacute; aux employ&eacute;s d'Espace Muni.</strong><br>
+        Si vous n'avez pas encore de compte, contactez la Direction RH.
+      </div>
     </div>
-    <div id="av-signup" style="display:none">
-      <h2>Cr&eacute;er un compte</h2>
-      <p>Utilisez votre email professionnel</p>
-      <label>Email</label>
-      <input type="email" id="ai-email-s" placeholder="votre@email.com">
-      <label>Mot de passe (8 caract&egrave;res min.)</label>
-      <input type="password" id="ai-pwd-s" placeholder="••••••••">
-      <label>Confirmer</label>
-      <input type="password" id="ai-pwd-s2" placeholder="••••••••">
-      <button class="ab-btn" id="ab-signup" onclick="authSignup()">Cr&eacute;er mon compte</button>
-      <div id="av-signup-msg"></div>
-      <div class="ab-links"><a onclick="authShowLogin()">D&eacute;j&agrave; un compte</a></div>
-    </div>
+    <!-- Signup public desactive (Phase 1 securite). Les comptes sont crees par la Direction via Supabase Dashboard. -->
+    <div id="av-signup" style="display:none"></div>
     <div id="av-forgot" style="display:none">
       <h2>R&eacute;initialiser</h2>
       <p>Recevez un lien par email</p>
@@ -1428,6 +1421,17 @@ function mkAvDiv(c, i, sz) {
 }
 
 function toast(msg,err){var t=document.getElementById('toast');t.className='toast show'+(err?' err':'');t.textContent=(err?'\u26a0 ':'\u2713 ')+msg;clearTimeout(t._t);t._t=setTimeout(function(){t.className='toast';},3500);}
+// Helper : echappe les caracteres HTML pour prevenir XSS quand on injecte des donnees user dans innerHTML.
+// A utiliser sur toute donnee venant de la DB (nom, email, poste, departement, etc.) inseree via innerHTML.
+function esc(s){
+  if(s===null||s===undefined) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
 
 // === TABS ===
 function gotoDir(id,el){
@@ -2223,7 +2227,7 @@ function renderDash(d){
   h+='</div></div>';
   h+='<div class="dcard"><div class="dcard-hdr"><h3>Alertes <span style="font-size:11px;background:#fcebeb;color:#a32d2d;padding:2px 8px;border-radius:10px;margin-left:6px">'+nbAlerts+' critique'+(nbAlerts>1?'s':'')+'</span></h3></div><div class="dcard-body"><div class="alert-list">';
   if(!d.alerts||!d.alerts.length){h+='<div class="ait ai-ok"><div class="ai-txt"><div class="ai-name">Aucune alerte</div></div><span class="ai-badge ab-ok">OK</span></div>';}
-  else{d.alerts.slice(0,6).forEach(function(a){h+='<div class="ait ai-'+a.level+'"><div class="ai-txt"><div class="ai-name">'+a.name+'</div><div class="ai-detail">'+a.msg+' \u2014 '+a.detail+'</div></div><span class="ai-badge ab-'+a.level+'">'+(a.level==='err'?'Critique':a.level==='warn'?'Attention':'OK')+'</span></div>';});}
+  else{d.alerts.slice(0,6).forEach(function(a){h+='<div class="ait ai-'+a.level+'"><div class="ai-txt"><div class="ai-name">'+esc(a.name)+'</div><div class="ai-detail">'+esc(a.msg)+' \u2014 '+esc(a.detail)+'</div></div><span class="ai-badge ab-'+a.level+'">'+(a.level==='err'?'Critique':a.level==='warn'?'Attention':'OK')+'</span></div>';});}
   h+='</div></div></div></div>';
 
   // ── SECTION 3 : KPIs par département ──
@@ -2386,13 +2390,13 @@ function renderAlerts(d){
     if(errs.length){
       h+='<div style="font-size:13px;font-weight:500;color:#A32D2D;margin-bottom:8px">Critiques ('+errs.length+')</div>';
       h+='<div class="alert-list" style="margin-bottom:16px">';
-      errs.forEach(function(a){h+='<div class="ait ai-err"><div class="ai-txt"><div class="ai-name">'+a.name+'</div><div class="ai-detail">'+a.msg+' &mdash; '+a.detail+'</div></div><span class="ai-badge ab-err">Critique</span></div>';});
+      errs.forEach(function(a){h+='<div class="ait ai-err"><div class="ai-txt"><div class="ai-name">'+esc(a.name)+'</div><div class="ai-detail">'+esc(a.msg)+' &mdash; '+esc(a.detail)+'</div></div><span class="ai-badge ab-err">Critique</span></div>';});
       h+='</div>';
     }
     if(warns.length){
       h+='<div style="font-size:13px;font-weight:500;color:#854F0B;margin-bottom:8px">Attention ('+warns.length+')</div>';
       h+='<div class="alert-list">';
-      warns.forEach(function(a){h+='<div class="ait ai-warn"><div class="ai-txt"><div class="ai-name">'+a.name+'</div><div class="ai-detail">'+a.msg+' &mdash; '+a.detail+'</div></div><span class="ai-badge ab-warn">Attention</span></div>';});
+      warns.forEach(function(a){h+='<div class="ait ai-warn"><div class="ai-txt"><div class="ai-name">'+esc(a.name)+'</div><div class="ai-detail">'+esc(a.msg)+' &mdash; '+esc(a.detail)+'</div></div><span class="ai-badge ab-warn">Attention</span></div>';});
       h+='</div>';
     }
   }
@@ -2986,38 +2990,12 @@ async function authLogin() {
   }
 }
 
+// Signup public desactive (Phase 1 securite).
+// Les comptes sont crees par la Direction directement dans le Dashboard Supabase
+// (Auth > Users > Add user). Pour bloquer totalement cote serveur, desactiver
+// "Allow new users to sign up" dans Supabase Dashboard > Auth > Settings.
 async function authSignup() {
-  var email = document.getElementById('ai-email-s').value.trim();
-  var pwd   = document.getElementById('ai-pwd-s').value;
-  var pwd2  = document.getElementById('ai-pwd-s2').value;
-  if (!email || !pwd) { authMsg('av-signup-msg', 'Remplir tous les champs'); return; }
-  if (pwd !== pwd2)   { authMsg('av-signup-msg', 'Mots de passe différents'); return; }
-  if (pwd.length < 8) { authMsg('av-signup-msg', 'Minimum 8 caractères'); return; }
-  var btn = document.getElementById('ab-signup');
-  btn.disabled = true; btn.textContent = 'Création...';
-  authMsg('av-signup-msg', '');
-  try {
-    var r = await fetch(SUPA.url + '/auth/v1/signup', {
-      method: 'POST',
-      headers: { 'apikey': SUPA.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, password: pwd })
-    });
-    var data = await r.json();
-    if (!r.ok) throw new Error(data.error_description || data.msg || 'Erreur création');
-    SUPA.tok = data.session ? data.session.access_token : null;
-    SUPA.rtok = data.session ? data.session.refresh_token : null;
-    if (SUPA.tok) {
-      sessionStorage.setItem('rh_s', JSON.stringify({ email: email, tok: SUPA.tok, rtok: SUPA.rtok }));
-      await authAfterLogin(email);
-    } else {
-      authMsg('av-signup-msg', 'Compte créé ! Connectez-vous maintenant.', true);
-      setTimeout(authShowLogin, 2000);
-      btn.disabled = false; btn.textContent = 'Créer mon compte';
-    }
-  } catch(e) {
-    authMsg('av-signup-msg', e.message);
-    btn.disabled = false; btn.textContent = 'Créer mon compte';
-  }
+  toast('La création de compte est désactivée. Contactez la Direction RH.', 1);
 }
 
 async function authForgot() {
@@ -3961,12 +3939,12 @@ function renderRepertoire() {
       h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">';
       h += photoHTML;
       h += '<div style="overflow:hidden;flex:1;padding-right:'+(isDir?'24px':'0')+'">';
-      h += '<div style="font-weight:700;font-size:14px;line-height:1.2">'+e.nom+'</div>';
-      h += '<div style="font-size:12px;color:var(--ink2);margin-top:3px;line-height:1.3">'+posteTxt+'</div>';
-      if(e.statut) h += '<div style="margin-top:5px"><span class="tag '+tagClass(e.statut)+'">'+e.statut+'</span>'+(e.actif===false?'<span style="margin-left:6px;font-size:10px;color:var(--rd);font-weight:600">(inactif)</span>':'')+'</div>';
+      h += '<div style="font-weight:700;font-size:14px;line-height:1.2">'+esc(e.nom)+'</div>';
+      h += '<div style="font-size:12px;color:var(--ink2);margin-top:3px;line-height:1.3">'+esc(posteTxt)+'</div>';
+      if(e.statut) h += '<div style="margin-top:5px"><span class="tag '+tagClass(e.statut)+'">'+esc(e.statut)+'</span>'+(e.actif===false?'<span style="margin-left:6px;font-size:10px;color:var(--rd);font-weight:600">(inactif)</span>':'')+'</div>';
       h += '</div></div>';
-      if(e.email) h += '<div style="font-size:12px;color:var(--ink2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">&#9993; '+e.email+'</div>';
-      if(e.telephone) h += '<div style="font-size:12px;color:var(--ink2)">&#9742; '+e.telephone + (e.poste_tel?' p. '+e.poste_tel:'')+'</div>';
+      if(e.email) h += '<div style="font-size:12px;color:var(--ink2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">&#9993; '+esc(e.email)+'</div>';
+      if(e.telephone) h += '<div style="font-size:12px;color:var(--ink2)">&#9742; '+esc(e.telephone) + (e.poste_tel?' p. '+esc(e.poste_tel):'')+'</div>';
       h += '</div>'; // fin clickable
       h += '</div>'; // fin card
     });
@@ -4035,29 +4013,29 @@ function openRepCard(idx) {
   h += '<div style="display:inline-block">'+photoHTML+'</div>';
   h += '</div>';
   h += '<div style="padding:0 24px 24px;margin-top:-30px;text-align:center">';
-  h += '<div style="font-size:22px;font-weight:800;color:var(--ink)">'+e.nom+'</div>';
-  if(posteTxt) h += '<div style="font-size:14px;color:var(--ink2);margin-top:4px">'+posteTxt+'</div>';
-  if(e.statut) h += '<div style="margin-top:10px"><span class="tag '+tcls(e.statut)+'">'+e.statut+'</span></div>';
+  h += '<div style="font-size:22px;font-weight:800;color:var(--ink)">'+esc(e.nom)+'</div>';
+  if(posteTxt) h += '<div style="font-size:14px;color:var(--ink2);margin-top:4px">'+esc(posteTxt)+'</div>';
+  if(e.statut) h += '<div style="margin-top:10px"><span class="tag '+tcls(e.statut)+'">'+esc(e.statut)+'</span></div>';
   h += '</div>';
   h += '<div style="padding:0 24px 24px;display:flex;flex-direction:column;gap:8px">';
   if(e.departement){
     h += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px">';
     h += '<span style="font-size:18px">&#127970;</span>';
-    h += '<div><div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">D&eacute;partement</div><div style="font-size:13px;font-weight:600;margin-top:2px">'+e.departement+'</div></div>';
+    h += '<div><div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">D&eacute;partement</div><div style="font-size:13px;font-weight:600;margin-top:2px">'+esc(e.departement)+'</div></div>';
     h += '</div>';
   }
   if(e.email){
-    h += '<a href="mailto:'+e.email+'" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px;transition:background .12s" onmouseover="this.style.background=\'var(--ac-s)\'" onmouseout="this.style.background=\'var(--s2)\'">';
+    h += '<a href="mailto:'+encodeURIComponent(e.email)+'" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px;transition:background .12s" onmouseover="this.style.background=\'var(--ac-s)\'" onmouseout="this.style.background=\'var(--s2)\'">';
     h += '<span style="font-size:18px">&#9993;</span>';
-    h += '<div style="flex:1"><div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">Courriel</div><div style="font-size:13px;font-weight:600;margin-top:2px">'+e.email+'</div></div>';
+    h += '<div style="flex:1"><div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">Courriel</div><div style="font-size:13px;font-weight:600;margin-top:2px">'+esc(e.email)+'</div></div>';
     h += '<span style="color:var(--ac);font-size:14px">&rarr;</span>';
     h += '</a>';
   }
   if(e.telephone){
-    var telLink = 'tel:'+e.telephone.replace(/\s/g,'')+(e.poste_tel?',,'+e.poste_tel:'');
+    var telLink = 'tel:'+encodeURIComponent(e.telephone.replace(/\s/g,''))+(e.poste_tel?',,'+encodeURIComponent(e.poste_tel):'');
     h += '<a href="'+telLink+'" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px;transition:background .12s" onmouseover="this.style.background=\'var(--ac-s)\'" onmouseout="this.style.background=\'var(--s2)\'">';
     h += '<span style="font-size:18px">&#9742;</span>';
-    h += '<div style="flex:1"><div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">T&eacute;l&eacute;phone</div><div style="font-size:13px;font-weight:600;margin-top:2px">'+e.telephone+(e.poste_tel?' &middot; poste '+e.poste_tel:'')+'</div></div>';
+    h += '<div style="flex:1"><div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">T&eacute;l&eacute;phone</div><div style="font-size:13px;font-weight:600;margin-top:2px">'+esc(e.telephone)+(e.poste_tel?' &middot; poste '+esc(e.poste_tel):'')+'</div></div>';
     h += '<span style="color:var(--ac);font-size:14px">&rarr;</span>';
     h += '</a>';
   }
@@ -4372,8 +4350,8 @@ async function simulateReminders(){
     todoEmps.forEach(function(e, i){
       h += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;'+(i>0?'border-top:1px solid var(--bd);':'')+'background:var(--card)">';
       h += '<div style="flex:1;min-width:0">';
-      h += '<div style="font-size:13px;font-weight:600;color:var(--ink)">'+e.nom+'</div>';
-      h += '<div style="font-size:11px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.email||'<em style="color:var(--rd)">email manquant</em>')+'</div>';
+      h += '<div style="font-size:13px;font-weight:600;color:var(--ink)">'+esc(e.nom)+'</div>';
+      h += '<div style="font-size:11px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.email?esc(e.email):'<em style="color:var(--rd)">email manquant</em>')+'</div>';
       h += '</div>';
       h += '<div style="text-align:right;font-size:11.5px;flex-shrink:0">';
       h += '<div style="color:var(--rd);font-weight:600">'+e.missingDays+' jour(s)</div>';
