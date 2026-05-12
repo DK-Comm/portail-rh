@@ -807,11 +807,6 @@ var SUPA = {
           <button class="d-pbtn on" onclick="dashPeriod('month',this)" id="dash-period-month">Mois</button>
           <button class="d-pbtn" onclick="dashPeriod('quarter',this)">Trim.</button>
         </div>
-        <div class="navrow" style="gap:6px">
-          <button class="navbtn" onclick="dashNav(-1)">&#8249;</button>
-          <div id="dash-nav-wrap"></div>
-          <button class="navbtn" onclick="dashNav(1)">&#8250;</button>
-        </div>
         <button class="dm-btn" id="dm-toggle" onclick="toggleDark()">&#9788; Clair</button><button class="dm-btn" onclick="hardRefresh()" title="Vider le cache et recharger les donnees" style="background:rgba(255,255,255,.08)">&#8635; Actualiser</button>
       </div>
     </div>
@@ -821,13 +816,9 @@ var SUPA = {
   <!-- EQUIPE DIRECTION -->
   <div class="screen" id="sc-team">
     <div class="page">
-      <div class="d-nav-row">
-        <div style="font-size:18px;font-weight:500">Analyse equipe</div>
-        <div class="navrow" style="gap:6px">
-          <button class="navbtn" onclick="teamNav(-1)">&#8249;</button>
-          <div id="team-nav-wrap"></div>
-          <button class="navbtn" onclick="teamNav(1)">&#8250;</button>
-        </div>
+      <div class="d-nav-row" style="display:block">
+        <div style="font-size:20px;font-weight:700">&#128101; Analyse &eacute;quipe</div>
+        <div style="font-size:13px;color:var(--ink3);margin-top:4px" id="team-subtitle">Chargement...</div>
       </div>
       <div id="team-content"><div class="spin">Chargement...</div></div>
     </div>
@@ -836,7 +827,10 @@ var SUPA = {
   <!-- ALERTES DIRECTION -->
   <div class="screen" id="sc-dalerts">
     <div class="page">
-      <div style="font-size:18px;font-weight:500;margin-bottom:16px">Alertes &amp; suivi</div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:20px;font-weight:700">&#9888; Alertes &amp; suivi</div>
+        <div style="font-size:13px;color:var(--ink3);margin-top:4px" id="alerts-subtitle">Chargement...</div>
+      </div>
       <div id="alerts-content"><div class="spin">Chargement...</div></div>
     </div>
   </div>
@@ -919,11 +913,14 @@ var SUPA = {
 <!-- ─── FICHE EMPLOYÉ ─── -->
 <div class="screen" id="sc-fiche">
   <div class="page">
-    <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div class="page-title" style="margin-bottom:0">&#128203; Fiche Employ&eacute;</div>
-      <select id="fiche-emp-sel" onchange="loadFiche()" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card)">
-        <option value="">&#8212; S&eacute;lectionner un employ&eacute; &#8212;</option>
-      </select>
+    <div class="page-header-bar" style="display:block">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div class="page-title" style="margin-bottom:0">&#128203; Fiche Employ&eacute;</div>
+        <select id="fiche-emp-sel" onchange="loadFiche()" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card)">
+          <option value="">&#8212; S&eacute;lectionner un employ&eacute; &#8212;</option>
+        </select>
+      </div>
+      <div style="font-size:13px;color:var(--ink3);margin-top:6px" id="fiche-subtitle">S&eacute;lectionnez un employ&eacute; pour voir sa fiche</div>
     </div>
     <div id="fiche-content"><div style="color:var(--ink3);padding:40px;text-align:center">S&eacute;lectionnez un employ&eacute; pour voir sa fiche</div></div>
   </div>
@@ -932,7 +929,8 @@ var SUPA = {
 <!-- ─── KPI ─── -->
 <div class="screen" id="sc-kpi">
   <div class="page">
-    <div class="page-title">&#128200; KPI &amp; Analyses</div>
+    <div class="page-title" style="margin-bottom:4px">&#128200; KPI &amp; Analyses</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:16px" id="kpi-subtitle">Chargement...</div>
     <div id="kpi-content"><div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div></div>
   </div>
 </div>
@@ -940,9 +938,12 @@ var SUPA = {
 <!-- ─── RECAP ─── -->
 <div class="screen" id="sc-recap">
   <div class="page">
-    <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between">
-      <div class="page-title" style="margin-bottom:0">&#128197; R&eacute;capitulatif Annuel</div>
-      <button class="btn-sm btn-success" onclick="exportRecapCSV()">&#11015; CSV</button>
+    <div class="page-header-bar" style="display:block">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="page-title" style="margin-bottom:0">&#128197; R&eacute;capitulatif Annuel</div>
+        <button class="btn-sm btn-success" onclick="exportRecapCSV()">&#11015; CSV</button>
+      </div>
+      <div style="font-size:13px;color:var(--ink3);margin-top:6px" id="recap-subtitle">Chargement...</div>
     </div>
     <div id="recap-content"><div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div></div>
   </div>
@@ -951,12 +952,12 @@ var SUPA = {
 <!-- ─── PAIE ─── -->
 <div class="screen" id="sc-paie">
   <div class="page">
-    <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div class="page-title" style="margin-bottom:0">&#128176; Paie</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <select id="paie-month-sel" onchange="S.gM=parseInt(this.value);updateGlobalPeriodLabel();loadPaie()" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card)"></select>
+    <div class="page-header-bar" style="display:block">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div class="page-title" style="margin-bottom:0">&#128176; Paie</div>
         <button class="btn-sm btn-success" onclick="exportPaieCSV()">&#11015; CSV Comptable</button>
       </div>
+      <div style="font-size:13px;color:var(--ink3);margin-top:6px" id="paie-subtitle">Chargement...</div>
     </div>
     <div id="paie-content"><div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div></div>
   </div>
@@ -1928,16 +1929,6 @@ function dashRange(){
 }
 
 function loadDash(){
-  buildSelWrap('dash-nav-wrap','month',S.dashY,S.dashM,null,
-    function(m,y){
-      S.dashM=m;S.dashY=y;
-      if(S.dashPeriod==='week') S.dashW=mon0(new Date(y,m,1));
-      if(S.dashPeriod==='quarter') S.dashQ=Math.floor(m/3);
-      // Sync vers periode globale
-      S.gY=y; S.gM=m;
-      updateGlobalPeriodLabel();
-      loadDash();
-    },null,null);
   var r=dashRange();
   document.getElementById('dash-sub').textContent=r.label;
   document.getElementById('dash-content').innerHTML='<div class="spin">Chargement...</div>';
@@ -1950,8 +1941,8 @@ function loadDash(){
 }
 
 function loadTeam(){
-  buildSelWrap('team-nav-wrap','month',S.teamY,S.teamM,null,
-    function(m,y){S.teamM=m;S.teamY=y;S.gM=m;S.gY=y;updateGlobalPeriodLabel();loadTeam();},null,null);
+  var sub = document.getElementById('team-subtitle');
+  if(sub) sub.textContent = 'Donnees de ' + MFR2[S.teamM] + ' ' + S.teamY;
   var d1=S.teamY+'-'+('0'+(S.teamM+1)).slice(-2)+'-01';
   var lastD=new Date(S.teamY,S.teamM+1,0).getDate();
   var d2=S.teamY+'-'+('0'+(S.teamM+1)).slice(-2)+'-'+lastD;
@@ -2189,6 +2180,14 @@ function renderAlerts(d){
   if(!d){document.getElementById('alerts-content').innerHTML='<div class="spin">Pas de donnees</div>';return;}
   var errs=(d.alerts||[]).filter(function(a){return a.level==='err';});
   var warns=(d.alerts||[]).filter(function(a){return a.level==='warn';});
+  // Update sous-titre
+  var sub = document.getElementById('alerts-subtitle');
+  if(sub){
+    var msg = MFR2[S.gM] + ' ' + S.gY + ' &middot; ';
+    if(errs.length||warns.length){ msg += errs.length+' critique'+(errs.length>1?'s':'')+', '+warns.length+' attention'+(warns.length>1?'s':''); }
+    else { msg += 'Aucune alerte'; }
+    sub.innerHTML = msg;
+  }
   var h='';
   if(!errs.length&&!warns.length){
     h='<div class="dcard"><div class="dcard-body"><div class="ait ai-ok" style="margin:0"><div class="ai-txt"><div class="ai-name">Aucune alerte ce mois</div><div class="ai-detail">Tous les employes sont dans les objectifs pour '+dashRange().label+'</div></div><span class="ai-badge ab-ok">Parfait</span></div></div></div>';
@@ -2994,7 +2993,13 @@ async function loadFicheInit() {
 async function loadFiche() {
   var emp = document.getElementById('fiche-emp-sel').value;
   var el = document.getElementById('fiche-content');
-  if (!emp) { el.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">Sélectionnez un employé</div>'; return; }
+  var sub = document.getElementById('fiche-subtitle');
+  if (!emp) {
+    el.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">Sélectionnez un employé</div>';
+    if(sub) sub.textContent = 'Sélectionnez un employé dans la liste';
+    return;
+  }
+  if(sub) sub.textContent = emp + ' — Année ' + S.gY;
   el.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div>';
   try {
     var y = S.gY;
@@ -3085,6 +3090,8 @@ async function loadFiche() {
 // ════════════════════════════════════════════════════════════════
 async function loadKPI() {
   var el = document.getElementById('kpi-content');
+  var sub = document.getElementById('kpi-subtitle');
+  if(sub) sub.textContent = 'Analyses annuelles — Année ' + S.gY;
   el.innerHTML = '<div style="color:var(--ink3);padding:20px">Chargement des KPI...</div>';
   try {
     var y = S.gY;
@@ -3220,6 +3227,8 @@ async function loadKPI() {
 var _recapData = null;
 async function loadRecap() {
   var el = document.getElementById('recap-content');
+  var sub = document.getElementById('recap-subtitle');
+  if(sub) sub.textContent = 'Récapitulatif annuel — Année ' + S.gY;
   el.innerHTML = '<div style="color:var(--ink3);padding:20px">Chargement...</div>';
   try {
     var y = S.gY;
@@ -3289,22 +3298,15 @@ function exportRecapCSV() {
 // ════════════════════════════════════════════════════════════════
 var _paieData = null;
 async function loadPaieInit() {
-  var sel = document.getElementById('paie-month-sel');
-  // Reconstruire le selecteur a chaque fois pour refleter l'annee globale
-  sel.innerHTML = '';
-  for (var m = 0; m < 12; m++) {
-    var opt = document.createElement('option');
-    opt.value = m;
-    opt.textContent = MOIS[m] + ' ' + S.gY;
-    if (m === S.gM) opt.selected = true;
-    sel.appendChild(opt);
-  }
+  // Paie utilise maintenant S.gM/S.gY directement (sans select interne)
   loadPaie();
 }
 
 async function loadPaie() {
-  var m = parseInt(document.getElementById('paie-month-sel').value);
+  var m = S.gM;
   var el = document.getElementById('paie-content');
+  var sub = document.getElementById('paie-subtitle');
+  if(sub) sub.textContent = 'Calcul de la paie pour ' + MOIS[m] + ' ' + S.gY;
   el.innerHTML = '<div style="color:var(--ink3);padding:20px">Chargement...</div>';
   try {
     var y = S.gY;
@@ -3786,6 +3788,11 @@ function applyGlobalPeriod(){
   // Vider le cache du dashboard
   S._planCache = {};
   updateGlobalPeriodLabel();
+  // Sync les selects du menu deroulant si ouvert
+  var ms = document.getElementById('period-month');
+  var ys = document.getElementById('period-year');
+  if(ms) ms.value = S.gM;
+  if(ys) ys.value = S.gY;
   refreshActiveScreen();
 }
 
