@@ -24,10 +24,9 @@
   --r:12px;--r2:8px;
 }
 html,body{overflow-x:hidden;max-width:100vw}
-body{font-family:'Be Vietnam Pro','Segoe UI',system-ui,sans-serif;font-weight:500;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;min-height:100vh}
-/* Be Vietnam Pro : 2 graisses chargees (500 Medium + 700 Bold) */
-body,button,input,textarea,select{font-family:'Be Vietnam Pro','Segoe UI',system-ui,sans-serif}
-body{font-weight:500}
+/* Police globale : Be Vietnam Pro (500 Medium + 700 Bold) */
+body,button,input,textarea,select{font-family:'Be Vietnam Pro','Segoe UI',system-ui,sans-serif;font-weight:500}
+body{background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;min-height:100vh}
 strong,b,h1,h2,h3,h4,h5,h6{font-weight:700}
 .main-area{min-width:0}
 /* Sur mobile/tablette : laisser le scroll horizontal pour pouvoir naviguer dans la page (app non mobile-optimized) */
@@ -485,15 +484,6 @@ body.dark{color-scheme:dark}
 .dept-stat:last-child{border-right:none}
 .dept-stat-v{font-size:18px;font-weight:700;color:var(--ink)}
 .dept-stat-l{font-size:10px;color:var(--ink2);margin-top:2px}
-
-.refresh-bar{position:fixed;top:0;left:0;right:0;z-index:9999;
-  background:#1565c0;color:#fff;padding:10px 20px;font-size:13px;font-weight:500;
-  display:flex;align-items:center;justify-content:space-between;
-  box-shadow:0 2px 12px rgba(0,0,0,.2);animation:slideDown .3s ease}
-@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
-.refresh-bar button{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);
-  color:#fff;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer}
-.refresh-bar button:hover{background:rgba(255,255,255,.3)}
 
 #install-screen{position:fixed;inset:0;background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
 .install-box{background:#fff;border-radius:24px;padding:40px 48px;max-width:540px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,.4)}
@@ -2066,21 +2056,8 @@ function clearClientCache(){
   S._empCache={};
   S._planCache={};
 }
-function showRefreshBar(){
-  // Afficher une barre en haut invitant à actualiser
-  var existing=document.getElementById('refresh-bar');
-  if(existing) return;
-  var bar=document.createElement('div');
-  bar.id='refresh-bar';
-  bar.className='refresh-bar';
-  bar.innerHTML='<span>Donnees modifiees dans le tableur — cliquer pour actualiser le portail</span>'
-    +'<button onclick="hardRefresh()">Actualiser maintenant</button>';
-  document.body.prepend(bar);
-}
 function hardRefresh(){
   clearClientCache();
-  var bar=document.getElementById('refresh-bar');
-  if(bar) bar.remove();
   // Recharger la vue active
   var activeScreen=document.querySelector('.screen.on');
   if(activeScreen){
@@ -2089,12 +2066,6 @@ function hardRefresh(){
     else if(activeScreen.id==='sc-dash') loadDash();
     else if(activeScreen.id==='sc-team') loadTeam();
   }
-}
-// API exposee pour le menu Google Sheets — appeler depuis onOpen ou menu
-function api_invalidateCache(){
-  // Cote HTML : vider le cache client via postMessage si possible
-  clearClientCache();
-  return {ok:true};
 }
 
 function toggleDark(){
