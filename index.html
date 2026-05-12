@@ -3100,6 +3100,11 @@ var _empList = [];
 async function loadConfig() {
   // Charger employés
   var empEl = document.getElementById('config-emp-table');
+  // Override le fond blanc heritage de .card-table pour laisser passer l'espacement
+  empEl.style.background = 'transparent';
+  empEl.style.border = 'none';
+  empEl.style.borderRadius = '0';
+  empEl.style.overflow = 'visible';
   try {
     var r = await authFetch('/rest/v1/rh_employes?select=*&order=departement,statut.desc,nom');
     _empList = r.data || [];
@@ -3125,8 +3130,8 @@ async function loadConfig() {
     var h = '';
     orderedDepts.forEach(function(dept,deptIdx){
       var icon = DEPT_ICON[dept] || '&#128101;';
-      // Wrapper avec espace entre les groupes
-      h += '<div style="margin-bottom:'+(deptIdx<orderedDepts.length-1?'24px':'0')+';border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--card)">';
+      // Wrapper "carte" avec espace prononce et ombre pour ressortir
+      h += '<div style="margin-bottom:'+(deptIdx<orderedDepts.length-1?'20px':'0')+';border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:var(--card);box-shadow:var(--sh)">';
       // Header departement
       h += '<div style="background:var(--s2);padding:12px 16px;font-size:13px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px">';
       h += '<span style="font-size:16px">'+icon+'</span>'+dept;
