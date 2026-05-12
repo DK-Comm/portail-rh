@@ -1220,7 +1220,7 @@ function buildMo(){
   h+='</div><div class="cal-g">';
   for(var i=dow-1;i>0;i--)h+='<div class="cd cd-o"><div class="cn">'+(prev-i+1)+'</div></div>';
   for(var d=1;d<=dIM;d++){
-    var dt=new Date(y,m,d),dw=dt.getDay(),isT=sameD(dt,TODAY),isFut=dt>TODAY,fr=isFer(y,m,d),wk=isWk(dw);
+    var dt=new Date(y,m,d),dw=dt.getDay(),isT=sameD(dt,TODAY),fr=isFer(y,m,d),wk=isWk(dw);
     var inf=S.dd[d],cls='cd'+(S.sel===d?' cd-s':'')+(isT?' cd-t':'')+(wk||fr?' cd-w':'');
     var ev='',ct='';
     if(fr){ev='<div class="ev ev-f">F\u00e9ri\u00e9</div>';}
@@ -1230,7 +1230,7 @@ function buildMo(){
       else if(inf.type==='Malade')ev='<div class="ev ev-m">Maladie</div>';
       else if(inf.type)ev='<div class="ev ev-p">'+inf.type+'</div>';
     }
-    var oc=(!fr&&!isFut)?' onclick="selDay('+d+')"':'';
+    var oc=(!fr)?' onclick="selDay('+d+')"':'';
     h+='<div class="'+cls+'" data-day="'+d+'"'+oc+'><div class="cn">'+d+'</div>'+ev+ct+'</div>';
   }
   var rem=(dow-1+dIM)%7;if(rem)for(var i=1;i<=7-rem;i++)h+='<div class="cd cd-o"><div class="cn">'+i+'</div></div>';
@@ -1243,10 +1243,10 @@ function buildWk(){
   days.forEach(function(dt){var isT=sameD(dt,TODAY);var isWeD=isWk(dt.getDay());h+='<div class="wk-hcell" style="background:'+(isWeD?'#3d2b5e':'var(--dk)')+'"><div class="wk-dn" style="color:'+(isWeD?'#d4b0ff':'rgba(255,255,255,.55)')+'">'+(isWeD?WL[dt.getDay()].slice(0,3).toUpperCase():WS[dt.getDay()])+'</div><div class="wk-num'+(isT?' tod':'')+'">'+(isT?dt.getDate():''+dt.getDate())+'</div></div>';});
   h+='</div><div class="wk-row">';
   days.forEach(function(dt){
-    var fr=isFer(dt.getFullYear(),dt.getMonth(),dt.getDate()),isFut=dt>TODAY;
+    var fr=isFer(dt.getFullYear(),dt.getMonth(),dt.getDate());
     var inf=(dt.getMonth()===S.saveM&&dt.getFullYear()===S.saveY)?S.dd[dt.getDate()]:null;
-    var isWe=isWk(dt.getDay());var nc=fr||isFut?' nc':(isWe?' wknd-cell':'');
-    var oc=(!fr&&!isFut)?' onclick="selDayF('+dt.getDate()+','+dt.getFullYear()+','+dt.getMonth()+')"':'';
+    var isWe=isWk(dt.getDay());var nc=fr?' nc':(isWe?' wknd-cell':'');
+    var oc=(!fr)?' onclick="selDayF('+dt.getDate()+','+dt.getFullYear()+','+dt.getMonth()+')"':'';
     h+='<div class="wk-cell'+nc+'"'+oc+'>';
     if(fr){h+='<div class="wk-ev" style="background:var(--s2);border-radius:8px;padding:10px;color:var(--ink3);font-style:italic;font-size:13px">F\u00e9ri\u00e9</div>';}
     else if(inf){
@@ -1254,8 +1254,7 @@ function buildWk(){
       h+='<div class="wk-ev" style="background:'+bg+';border-radius:8px;padding:10px">';
       if(inf.debut&&inf.fin)h+='<div class="wk-times">\u23f0 <strong>'+inf.debut+'</strong> \u2192 <strong>'+inf.fin+'</strong>'+(inf.bureau?'<span class="wk-bur">BUR</span>':'')+'</div>';
       h+='<div class="wk-type">'+(inf.type==='work'?(inf.bureau?'\ud83c\udfe2 Bureau':'\ud83c\udfe0 Travail'):inf.type)+'</div></div>';
-    } else if(!isFut)h+='<div style="color:var(--ink3);text-align:center;padding:16px;font-size:14px">\u2014</div>';
-    else h+='<div style="color:var(--ink3);text-align:center;padding:16px;font-size:12px;opacity:.4">a venir</div>';
+    } else h+='<div style="color:var(--ink3);text-align:center;padding:16px;font-size:14px">\u2014</div>';
     h+='</div>';
   });
   return h+'</div></div>';
@@ -1268,7 +1267,7 @@ function buildDy(){
   else if(inf)h+='<p>'+(inf.debut&&inf.fin?inf.debut+' \u2192 '+inf.fin+' \u00b7 ':'')+((inf.type==='work')?(inf.bureau?'Au bureau':'Travail domicile'):inf.type)+'</p>';
   else h+='<p>Non saisi</p>';
   h+='</div></div>';
-  if(!fr&&!isWk(dt.getDay())&&dt<=TODAY)setTimeout(function(){selDayF(dt.getDate(),dt.getFullYear(),dt.getMonth());},10);
+  if(!fr&&!isWk(dt.getDay()))setTimeout(function(){selDayF(dt.getDate(),dt.getFullYear(),dt.getMonth());},10);
   return h;
 }
 
