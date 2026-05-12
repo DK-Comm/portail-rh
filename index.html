@@ -1038,6 +1038,10 @@ var SUPA = {
       <div class="form-group"><label>Nom complet</label><input id="em-nom" placeholder="Pr&eacute;nom Nom"></div>
       <div class="form-group"><label>Email</label><input id="em-email" type="email" placeholder="prenom.nom@espacemuni.org"></div>
     </div>
+    <div class="form-row">
+      <div class="form-group"><label>T&eacute;l&eacute;phone</label><input id="em-tel" placeholder="450 466-9777"></div>
+      <div class="form-group"><label>N&deg; de poste t&eacute;l&eacute;phonique <span style="color:var(--ink3);font-weight:400;text-transform:none">(optionnel)</span></label><input id="em-postetel" placeholder="201"></div>
+    </div>
     <div class="form-row-3">
       <div class="form-group"><label>Statut</label><select id="em-statut">
         <option value="Direction">Direction</option>
@@ -3062,11 +3066,27 @@ async function loadFiche() {
     var bureauPct = totalWorked > 0 ? Math.round(totalBur/totalWorked*100) : 0;
     var col2 = col(emp) || '#2563eb';
     
+    // Photo (URL Supabase ou initiale)
+    var photoUrl = empData.photo_url || photo(emp);
+    var photoHTML = photoUrl
+      ? '<img src="'+photoUrl+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--bd)">'
+      : '<div style="width:64px;height:64px;border-radius:50%;background:' + col2 + ';display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0">' + ini(emp) + '</div>';
+    var contactBits = [];
+    if(empData.email) contactBits.push('<a href="mailto:'+empData.email+'" style="color:var(--ac);text-decoration:none">&#9993; '+empData.email+'</a>');
+    if(empData.telephone){
+      var phoneTxt = empData.telephone + (empData.poste_tel ? ' poste ' + empData.poste_tel : '');
+      contactBits.push('<span>&#9742; '+phoneTxt+'</span>');
+    }
     var h = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:20px;background:var(--card);border-radius:var(--r);border:1px solid var(--bd);flex-wrap:wrap">';
-    h += '<div style="width:56px;height:56px;border-radius:50%;background:' + col2 + ';display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0">' + emp.charAt(0) + '</div>';
-    h += '<div><div style="font-size:18px;font-weight:700">' + emp + '</div>';
-    h += '<div style="color:var(--ink2);font-size:13px">' + (empData.poste||empData.departement||'') + '</div>';
-    h += '<div style="margin-top:4px"><span class="tag ' + (empData.statut==='Direction'?'tag-direction':'tag-employe') + '">' + (empData.statut||'') + '</span></div></div>';
+    h += photoHTML;
+    h += '<div style="min-width:200px"><div style="font-size:18px;font-weight:700">' + emp + '</div>';
+    var posteAffiche = '';
+    if(empData.type_poste && empData.poste) posteAffiche = empData.type_poste + ' · ' + empData.poste;
+    else posteAffiche = empData.type_poste || empData.poste || empData.departement || '';
+    h += '<div style="color:var(--ink2);font-size:13px;margin-top:2px">' + posteAffiche + '</div>';
+    if(empData.departement) h += '<div style="color:var(--ink3);font-size:12px;margin-top:2px">' + empData.departement + '</div>';
+    if(contactBits.length) h += '<div style="color:var(--ink2);font-size:12px;margin-top:6px;display:flex;gap:14px;flex-wrap:wrap">' + contactBits.join('') + '</div>';
+    h += '<div style="margin-top:6px"><span class="tag ' + (empData.statut==='Direction'?'tag-direction':'tag-employe') + '">' + (empData.statut||'') + '</span></div></div>';
     h += '<div style="margin-left:auto;display:flex;gap:16px;flex-wrap:wrap">';
     h += '<div class="stat-box"><div class="sv">' + hR + 'h</div><div class="sl">Heures travaillées</div></div>';
     h += '<div class="stat-box"><div class="sv">' + pct + '%</div><div class="sl">Objectif annuel</div></div>';
@@ -4071,6 +4091,8 @@ function openAddEmp() {
   document.getElementById('em-id').value = '';
   document.getElementById('em-nom').value = '';
   document.getElementById('em-email').value = '';
+  document.getElementById('em-tel').value = '450 466-9777';
+  document.getElementById('em-postetel').value = '';
   document.getElementById('em-statut').value = 'Employe';
   document.getElementById('em-h').value = '37.5';
   document.getElementById('em-actif').value = 'true';
@@ -4092,6 +4114,8 @@ function openEditEmp(idx) {
   document.getElementById('em-id').value = e.id;
   document.getElementById('em-nom').value = e.nom;
   document.getElementById('em-email').value = e.email || '';
+  document.getElementById('em-tel').value = e.telephone || '';
+  document.getElementById('em-postetel').value = e.poste_tel || '';
   document.getElementById('em-statut').value = e.statut;
   document.getElementById('em-h').value = e.heures_semaine;
   document.getElementById('em-actif').value = e.actif ? 'true' : 'false';
@@ -4124,6 +4148,8 @@ async function saveEmp() {
   var data = {
     nom: nom,
     email: document.getElementById('em-email').value.trim() || null,
+    telephone: document.getElementById('em-tel').value.trim() || null,
+    poste_tel: document.getElementById('em-postetel').value.trim() || null,
     statut: document.getElementById('em-statut').value,
     heures_semaine: parseFloat(document.getElementById('em-h').value),
     actif: document.getElementById('em-actif').value === 'true',
