@@ -1228,8 +1228,16 @@ function gotoTab(id,el){
   el.classList.add('on');
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
   document.getElementById('sc-'+id).classList.add('on');
+  // Sync depuis periode globale (Direction users : la date globale pilote tout)
+  if(S.role === 'direction'){
+    S.py = S.gY; S.pm = S.gM;
+    S.rY = S.gY; S.rM = S.gM;
+    S.planY = S.gY; S.planM = S.gM;
+    S._empCache = {}; S._planCache = {};
+  }
   if(id==='rsm'){S.rM=S.pm;S.rY=S.py;loadRsm();}
   if(id==='plan'){loadPlanData();renderPlan();}
+  if(id==='ptg'){loadPtgData();renderPtg();}
 }
 
 // === EMP SELECT ===
@@ -2956,9 +2964,9 @@ var _ficheLoaded = false, _kpiLoaded = false, _recapLoaded = false;
 var _origGotoDir = gotoDir;
 gotoDir = function(id, el) {
   _origGotoDir(id, el);
-  if (id === 'fiche' && !_ficheLoaded) { loadFicheInit(); }
-  if (id === 'kpi' && !_kpiLoaded) { loadKPI(); }
-  if (id === 'recap' && !_recapLoaded) { loadRecap(); }
+  if (id === 'fiche'){ if(!_ficheLoaded) loadFicheInit(); else loadFiche(); }
+  if (id === 'kpi') loadKPI();
+  if (id === 'recap') loadRecap();
   if (id === 'paie') { loadPaieInit(); }
   if (id === 'config') { loadConfig(); }
 };
