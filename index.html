@@ -1974,7 +1974,7 @@ function renderDash(d){
   if(!nb){h+='<div style="color:var(--ink2);font-size:13px;padding:8px 0">Aucune saisie pour aujourd\'hui</div>';}
   else{h+='<div class="pres-grid">';
     d.todayPresence.forEach(function(p){
-      var url=PH[p.name]||'',c=col(p.name);
+      var url=photo(p.name),c=col(p.name);
       var av=url?'<img class="pav" src="'+url+'" alt="">':'<div class="pav-fb" style="background:'+c+'">'+ini(p.name)+'</div>';
       var nm=p.name.split(' ');var short=(nm[0][0]||'')+'.'+(nm[1]||'');
       var stCls=p.type==='work'&&p.bureau?'st-office':p.type==='work'?'st-remote':'st-absent';
