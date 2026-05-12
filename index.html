@@ -870,8 +870,8 @@ var SUPA = {
   <!-- RESUME -->
   <div class="screen" id="sc-rsm">
     <div class="page">
-      <div class="vbar" style="margin-bottom:22px">
-        <div style="font-size:18px;font-weight:800" id="rsm-title">Mon resume</div>
+      <div class="vbar">
+        <div class="page-title" style="margin-bottom:0">&#128202; Mon r&eacute;sum&eacute; <span class="page-subtitle" id="rsm-subtitle">Chargement...</span></div>
         <div class="navrow">
           <button class="navbtn" onclick="rsmNav(-1)">&#8249;</button>
           <div id="rsm-sel-wrap"></div>
@@ -1562,11 +1562,22 @@ function saveDay(d){
 function clrDay(d){if(!confirm('Effacer le '+d+' '+MFR2[S.saveM]+' ?'))return;delete S.dd[d];renderPtg();google.script.run.withSuccessHandler(function(){toast('Efface');}).api_saveDay(S.emp,S.saveY,S.saveM,d,'','','',false);}
 
 // === RESUME ===
-function rsmNav(dir){S.rM+=dir;if(S.rM>11){S.rM=0;S.rY++;}if(S.rM<0){S.rM=11;S.rY--;}loadRsm();}
+function rsmNav(dir){
+  S.rM+=dir;
+  if(S.rM>11){S.rM=0;S.rY++;}
+  if(S.rM<0){S.rM=11;S.rY--;}
+  if(S.role==='direction'){S.gM=S.rM;S.gY=S.rY;updateGlobalPeriodLabel();}
+  loadRsm();
+}
 function loadRsm(){
   if(!S.emp){document.getElementById('rsm-area').innerHTML='<div class="spin">Selectionnez votre nom</div>';return;}
-  buildSelWrap('rsm-sel-wrap','month',S.rY,S.rM,null,function(m,y){S.rM=m;S.rY=y;loadRsm();},null,null);
-  document.getElementById('rsm-title').textContent='Mon resume \u2014 '+S.emp.split(' ')[0];
+  buildSelWrap('rsm-sel-wrap','month',S.rY,S.rM,null,function(m,y){
+    S.rM=m;S.rY=y;
+    if(S.role==='direction'){S.gM=m;S.gY=y;updateGlobalPeriodLabel();}
+    loadRsm();
+  },null,null);
+  var sub = document.getElementById('rsm-subtitle');
+  if(sub) sub.textContent = S.emp + ' \u2014 ' + MFR2[S.rM] + ' ' + S.rY;
   document.getElementById('rsm-area').innerHTML='<div class="spin">Chargement...</div>';
   google.script.run.withSuccessHandler(renderRsm).withFailureHandler(function(e){document.getElementById('rsm-area').innerHTML='<p style="color:var(--rd);padding:20px">'+e.message+'</p>';}).api_getMyStats(S.emp,S.rY,S.rM);
 }
@@ -2336,7 +2347,7 @@ var supabaseAPI = {
         if(mn>0){h+=mn/60;worked++;if(inf.bureau)bur++;}
       } else if(inf.type&&inf.type!=='work'){abs++;}
     });
-    return {h:Math.round(h*10)/10,worked:worked,bur:bur,abs:abs};
+    return {totalH:Math.round(h*10)/10,worked:worked,bur:bur,abs:abs};
   },
 
   // Dashboard direction (signature: d1, d2 ISO yyyy-mm-dd, target H, period)
