@@ -54,14 +54,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .main-area{flex:1;display:flex;flex-direction:column;min-width:0}
 
 /* SELECT SCREEN */
-.sel-wrap{min-height:calc(100vh - 60px);display:flex;align-items:center;justify-content:center;padding:48px 28px}
-.sel-box{background:var(--card);border-radius:20px;padding:40px;width:100%;max-width:800px;box-shadow:var(--shd);border:1px solid var(--bd)}
-.sel-box h2{font-size:26px;font-weight:800;margin-bottom:6px}
-.sel-box p{color:var(--ink3);font-size:15px;margin-bottom:28px}
-.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px}
-.emp-card{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 14px;border:2px solid var(--bd);border-radius:var(--r);cursor:pointer;transition:all .18s;background:var(--card);text-align:center}
-.emp-card:hover{border-color:var(--ac);background:var(--ac-s);transform:translateY(-2px);box-shadow:var(--sh)}
-.emp-card-name{font-size:13px;font-weight:600;color:var(--ink);line-height:1.35}
 
 /* APP SCREENS */
 .app{display:flex;flex-direction:column;min-height:100vh}
@@ -609,6 +601,20 @@ body.dir-mode.viewing-emp .tb-period{display:none}
 .kebab-item.danger:hover{background:var(--rd-s)}
 .kebab-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
 
+/* Switch toggle (utilise pour Alertes email, etc) */
+.switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.switch .slider{position:absolute;cursor:pointer;inset:0;background:#cbd2dc;border-radius:24px;transition:.2s}
+.switch .slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch input:checked + .slider{background:var(--ac)}
+.switch input:checked + .slider:before{transform:translateX(20px)}
+body.dark .switch .slider{background:#3a4256}
+/* Rangées de cases à cocher (types d'alertes) */
+.alert-type-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--s2);cursor:pointer;font-size:12.5px;color:var(--ink);transition:background .12s}
+.alert-type-row:hover{background:var(--card)}
+.alert-type-row input{margin:0;width:15px;height:15px;cursor:pointer;accent-color:var(--ac)}
+.alert-type-row small{color:var(--ink3);font-weight:400}
+
 /* Sélecteur de période global (topbar) */
 .tb-period{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 14px;color:#fff;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s}
 .tb-period:hover{background:rgba(255,255,255,.15)}
@@ -768,17 +774,6 @@ var SUPA = {
     <button onclick="authLogout()" style="width:100%;padding:11px 14px;background:none;border:none;text-align:left;cursor:pointer;color:#dc2626;font-size:13px;font-weight:600;border-radius:6px;margin-top:4px;display:flex;align-items:center;gap:10px;transition:background .12s" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='transparent'">
       <span style="font-size:15px">&#128682;</span> Deconnexion
     </button>
-  </div>
-</div>
-
-<!-- SELECTION -->
-<div id="scr-sel" class="sel-wrap">
-  <div class="sel-box">
-    <h2>&#128075; Bonjour !</h2>
-    <p>Selectionnez votre nom pour acceder a votre espace horaires</p>
-    <div class="emp-grid" id="emp-grid">
-      <div class="spin">Chargement des employes...</div>
-    </div>
   </div>
 </div>
 
@@ -983,6 +978,87 @@ var SUPA = {
         <table><thead><tr><th>Param&egrave;tre</th><th>Valeur</th><th></th></tr></thead>
         <tbody id="config-params-body"><tr><td colspan="3" style="color:var(--ink3)">Chargement...</td></tr></tbody></table>
       </div>
+    </div>
+
+    <!-- ── Alertes email ── -->
+    <div class="kpi-section">
+      <div class="kpi-section-title">&#128231; Alertes email <span style="color:var(--ink3);font-weight:500;font-size:11px">(notifications optionnelles)</span></div>
+      <div style="border:1px solid var(--bd);border-radius:12px;background:var(--card);box-shadow:var(--sh);padding:18px 20px">
+
+        <!-- Toggle master -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--bd);margin-bottom:16px">
+          <div>
+            <div style="font-size:13px;font-weight:700">Activer les alertes email</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:2px">Aucun envoi automatique si désactivé. Vous pouvez générer un mail à la demande.</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="alerts-cfg-enabled"><span class="slider"></span></label>
+        </div>
+
+        <!-- Body -->
+        <div id="alerts-cfg-section" style="display:block">
+
+          <!-- Types -->
+          <div style="margin-bottom:18px">
+            <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:8px">Types d'alertes à inclure</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
+              <label class="alert-type-row"><input type="checkbox" id="alerts-t-obj_critique" checked><span>&#128308; Objectif critique <small>(&lt;60%)</small></span></label>
+              <label class="alert-type-row"><input type="checkbox" id="alerts-t-obj_insuffisant" checked><span>&#128992; Objectif insuffisant <small>(&lt;80%)</small></span></label>
+              <label class="alert-type-row"><input type="checkbox" id="alerts-t-aucune_saisie" checked><span>&#9888; Aucune saisie</span></label>
+              <label class="alert-type-row"><input type="checkbox" id="alerts-t-taux_bureau"><span>&#127970; Taux bureau faible <small>(&lt;25%)</small></span></label>
+            </div>
+          </div>
+
+          <!-- Destinataires -->
+          <div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Destinataires <small style="color:var(--ink3);font-weight:400">(séparés par virgule)</small></div>
+            <input type="text" id="alerts-cfg-to" placeholder="rh@exemple.com, direction@exemple.com" style="width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
+            <div style="font-size:11px;color:var(--ink3);margin-top:4px">Optionnel : CC <input type="text" id="alerts-cfg-cc" placeholder="cc@exemple.com" style="margin-left:6px;padding:4px 8px;border:1px solid var(--bd);border-radius:6px;font-size:11px;width:240px"></div>
+          </div>
+
+          <!-- Template sujet -->
+          <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Objet du mail</div>
+            <input type="text" id="alerts-cfg-subject" placeholder="Alertes RH — {{periode}}" style="width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
+          </div>
+
+          <!-- Template corps -->
+          <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">Corps du mail <small style="color:var(--ink3);font-weight:400">— variables : {{periode}}, {{date}}, {{nb_critique}}, {{nb_warn}}, {{liste_alertes}}</small></div>
+            <textarea id="alerts-cfg-body" rows="9" style="width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button class="btn-sm btn-primary" onclick="saveAlertsConfig()">&#128190; Sauvegarder</button>
+            <button class="btn-sm" onclick="previewAlertMail()" style="background:var(--s2);color:var(--ink);border:1px solid var(--bd)">&#128065; Prévisualiser le mail</button>
+            <button class="btn-sm" onclick="resetAlertsTemplate()" style="background:transparent;color:var(--ink3);border:1px dashed var(--bd)">Restaurer le modèle par défaut</button>
+            <span id="alerts-cfg-status" style="font-size:11px;color:var(--ink3);margin-left:auto"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Apercu Mail Alertes -->
+<div id="alert-mail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--card);border-radius:14px;max-width:760px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="padding:18px 22px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:15px;font-weight:700">&#128231; Aperçu du mail d'alertes</div>
+      <button onclick="closeAlertMailModal()" style="background:none;border:0;font-size:22px;color:var(--ink3);cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <div style="padding:18px 22px;overflow:auto;flex:1">
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">À :</div>
+      <div id="amm-to" style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--ink)"></div>
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Objet :</div>
+      <div id="amm-subject" style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--ink)"></div>
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Corps :</div>
+      <pre id="amm-body" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px;font-family:inherit;font-size:12.5px;line-height:1.55;white-space:pre-wrap;color:var(--ink);max-height:50vh;overflow:auto;margin:0"></pre>
+    </div>
+    <div style="padding:14px 22px;border-top:1px solid var(--bd);display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeAlertMailModal()" class="btn-sm" style="background:transparent;color:var(--ink2);border:1px solid var(--bd)">Fermer</button>
+      <button onclick="copyAlertMail()" class="btn-sm" style="background:var(--s2);color:var(--ink);border:1px solid var(--bd)">&#128203; Copier</button>
+      <button onclick="sendAlertMail()" class="btn-sm btn-primary">&#128228; Envoyer (client mail)</button>
     </div>
   </div>
 </div>
@@ -1332,49 +1408,10 @@ function gotoTab(id,el){
   if(id==='ptg'){loadPtgData();renderPtg();}
 }
 
-// === EMP SELECT ===
+// === EMP SELECT (auth via Supabase, plus de picker pre-auth) ===
 function showApp(){
   document.getElementById('install-screen').style.display='none';
   document.getElementById('app').style.display='flex';
-}
-function loadEmps(){
-  var g=document.getElementById('emp-grid');
-  g.innerHTML='';
-  var sp=document.createElement('div');sp.className='spin';sp.textContent='Chargement des employes...';
-  g.appendChild(sp);
-
-  var timer=setTimeout(function(){
-    if(g.querySelector('.spin')){
-      g.innerHTML='';
-      var err=document.createElement('div');
-      err.style.cssText='color:var(--rd);padding:16px;font-size:14px;line-height:1.7';
-      err.innerHTML='<strong>\u26a0 Autorisation requise</strong><br>Dans Apps Script : executer api_getEmployeeNames, autoriser, redeployer.';
-      g.appendChild(err);
-    }
-  },10000);
-
-  google.script.run
-    .withSuccessHandler(function(names){showApp();
-      clearTimeout(timer);
-      g.innerHTML='';
-      if(!names||!names.length){
-        var err=document.createElement('div');err.style.cssText='color:var(--rd);padding:14px';err.textContent='Aucun employe dans Config.';g.appendChild(err);return;
-      }
-      names.forEach(function(n){
-        var card=document.createElement('div');
-        card.className='emp-card';
-        var av=mkAv(n,72);
-        var nm=document.createElement('div');nm.className='emp-card-name';nm.textContent=n;
-        card.appendChild(av);card.appendChild(nm);
-        card.onclick=function(){selEmp(n);};
-        g.appendChild(card);
-      });
-    })
-    .withFailureHandler(function(e){
-      clearTimeout(timer);g.innerHTML='';
-      var err=document.createElement('div');err.style.cssText='color:var(--rd);padding:14px';err.textContent='Erreur: '+e.message;g.appendChild(err);
-    })
-    .api_getEmployeeNames();
 }
 
 function refreshPortail(){
@@ -1427,7 +1464,6 @@ function selEmp(name){
   }
   document.getElementById('chip-name').textContent=name.split(' ')[0];
   document.getElementById('chip').style.display='flex';
-  document.getElementById('scr-sel').style.display='none';
   document.getElementById('main').style.display='flex';
   // Détecter rôle direction
   google.script.run
@@ -2533,10 +2569,10 @@ var supabaseAPI = {
 
     var alerts=[];
     empStats.forEach(function(e){
-      if(e.worked===0)alerts.push({level:'warn',name:e.name,msg:'Aucune saisie',detail:'Verifier le pointage'});
-      else if(e.pct<60)alerts.push({level:'err',name:e.name,msg:'Objectif critique',detail:e.h+'h / '+target+'h ('+e.pct+'%)'});
-      else if(e.pct<80)alerts.push({level:'warn',name:e.name,msg:'Objectif insuffisant',detail:e.h+'h ('+e.pct+'%)'});
-      if(e.worked>=5&&e.bureauPct<25)alerts.push({level:'warn',name:e.name,msg:'Taux bureau faible',detail:e.bureauPct+'%'});
+      if(e.worked===0)alerts.push({type:'aucune_saisie',level:'warn',name:e.name,dept:e.dept,msg:'Aucune saisie',detail:'Verifier le pointage'});
+      else if(e.pct<60)alerts.push({type:'obj_critique',level:'err',name:e.name,dept:e.dept,msg:'Objectif critique',detail:e.h+'h / '+target+'h ('+e.pct+'%)'});
+      else if(e.pct<80)alerts.push({type:'obj_insuffisant',level:'warn',name:e.name,dept:e.dept,msg:'Objectif insuffisant',detail:e.h+'h ('+e.pct+'%)'});
+      if(e.worked>=5&&e.bureauPct<25)alerts.push({type:'taux_bureau',level:'warn',name:e.name,dept:e.dept,msg:'Taux bureau faible',detail:e.bureauPct+'%'});
     });
 
     var N=empsData.length,avgH=N>0?Math.round(totalH/N*10)/10:0;
@@ -2715,8 +2751,7 @@ async function startInstall(){
     wizLog('Installation complete ✓','ok');
     setTimeout(function(){
       document.getElementById('install-screen').style.display='none';
-      document.getElementById('app').style.display='flex';
-      loadEmps();
+      document.getElementById('auth-screen').style.display='flex';
     },1500);
 
   } catch(err) {
@@ -2756,8 +2791,7 @@ async function checkAndInstall(){
         document.getElementById('wiz-title').textContent='✅ Deja configure';
         setTimeout(function(){
           document.getElementById('install-screen').style.display='none';
-          document.getElementById('app').style.display='flex';
-          loadEmps();
+          document.getElementById('auth-screen').style.display='flex';
         },1000);
       } else {
         document.getElementById('wiz-btn').style.display='block';
@@ -4034,6 +4068,9 @@ async function loadConfig() {
     });
     paramsEl.innerHTML = ph || '<tr><td colspan="3" style="color:var(--ink3)">Aucun paramètre</td></tr>';
   } catch(e) { paramsEl.innerHTML = '<tr><td colspan="3" style="color:var(--rd)">Erreur</td></tr>'; }
+
+  // Charger la config Alertes email
+  try { await loadAlertsConfig(); } catch(e) { /* non bloquant */ }
 }
 
 async function saveParam(id, cle) {
@@ -4045,6 +4082,201 @@ async function saveParam(id, cle) {
     if(cle === 'paie_cycle_jours') S.payCycleDays = parseInt(val) || 14;
     toast('Paramètre sauvegardé ✓');
   } catch(e) { toast('Erreur: ' + e.message, 1); }
+}
+
+// ════════════════════════════════════════════════════════════════
+// ALERTES EMAIL (config + generation + envoi)
+// ════════════════════════════════════════════════════════════════
+var ALERTS_CFG = {
+  enabled: false,
+  types: { obj_critique:true, obj_insuffisant:true, aucune_saisie:true, taux_bureau:false },
+  to: '',
+  cc: '',
+  subject: 'Alertes RH — {{periode}}',
+  body: ''
+};
+var ALERTS_DEFAULT_BODY =
+  'Bonjour,\n\n' +
+  'Voici le récapitulatif des alertes RH pour la période {{periode}} (généré le {{date}}).\n\n' +
+  'Synthèse : {{nb_critique}} alerte(s) critique(s), {{nb_warn}} attention(s).\n\n' +
+  'Détail :\n{{liste_alertes}}\n\n' +
+  'Cordialement,\nPortail RH — Espace Muni';
+
+async function loadAlertsConfig(){
+  try {
+    var r = await authFetch('/rest/v1/rh_config?select=cle,valeur&cle=like.alerts_*');
+    var rows = r.data || [];
+    var map = {};
+    rows.forEach(function(p){ map[p.cle] = p.valeur; });
+    ALERTS_CFG.enabled = (map.alerts_enabled === 'true');
+    ALERTS_CFG.to = map.alerts_to || '';
+    ALERTS_CFG.cc = map.alerts_cc || '';
+    ALERTS_CFG.subject = map.alerts_subject || 'Alertes RH — {{periode}}';
+    ALERTS_CFG.body = map.alerts_body || ALERTS_DEFAULT_BODY;
+    if(map.alerts_types){
+      try { var t = JSON.parse(map.alerts_types); if(t && typeof t==='object') ALERTS_CFG.types = Object.assign(ALERTS_CFG.types, t); } catch(e){}
+    }
+  } catch(e){ /* defaults */ }
+  // Hydrater l'UI
+  var elEn = document.getElementById('alerts-cfg-enabled'); if(elEn){ elEn.checked = ALERTS_CFG.enabled; }
+  var elTo = document.getElementById('alerts-cfg-to'); if(elTo) elTo.value = ALERTS_CFG.to;
+  var elCc = document.getElementById('alerts-cfg-cc'); if(elCc) elCc.value = ALERTS_CFG.cc;
+  var elSu = document.getElementById('alerts-cfg-subject'); if(elSu) elSu.value = ALERTS_CFG.subject;
+  var elBo = document.getElementById('alerts-cfg-body'); if(elBo) elBo.value = ALERTS_CFG.body;
+  ['obj_critique','obj_insuffisant','aucune_saisie','taux_bureau'].forEach(function(k){
+    var el = document.getElementById('alerts-t-'+k); if(el) el.checked = !!ALERTS_CFG.types[k];
+  });
+  refreshAlertsCfgVisibility();
+  if(elEn && !elEn._wired){ elEn.addEventListener('change', refreshAlertsCfgVisibility); elEn._wired=true; }
+}
+
+function refreshAlertsCfgVisibility(){
+  // Le master ON/OFF grise simplement les contrôles. Toujours visibles.
+  var elEn = document.getElementById('alerts-cfg-enabled');
+  var on = elEn ? elEn.checked : false;
+  var controls = document.querySelectorAll('#sc-config [id^="alerts-t-"], #alerts-cfg-to, #alerts-cfg-cc, #alerts-cfg-subject, #alerts-cfg-body');
+  controls.forEach(function(c){
+    c.disabled = !on;
+    var row = c.closest('.alert-type-row');
+    if(row){ row.style.opacity = on?'1':'.5'; row.style.cursor = on?'pointer':'not-allowed'; }
+    else { c.style.opacity = on?'1':'.55'; }
+  });
+}
+
+async function saveAlertsConfig(){
+  var elEn = document.getElementById('alerts-cfg-enabled');
+  ALERTS_CFG.enabled = !!(elEn && elEn.checked);
+  ALERTS_CFG.to = (document.getElementById('alerts-cfg-to').value || '').trim();
+  ALERTS_CFG.cc = (document.getElementById('alerts-cfg-cc').value || '').trim();
+  ALERTS_CFG.subject = (document.getElementById('alerts-cfg-subject').value || '').trim() || 'Alertes RH — {{periode}}';
+  ALERTS_CFG.body = (document.getElementById('alerts-cfg-body').value || '').trim() || ALERTS_DEFAULT_BODY;
+  ['obj_critique','obj_insuffisant','aucune_saisie','taux_bureau'].forEach(function(k){
+    var el = document.getElementById('alerts-t-'+k); ALERTS_CFG.types[k] = !!(el && el.checked);
+  });
+  var payload = [
+    {cle:'alerts_enabled', valeur:String(ALERTS_CFG.enabled), categorie:'alertes'},
+    {cle:'alerts_to', valeur:ALERTS_CFG.to, categorie:'alertes'},
+    {cle:'alerts_cc', valeur:ALERTS_CFG.cc, categorie:'alertes'},
+    {cle:'alerts_subject', valeur:ALERTS_CFG.subject, categorie:'alertes'},
+    {cle:'alerts_body', valeur:ALERTS_CFG.body, categorie:'alertes'},
+    {cle:'alerts_types', valeur:JSON.stringify(ALERTS_CFG.types), categorie:'alertes'}
+  ];
+  var statusEl = document.getElementById('alerts-cfg-status');
+  if(statusEl) statusEl.textContent = 'Sauvegarde…';
+  try {
+    // Upsert ligne par ligne (Supabase UPSERT via on_conflict=cle si contrainte unique sinon PATCH/POST)
+    for(var i=0;i<payload.length;i++){
+      var row = payload[i];
+      var existing = await authFetch('/rest/v1/rh_config?cle=eq.'+encodeURIComponent(row.cle)+'&select=id');
+      var arr = existing.data || [];
+      if(arr.length){
+        await authFetch('/rest/v1/rh_config?id=eq.'+arr[0].id, 'PATCH', {valeur:row.valeur});
+      } else {
+        await authFetch('/rest/v1/rh_config', 'POST', row);
+      }
+    }
+    if(statusEl) statusEl.textContent = 'Sauvegardé ✓';
+    toast('Config alertes sauvegardée ✓');
+    setTimeout(function(){ if(statusEl) statusEl.textContent=''; }, 3000);
+  } catch(e){
+    if(statusEl) statusEl.textContent = 'Erreur';
+    toast('Erreur: '+e.message, 1);
+  }
+}
+
+function resetAlertsTemplate(){
+  if(!confirm('Restaurer le sujet et le corps par défaut ?')) return;
+  document.getElementById('alerts-cfg-subject').value = 'Alertes RH — {{periode}}';
+  document.getElementById('alerts-cfg-body').value = ALERTS_DEFAULT_BODY;
+  toast('Modèle restauré (pensez à sauvegarder)');
+}
+
+// Construit l'objet mail {to,cc,subject,body} à partir des alertes courantes
+async function buildAlertMail(){
+  // Lire les valeurs courantes du form (priorite UI sur cache)
+  var to = (document.getElementById('alerts-cfg-to').value || '').trim();
+  var cc = (document.getElementById('alerts-cfg-cc').value || '').trim();
+  var subjectTpl = (document.getElementById('alerts-cfg-subject').value || '').trim() || 'Alertes RH — {{periode}}';
+  var bodyTpl = (document.getElementById('alerts-cfg-body').value || '').trim() || ALERTS_DEFAULT_BODY;
+  var typesOn = {};
+  ['obj_critique','obj_insuffisant','aucune_saisie','taux_bureau'].forEach(function(k){
+    var el = document.getElementById('alerts-t-'+k); typesOn[k] = !!(el && el.checked);
+  });
+
+  // Récupérer les alertes du mois courant (depuis cache si dispo, sinon recalcul)
+  var ck = S.gY+'-'+(S.gM+1);
+  var d = (S._planCache && S._planCache[ck]) ? S._planCache[ck] : null;
+  if(!d){
+    try { d = await supabaseAPI.getDashData(S.gY, S.gM); S._planCache=S._planCache||{}; S._planCache[ck]=d; } catch(e){ d = {alerts:[]}; }
+  }
+  var all = (d && d.alerts) ? d.alerts : [];
+  // Filtrer par type activé
+  var filtered = all.filter(function(a){ return typesOn[a.type]; });
+  var errs = filtered.filter(function(a){ return a.level==='err'; });
+  var warns = filtered.filter(function(a){ return a.level==='warn'; });
+
+  // Construire liste
+  var liste = '';
+  if(!filtered.length){
+    liste = '— Aucune alerte sur cette période —';
+  } else {
+    // Grouper par type
+    var byType = {};
+    filtered.forEach(function(a){ if(!byType[a.type]) byType[a.type]=[]; byType[a.type].push(a); });
+    var typeLabels = {
+      obj_critique:'🔴 Objectif critique',
+      obj_insuffisant:'🟠 Objectif insuffisant',
+      aucune_saisie:'⚠️ Aucune saisie',
+      taux_bureau:'🏢 Taux bureau faible'
+    };
+    Object.keys(byType).forEach(function(k){
+      liste += '\n' + (typeLabels[k]||k) + ' ('+byType[k].length+') :\n';
+      byType[k].forEach(function(a){
+        liste += '  • ' + a.name + (a.dept?' ['+a.dept+']':'') + ' — ' + a.detail + '\n';
+      });
+    });
+  }
+  // Variables remplacees
+  var periode = MFR2[S.gM] + ' ' + S.gY;
+  var now = new Date();
+  var dateStr = String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
+  function fill(s){
+    return s.replace(/\{\{periode\}\}/g, periode)
+            .replace(/\{\{date\}\}/g, dateStr)
+            .replace(/\{\{nb_critique\}\}/g, String(errs.length))
+            .replace(/\{\{nb_warn\}\}/g, String(warns.length))
+            .replace(/\{\{liste_alertes\}\}/g, liste.trim());
+  }
+  return { to:to, cc:cc, subject:fill(subjectTpl), body:fill(bodyTpl), countErr:errs.length, countWarn:warns.length };
+}
+
+var _LAST_MAIL = null;
+async function previewAlertMail(){
+  var mail = await buildAlertMail();
+  _LAST_MAIL = mail;
+  document.getElementById('amm-to').textContent = mail.to ? mail.to + (mail.cc?' (CC: '+mail.cc+')':'') : '(aucun destinataire renseigné)';
+  document.getElementById('amm-subject').textContent = mail.subject;
+  document.getElementById('amm-body').textContent = mail.body;
+  document.getElementById('alert-mail-modal').style.display = 'flex';
+}
+function closeAlertMailModal(){ document.getElementById('alert-mail-modal').style.display='none'; }
+function copyAlertMail(){
+  if(!_LAST_MAIL) return;
+  var txt = 'À : '+_LAST_MAIL.to+(_LAST_MAIL.cc?'\nCC : '+_LAST_MAIL.cc:'')+'\nObjet : '+_LAST_MAIL.subject+'\n\n'+_LAST_MAIL.body;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ toast('Mail copié dans le presse-papier ✓'); }, function(){ toast('Copie impossible',1); });
+  } else { toast('Copie non supportée',1); }
+}
+function sendAlertMail(){
+  if(!_LAST_MAIL) return;
+  if(!_LAST_MAIL.to){ toast('Renseignez au moins un destinataire',1); return; }
+  var url = 'mailto:' + encodeURIComponent(_LAST_MAIL.to);
+  var qs = [];
+  if(_LAST_MAIL.cc) qs.push('cc='+encodeURIComponent(_LAST_MAIL.cc));
+  qs.push('subject='+encodeURIComponent(_LAST_MAIL.subject));
+  qs.push('body='+encodeURIComponent(_LAST_MAIL.body));
+  url += '?' + qs.join('&');
+  window.location.href = url;
 }
 
 // ════════════════════════════════════════════════════════════════
