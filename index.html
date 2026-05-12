@@ -929,7 +929,7 @@ var SUPA = {
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group" style="grid-column:1/-1"><label>D&eacute;tail / sp&eacute;cialisation <span style="color:var(--ink3);font-weight:400;text-transform:none">(optionnel)</span></label><input id="em-poste" placeholder="ex: Enfance/Jeunesse, Sant&eacute;, Famille..."></div>
+      <div class="form-group" style="grid-column:1/-1"><label>Sp&eacute;cialisation <span style="color:var(--ink3);font-weight:400;text-transform:none">(optionnel, sans r&eacute;p&eacute;ter le type de poste)</span></label><input id="em-poste" placeholder="ex: Sant&eacute;, Famille, Communication, Comptable..."></div>
     </div>
     <div class="form-row-3">
       <div class="form-group"><label>Salaire ($/h ou $/an)</label><input id="em-salaire" type="number" value="25" step="0.5"></div>
@@ -3246,11 +3246,15 @@ async function loadConfig() {
           av = '<div class="av" style="width:36px;height:36px;font-size:13px;background:'+col(e.nom)+'">'+ini(e.nom)+'</div>';
         }
         h += '<tr>';
-        // Nom + photo + Type de poste — Detail
+        // Nom + photo + "Type · Détail" (sans répétition)
         var posteAffiche = '';
-        if (e.type_poste && e.poste) posteAffiche = e.type_poste + ' &mdash; ' + e.poste;
-        else if (e.type_poste) posteAffiche = e.type_poste;
-        else if (e.poste) posteAffiche = e.poste;
+        var tp = e.type_poste || '';
+        var pd = e.poste || '';
+        // On masque 'Autre' si pas de detail
+        if (tp === 'Autre' && !pd) posteAffiche = '<em style="color:var(--ink3);font-weight:400">Non précisé</em>';
+        else if (tp && pd) posteAffiche = tp + ' &middot; ' + pd;
+        else if (tp) posteAffiche = tp;
+        else if (pd) posteAffiche = pd;
         h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'">';
         h += '<div style="display:flex;align-items:center;gap:12px;overflow:hidden">'+av+'<div style="overflow:hidden"><strong>'+e.nom+'</strong><br><small style="color:var(--ink3);font-weight:400">'+posteAffiche+'</small></div></div></td>';
         // Email
