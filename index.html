@@ -2347,6 +2347,23 @@ function renderAlerts(d){
 // Remplace google.script.run — même interface callbacks
 // ═══════════════════════════════════════════════════════════════
 
+// Pagination pour spFetch (Supabase max 1000 rows/req)
+async function spFetchAll(path) {
+  var all = [];
+  var offset = 0;
+  var pageSize = 1000;
+  for(var i = 0; i < 50; i++){
+    var sep = path.indexOf('?') >= 0 ? '&' : '?';
+    var pagedPath = path + sep + 'limit=' + pageSize + '&offset=' + offset;
+    var res = await spFetch(pagedPath);
+    if(!Array.isArray(res) || !res.length) break;
+    all = all.concat(res);
+    if(res.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
+
 async function spFetch(path, opts) {
   var url = SUPA.url + '/rest/v1/' + path;
   var doRequest = function() {
@@ -2442,7 +2459,7 @@ var supabaseAPI = {
     var d1 = dateISO(y,m,1), d2 = dateISO(y,m,lastDayOfMonth(y,m));
     var [emps, rows] = await Promise.all([
       spFetch('rh_employes?select=nom&actif=eq.true&order=nom'),
-      spFetch('rh_horaires?date_pointage=gte.'+d1+'&date_pointage=lte.'+d2+'&select=employe,date_pointage,debut,fin,bureau,type_jour&limit=2000')
+      spFetchAll('rh_horaires?date_pointage=gte.'+d1+'&date_pointage=lte.'+d2+'&select=employe,date_pointage,debut,fin,bureau,type_jour&order=date_pointage')
     ]);
     var empNames = emps.map(function(e){ return e.nom; });
     var empSet = {};
@@ -2485,7 +2502,7 @@ var supabaseAPI = {
     period = period || 'month';
     var [empsData, horaires] = await Promise.all([
       spFetch('rh_employes?select=nom,heures_semaine,departement,poste&actif=eq.true'),
-      spFetch('rh_horaires?date_pointage=gte.' + d1 + '&date_pointage=lte.' + d2 + '&select=employe,date_pointage,debut,fin,bureau,type_jour&limit=5000')
+      spFetchAll('rh_horaires?date_pointage=gte.' + d1 + '&date_pointage=lte.' + d2 + '&select=employe,date_pointage,debut,fin,bureau,type_jour&order=date_pointage')
     ]);
     var today = new Date(); today.setHours(0,0,0,0);
     var todayISO = today.getFullYear() + '-' + ('0'+(today.getMonth()+1)).slice(-2) + '-' + ('0'+today.getDate()).slice(-2);
@@ -2836,6 +2853,24 @@ async function refreshSession() {
 // Detecte si une reponse est un token expire
 function _isJwtExpired(status, txt) {
   return status === 401 && (txt.indexOf('JWT expired') >= 0 || txt.indexOf('PGRST303') >= 0 || txt.indexOf('expired') >= 0);
+}
+
+// Recupere TOUTES les lignes d'une requete via pagination (Supabase limite 1000/req par defaut)
+async function authFetchAll(path) {
+  var all = [];
+  var offset = 0;
+  var pageSize = 1000;
+  var maxIter = 50; // safeguard 50000 rows max
+  for(var i = 0; i < maxIter; i++){
+    var sep = path.indexOf('?') >= 0 ? '&' : '?';
+    var pagedPath = path + sep + 'limit=' + pageSize + '&offset=' + offset;
+    var r = await authFetch(pagedPath);
+    if(!r.data || !r.data.length) break;
+    all = all.concat(r.data);
+    if(r.data.length < pageSize) break;
+    offset += pageSize;
+  }
+  return { ok: true, data: all };
 }
 
 async function authFetch(path, method, body) {
@@ -3268,7 +3303,7 @@ async function loadKPI() {
     var y = S.gY;
     var [empR, horR] = await Promise.all([
       authFetch('/rest/v1/rh_employes?select=nom,statut,heures_semaine,departement&actif=eq.true&order=nom'),
-      authFetch('/rest/v1/rh_horaires?select=employe,date_pointage,debut,fin,bureau,type_jour&date_pointage=gte.' + y + '-01-01&date_pointage=lte.' + y + '-12-31&limit=5000')
+      authFetchAll('/rest/v1/rh_horaires?select=employe,date_pointage,debut,fin,bureau,type_jour&date_pointage=gte.' + y + '-01-01&date_pointage=lte.' + y + '-12-31&order=date_pointage')
     ]);
     var emps = empR.data || [];
     var horaires = horR.data || [];
@@ -3405,7 +3440,7 @@ async function loadRecap() {
     var y = S.gY;
     var [empR, horR] = await Promise.all([
       authFetch('/rest/v1/rh_employes?select=nom&actif=eq.true&order=nom'),
-      authFetch('/rest/v1/rh_horaires?select=employe,date_pointage,debut,fin&date_pointage=gte.' + y + '-01-01&date_pointage=lte.' + y + '-12-31&limit=5000')
+      authFetchAll('/rest/v1/rh_horaires?select=employe,date_pointage,debut,fin&date_pointage=gte.' + y + '-01-01&date_pointage=lte.' + y + '-12-31&order=date_pointage')
     ]);
     var emps = (empR.data||[]).map(function(e){return e.nom;});
     var horaires = horR.data || [];
