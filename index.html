@@ -4297,8 +4297,8 @@ async function simulateReminders(){
     var emp = await authFetchAll('/rest/v1/rh_employes?select=nom,email,statut,actif,heures_semaine&order=nom');
     var fromIso = cycle.start.toISOString().substring(0,10);
     var toIso   = cycle.end.toISOString().substring(0,10);
-    var hor = await authFetchAll('/rest/v1/rh_horaires?select=nom,date_pointage,debut,fin,type_jour&date_pointage=gte.'+fromIso+'&date_pointage=lte.'+toIso);
-    var byEmp = {}; (hor||[]).forEach(function(r){ (byEmp[r.nom]=byEmp[r.nom]||[]).push(r); });
+    var hor = await authFetchAll('/rest/v1/rh_horaires?select=employe,date_pointage,debut,fin,type_jour&date_pointage=gte.'+fromIso+'&date_pointage=lte.'+toIso);
+    var byEmp = {}; (hor||[]).forEach(function(r){ (byEmp[r.employe]=byEmp[r.employe]||[]).push(r); });
 
     var bizDaysInCycle = _businessDaysBetween(cycle.start, today);
     var todoEmps = [];
