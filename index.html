@@ -1789,7 +1789,9 @@ function loadRsm(){
 }
 function renderRsm(s){
   if(s.error){document.getElementById('rsm-area').innerHTML='<p style="color:var(--am);padding:20px">'+s.error+'</p>';return;}
-  var tgt=162.5,pct=Math.min(100,s.totalH>0?Math.round(s.totalH/tgt*100):0);
+  // tgt personnalise selon heures_semaine de l'employe (fallback 162.5 si non fourni)
+  var tgt = s.targetH || 162.5;
+  var pct = tgt>0 && s.totalH>0 ? Math.min(100,Math.round(s.totalH/tgt*100)) : 0;
   var bpct=s.worked>0?Math.min(100,Math.round(s.bur/s.worked*100)):0;
   var ppct=s.worked+s.abs>0?Math.min(100,Math.round(s.worked/(s.worked+s.abs)*100)):0;
   function kc(p,lo,hi){return p>=hi?'k-ok':p>=lo?'k-wn':'k-bd';}
@@ -2562,13 +2564,24 @@ var supabaseAPI = {
         if(mn>0){h+=mn/60;worked++;if(inf.bureau)bur++;}
       } else if(inf.type&&inf.type!=='work'){abs++;}
     });
-    return {totalH:Math.round(h*10)/10,worked:worked,bur:bur,abs:abs};
+    // Recuperer heures_semaine pour calculer target mensuel personnalise
+    var hSem = 37.5;
+    try {
+      var r = await spFetch('rh_employes?select=heures_semaine&nom=eq.'+encodeURIComponent(emp)+'&limit=1');
+      if(r && r[0] && r[0].heures_semaine) hSem = parseFloat(r[0].heures_semaine);
+    } catch(e){}
+    var targetH = Math.round(hSem * 4.33 * 10) / 10;
+    return {totalH:Math.round(h*10)/10,worked:worked,bur:bur,abs:abs,heuresSemaine:hSem,targetH:targetH};
   },
 
   // Dashboard direction (signature: d1, d2 ISO yyyy-mm-dd, target H, period)
+  // Note : target represente l'objectif pour un employe a 37.5h/sem.
+  // Pour chaque employe, on calcule SON propre target en fonction de heures_semaine.
   getDashboard: async function(d1, d2, target, period) {
     target = target || 162.5;
     period = period || 'month';
+    // Nombre de semaines dans la periode (162.5h / 37.5h = ~4.33 pour 1 mois)
+    var weeksInPeriod = target / 37.5;
     var [empsData, horaires] = await Promise.all([
       spFetch('rh_employes?select=nom,heures_semaine,departement,poste&actif=eq.true'),
       spFetchAll('rh_horaires?date_pointage=gte.' + d1 + '&date_pointage=lte.' + d2 + '&select=employe,date_pointage,debut,fin,bureau,type_jour&order=date_pointage')
@@ -2586,6 +2599,7 @@ var supabaseAPI = {
     });
 
     var empStats=[],totalH=0,totalBur=0,totalWorked=0,totalAbs=0,compliance=0;
+    var totalTargetH=0;
     var deptMap={};
 
     (empsData||[]).forEach(function(e){
@@ -2598,8 +2612,14 @@ var supabaseAPI = {
           if(mn>0){h+=mn/60;worked++;if(r.bureau===true)bur++;}
         } else if(r.type_jour && r.type_jour !== 'work'){abs++;}
       });
-      var hR=Math.round(h*10)/10,pct=Math.min(100,Math.round(hR/target*100)),bpct=worked>0?Math.round(bur/worked*100):0;
-      empStats.push({name:e.nom,h:hR,worked:worked,bur:bur,abs:abs,pct:pct,bureauPct:bpct,dept:e.departement||'Non defini',poste:e.poste||''});
+      // Target individuel : heures_semaine de l'employe (fallback 37.5) * nb semaines dans la periode
+      var empWeekly = parseFloat(e.heures_semaine) || 37.5;
+      var empTargetForPeriod = Math.round(empWeekly * weeksInPeriod * 10) / 10;
+      totalTargetH += empTargetForPeriod;
+      var hR=Math.round(h*10)/10;
+      var pct = empTargetForPeriod>0 ? Math.min(100,Math.round(hR/empTargetForPeriod*100)) : 0;
+      var bpct=worked>0?Math.round(bur/worked*100):0;
+      empStats.push({name:e.nom,h:hR,worked:worked,bur:bur,abs:abs,pct:pct,bureauPct:bpct,target:empTargetForPeriod,heuresSemaine:empWeekly,dept:e.departement||'Non defini',poste:e.poste||''});
       totalH+=h;totalBur+=bur;totalWorked+=worked;totalAbs+=abs;
       if(pct>=95)compliance++;
       var dept=e.departement||'Non defini';
@@ -2672,7 +2692,7 @@ var supabaseAPI = {
     });
 
     return {
-      kpis:{empCount:N,totalH:Math.round(totalH*10)/10,targetH:Math.round(target*N*10)/10,
+      kpis:{empCount:N,totalH:Math.round(totalH*10)/10,targetH:Math.round(totalTargetH*10)/10,
             bureauRate:totalWorked>0?Math.round(totalBur/totalWorked*100):0,absences:totalAbs,
             compliance:compliance,complianceTotal:N,avgH:avgH,maxH:maxH,minH:minH,
             totalWorked:totalWorked,totalBur:totalBur,remoteDays:totalWorked-totalBur,target:target,period:period},
