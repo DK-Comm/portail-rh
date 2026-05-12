@@ -3873,18 +3873,17 @@ function renderRepertoire() {
       if(e.type_poste && e.poste) posteTxt = e.type_poste + ' · ' + e.poste;
       else posteTxt = e.type_poste || e.poste || '';
       h += '<div style="background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;transition:transform .12s,box-shadow .12s;box-shadow:var(--sh);position:relative" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.12)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'var(--sh)\'">';
-      // Kebab menu (admin uniquement)
+      // Kebab menu (admin uniquement) - utilise idx pour eviter pb de guillemets dans onclick
       if(isDir){
         var menuId = 'krep-'+idx;
+        var actLbl = e.actif !== false ? 'Désactiver' : 'Activer';
+        var actIcon = e.actif !== false ? '&#128683;' : '&#10003;';
         h += '<div style="position:absolute;top:10px;right:10px;z-index:5">';
         h += '<button class="kebab-btn" onclick="event.stopPropagation();toggleKebab(\''+menuId+'\',event)" title="Actions admin">&#8942;</button>';
         h += '<div class="kebab-menu" id="'+menuId+'">';
-        h += '<button class="kebab-item" onclick="event.stopPropagation();closeKebab();openEditEmpByName('+JSON.stringify(e.nom)+')"><span class="kebab-icon">&#9999;&#65039;</span>Modifier</button>';
-        var actStr = e.actif !== false ? 'true' : 'false';
-        var actLbl = e.actif !== false ? 'Désactiver' : 'Activer';
-        var actIcon = e.actif !== false ? '&#128683;' : '&#10003;';
-        h += '<button class="kebab-item" onclick="event.stopPropagation();closeKebab();toggleEmpActif('+JSON.stringify(e.id)+','+actStr+')"><span class="kebab-icon">'+actIcon+'</span>'+actLbl+'</button>';
-        h += '<button class="kebab-item danger" onclick="event.stopPropagation();closeKebab();deleteEmp('+JSON.stringify(e.id)+','+JSON.stringify(e.nom)+')"><span class="kebab-icon">&#128465;&#65039;</span>Supprimer</button>';
+        h += '<button class="kebab-item" onclick="event.stopPropagation();closeKebab();repEdit('+idx+')"><span class="kebab-icon">&#9999;&#65039;</span>Modifier</button>';
+        h += '<button class="kebab-item" onclick="event.stopPropagation();closeKebab();repToggleActif('+idx+')"><span class="kebab-icon">'+actIcon+'</span>'+actLbl+'</button>';
+        h += '<button class="kebab-item danger" onclick="event.stopPropagation();closeKebab();repDelete('+idx+')"><span class="kebab-icon">&#128465;&#65039;</span>Supprimer</button>';
         h += '</div></div>';
       }
       // Card clickable (vCard)
@@ -3908,25 +3907,36 @@ function renderRepertoire() {
   el.innerHTML = h;
 }
 
-// Helper : ouvrir l'editeur a partir du nom (utilise par le kebab du repertoire)
-function openEditEmpByName(nom){
-  var e = _repList.find(function(x){return x.nom===nom;});
-  if(!e){ toast('Employé introuvable',1); return; }
-  // _empList est utilise par openEditEmp ; on s'assure qu'il est synchro
-  if(!_empList || !_empList.length) _empList = _repList;
-  var idx = _empList.findIndex(function(x){return x.nom===nom;});
-  if(idx < 0){ _empList.push(e); idx = _empList.length-1; }
-  else { _empList[idx] = e; }
-  openEditEmp(idx);
+// Wrappers admin appeles depuis le kebab du Repertoire (indexation par _repFiltered)
+function repEdit(idx){
+  var e = _repFiltered[idx];
+  if(!e){ toast('Employé introuvable', 1); return; }
+  // S'assurer que _empList contient bien cet employe pour openEditEmp
+  if(!_empList || !_empList.length) _empList = _repList.slice();
+  var i = _empList.findIndex(function(x){return x.id===e.id;});
+  if(i < 0){ _empList.push(e); i = _empList.length-1; }
+  else { _empList[i] = e; }
+  openEditEmp(i);
 }
-
-// Helper : toggle actif/inactif d'un employe
-async function toggleEmpActif(id, currentActive){
+async function repToggleActif(idx){
+  var e = _repFiltered[idx];
+  if(!e){ toast('Employé introuvable', 1); return; }
+  var newActif = e.actif === false ? true : false;
   try {
-    await authFetch('/rest/v1/rh_employes?id=eq.'+id, 'PATCH', {actif: !currentActive});
-    toast(currentActive ? 'Désactivé' : 'Activé');
+    await authFetch('/rest/v1/rh_employes?id=eq.'+e.id, 'PATCH', {actif: newActif});
+    toast(newActif ? 'Activé ✓' : 'Désactivé');
     loadRepertoire();
-  } catch(e){ toast('Erreur: '+e.message, 1); }
+  } catch(err){ toast('Erreur: '+err.message, 1); }
+}
+async function repDelete(idx){
+  var e = _repFiltered[idx];
+  if(!e){ toast('Employé introuvable', 1); return; }
+  if(!confirm('Supprimer ' + e.nom + ' ? Cette action est irréversible.')) return;
+  try {
+    await authFetch('/rest/v1/rh_employes?id=eq.'+e.id, 'DELETE');
+    toast(e.nom + ' supprimé');
+    loadRepertoire();
+  } catch(err){ toast('Erreur: '+err.message, 1); }
 }
 
 var _repFiltered = [];
@@ -4633,7 +4643,10 @@ async function saveEmp() {
     else delete EMP_PHOTOS[nom];
     _pendingPhotoFile = null;
     closeEmpModal();
-    loadConfig();
+    // Rafraichir la vue active : Repertoire si visible, sinon Config (params)
+    var repOn = document.getElementById('sc-rep') && document.getElementById('sc-rep').classList.contains('on');
+    if(repOn && typeof loadRepertoire === 'function') loadRepertoire();
+    else loadConfig();
     S._empCache = {};
   } catch(e) { toast('Erreur: ' + e.message, 1); }
 }
@@ -4643,7 +4656,9 @@ async function deleteEmp(id, nom) {
   try {
     await authFetch('/rest/v1/rh_employes?id=eq.'+id, 'DELETE');
     toast(nom + ' supprimé');
-    loadConfig();
+    var repOn = document.getElementById('sc-rep') && document.getElementById('sc-rep').classList.contains('on');
+    if(repOn && typeof loadRepertoire === 'function') loadRepertoire();
+    else loadConfig();
     S._empCache = {};
   } catch(e) { toast('Erreur: ' + e.message, 1); }
 }
