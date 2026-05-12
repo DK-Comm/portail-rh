@@ -797,7 +797,7 @@ var SUPA = {
       <button class="sb-item" onclick="gotoDir('recap',this)">&#128197; Recap</button>
       <button class="sb-item" onclick="gotoDir('paie',this)">&#128176; Paie</button>
       <button class="sb-item" onclick="gotoDir('rep',this)">&#128206; R&eacute;pertoire</button>
-      <button class="sb-item" onclick="gotoDir('config',this)">&#9881; Config</button>
+      <button class="sb-item" onclick="gotoDir('config',this)">&#9881; Param&egrave;tres</button>
     </div>
     <div class="main-area">
       <div class="tabs" id="main-tabs">
@@ -972,11 +972,7 @@ var SUPA = {
 <!-- ─── CONFIG ─── -->
 <div class="screen" id="sc-config">
   <div class="page">
-    <div class="page-title">&#9881; Configuration</div>
-    <div class="kpi-section">
-      <div class="kpi-section-title">Employ&eacute;s <button class="btn-sm btn-primary" style="margin-left:12px" onclick="openAddEmp()">+ Ajouter</button></div>
-      <div class="card-table" id="config-emp-table"><div style="padding:20px;color:var(--ink3)">Chargement...</div></div>
-    </div>
+    <div class="page-title">&#9881; Param&egrave;tres <span class="page-subtitle">R&eacute;f&eacute;rentiels et configuration syst&egrave;me</span></div>
     <div class="kpi-section">
       <div class="kpi-section-title">R&eacute;f&eacute;rentiels</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -997,7 +993,10 @@ var SUPA = {
 <!-- ─── REPERTOIRE ─── -->
 <div class="screen" id="sc-rep">
   <div class="page">
-    <div class="page-title">&#128206; R&eacute;pertoire <span class="page-subtitle" id="rep-subtitle">Chargement...</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">
+      <div class="page-title" style="margin-bottom:0">&#128206; R&eacute;pertoire <span class="page-subtitle" id="rep-subtitle">Chargement...</span></div>
+      <button class="btn-sm btn-primary" id="rep-add-btn" onclick="openAddEmp()" style="display:none;padding:8px 14px">+ Ajouter un employ&eacute;</button>
+    </div>
     <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
       <input type="text" id="rep-search" oninput="renderRepertoire()" placeholder="&#128269; Rechercher un nom, poste, d&eacute;partement..." style="flex:1;min-width:240px;padding:10px 14px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink)">
       <select id="rep-dept-filter" onchange="renderRepertoire()" style="padding:10px 14px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink);min-width:200px">
@@ -3770,20 +3769,36 @@ async function loadRepertoire() {
   var el = document.getElementById('rep-content');
   el.innerHTML = '<div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div>';
   try {
-    var r = await authFetch('/rest/v1/rh_employes?select=*&actif=eq.true&order=nom');
+    // Direction voit tous les employes (y compris inactifs pour gestion). Employes voient les actifs uniquement.
+    var path = S.role === 'direction'
+      ? '/rest/v1/rh_employes?select=*&order=nom'
+      : '/rest/v1/rh_employes?select=*&actif=eq.true&order=nom';
+    var r = await authFetch(path);
     _repList = r.data || [];
-    // Peupler le filtre departement avec les dept actifs
+    // S'assurer que les referentiels (DEPT couleurs/icones) sont charges pour le rendu groupe
+    if(typeof REF_DEPTS === 'undefined' || !REF_DEPTS.length) await loadReferentiels();
+    // Sync vers _empList aussi (pour que les actions admin marchent)
+    _empList = _repList.slice();
+    // Afficher bouton "+ Ajouter" si Direction
+    var addBtn = document.getElementById('rep-add-btn');
+    if(addBtn) addBtn.style.display = (S.role === 'direction') ? 'inline-flex' : 'none';
+    // Peupler le filtre departement
     var filterSel = document.getElementById('rep-dept-filter');
     var currentVal = filterSel.value;
     var depts = {};
     _repList.forEach(function(e){ if(e.departement) depts[e.departement]=true; });
-    // Garder le premier "Tous", reconstruire les autres
     var optsHTML = '<option value="">Tous les départements</option>';
     Object.keys(depts).sort().forEach(function(d){
       optsHTML += '<option value="'+d+'"'+(d===currentVal?' selected':'')+'>'+d+'</option>';
     });
     filterSel.innerHTML = optsHTML;
-    if(sub) sub.textContent = _repList.length + ' employé' + (_repList.length>1?'s':'') + ' actif' + (_repList.length>1?'s':'');
+    var nbActifs = _repList.filter(function(e){return e.actif !== false;}).length;
+    var nbInactifs = _repList.length - nbActifs;
+    if(sub){
+      var subTxt = nbActifs + ' employé' + (nbActifs>1?'s':'') + ' actif' + (nbActifs>1?'s':'');
+      if(nbInactifs > 0) subTxt += ' · ' + nbInactifs + ' inactif' + (nbInactifs>1?'s':'');
+      sub.textContent = subTxt;
+    }
     renderRepertoire();
   } catch(e){ el.innerHTML = '<div style="color:var(--rd);padding:20px">Erreur: '+e.message+'</div>'; }
 }
@@ -3803,44 +3818,115 @@ function renderRepertoire() {
     return true;
   });
   if(!filtered.length){ el.innerHTML='<div style="color:var(--ink3);padding:40px;text-align:center">Aucun résultat</div>'; return; }
-  // Tri custom (Direction d'abord)
+  // Tri par statut au sein du dept
   var STATUT_RANK = {'Direction':0,'Employe':1,'Stagiaire':2,'Prestataire externe':3,'Pigiste':4,'Freelance':5};
   filtered.sort(function(a,b){
-    var da = (a.departement||'').localeCompare(b.departement||'');
-    if(da !== 0) return da;
     var ra = STATUT_RANK[a.statut]!==undefined?STATUT_RANK[a.statut]:99;
     var rb = STATUT_RANK[b.statut]!==undefined?STATUT_RANK[b.statut]:99;
     if(ra !== rb) return ra - rb;
     return (a.nom||'').localeCompare(b.nom||'');
   });
-  // Render grille
-  var h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">';
+  // Grouper par departement (ordre depuis REF_DEPTS)
+  var DEPT_ORDER_NAMES = (typeof REF_DEPTS !== 'undefined' && REF_DEPTS) ? REF_DEPTS.map(function(d){return d.nom;}) : [];
+  var DEPT_INFO = {};
+  if(typeof REF_DEPTS !== 'undefined' && REF_DEPTS) REF_DEPTS.forEach(function(d){DEPT_INFO[d.nom]={icone:d.icone||'🏢',couleur:d.couleur||'#546e7a'};});
+  var groups = {};
   filtered.forEach(function(e, idx){
-    var c = col(e.nom);
-    var photoHTML = e.photo_url
-      ? '<img src="'+e.photo_url+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--bd)">'
-      : '<div style="width:56px;height:56px;border-radius:50%;background:'+c+';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">'+ini(e.nom)+'</div>';
-    var posteTxt = '';
-    if(e.type_poste && e.poste) posteTxt = e.type_poste + ' · ' + e.poste;
-    else posteTxt = e.type_poste || e.poste || '';
-    h += '<div onclick="openRepCard('+idx+')" style="background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:var(--sh)" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'var(--shd)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'var(--sh)\'">';
-    h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">';
-    h += photoHTML;
-    h += '<div style="overflow:hidden">';
-    h += '<div style="font-weight:700;font-size:14px;line-height:1.2">'+e.nom+'</div>';
-    h += '<div style="font-size:12px;color:var(--ink2);margin-top:3px;line-height:1.3">'+posteTxt+'</div>';
-    h += '</div></div>';
-    if(e.departement) h += '<div style="font-size:11px;color:var(--ink3);margin-bottom:8px">'+e.departement+'</div>';
-    if(e.email) h += '<div style="font-size:12px;color:var(--ink2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">&#9993; '+e.email+'</div>';
-    if(e.telephone) h += '<div style="font-size:12px;color:var(--ink2)">&#9742; '+e.telephone + (e.poste_tel?' p. '+e.poste_tel:'')+'</div>';
-    h += '</div>';
-    // Sauver l'index pour openRepCard
-    _repList[idx]._filteredIdx = idx;
+    var d = e.departement || 'Non defini';
+    if(!groups[d]) groups[d] = [];
+    groups[d].push({emp:e, idx:idx});
   });
-  h += '</div>';
-  // On stocke aussi la liste filtree pour openRepCard
+  var orderedDepts = DEPT_ORDER_NAMES.filter(function(d){return groups[d];}).concat(
+    Object.keys(groups).filter(function(d){return DEPT_ORDER_NAMES.indexOf(d)<0;})
+  );
+  // Helper tag class
+  function tagClass(s){
+    if(s==='Direction') return 'tag-direction';
+    if(s==='Stagiaire') return 'tag-stagiaire';
+    if(s==='Prestataire externe') return 'tag-prestataire';
+    if(s==='Pigiste') return 'tag-pigiste';
+    if(s==='Freelance') return 'tag-freelance';
+    return 'tag-employe';
+  }
+  // Render groupé par departement
+  var h = '';
+  var isDir = S.role === 'direction';
+  orderedDepts.forEach(function(dept, deptIdx){
+    var info = DEPT_INFO[dept] || {icone:'👥',couleur:'#546e7a'};
+    var nbEmp = groups[dept].length;
+    h += '<div style="margin-bottom:'+(deptIdx<orderedDepts.length-1?'22px':'0')+'">';
+    // Header dept
+    h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--bd);border-left:4px solid '+info.couleur+';border-radius:10px;margin-bottom:10px;box-shadow:var(--sh)">';
+    h += '<span style="font-size:18px">'+info.icone+'</span>';
+    h += '<div style="font-size:14px;font-weight:700;color:var(--ink)">'+dept+'</div>';
+    h += '<div style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">'+nbEmp+' employ&eacute;'+(nbEmp>1?'s':'')+'</div>';
+    h += '</div>';
+    // Grille des cards pour ce dept
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">';
+    groups[dept].forEach(function(item){
+      var e = item.emp, idx = item.idx;
+      var c = col(e.nom);
+      var photoHTML = e.photo_url
+        ? '<img src="'+e.photo_url+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--bd)">'
+        : '<div style="width:56px;height:56px;border-radius:50%;background:'+c+';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">'+ini(e.nom)+'</div>';
+      var posteTxt = '';
+      if(e.type_poste && e.poste) posteTxt = e.type_poste + ' · ' + e.poste;
+      else posteTxt = e.type_poste || e.poste || '';
+      h += '<div style="background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;transition:transform .12s,box-shadow .12s;box-shadow:var(--sh);position:relative" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.12)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'var(--sh)\'">';
+      // Kebab menu (admin uniquement)
+      if(isDir){
+        var menuId = 'krep-'+idx;
+        h += '<div style="position:absolute;top:10px;right:10px;z-index:5">';
+        h += '<button class="kebab-btn" onclick="event.stopPropagation();toggleKebab(\''+menuId+'\',event)" title="Actions admin">&#8942;</button>';
+        h += '<div class="kebab-menu" id="'+menuId+'">';
+        h += '<button class="kebab-item" onclick="event.stopPropagation();closeKebab();openEditEmpByName('+JSON.stringify(e.nom)+')"><span class="kebab-icon">&#9999;&#65039;</span>Modifier</button>';
+        var actStr = e.actif !== false ? 'true' : 'false';
+        var actLbl = e.actif !== false ? 'Désactiver' : 'Activer';
+        var actIcon = e.actif !== false ? '&#128683;' : '&#10003;';
+        h += '<button class="kebab-item" onclick="event.stopPropagation();closeKebab();toggleEmpActif('+JSON.stringify(e.id)+','+actStr+')"><span class="kebab-icon">'+actIcon+'</span>'+actLbl+'</button>';
+        h += '<button class="kebab-item danger" onclick="event.stopPropagation();closeKebab();deleteEmp('+JSON.stringify(e.id)+','+JSON.stringify(e.nom)+')"><span class="kebab-icon">&#128465;&#65039;</span>Supprimer</button>';
+        h += '</div></div>';
+      }
+      // Card clickable (vCard)
+      h += '<div onclick="openRepCard('+idx+')" style="cursor:pointer">';
+      h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">';
+      h += photoHTML;
+      h += '<div style="overflow:hidden;flex:1;padding-right:'+(isDir?'24px':'0')+'">';
+      h += '<div style="font-weight:700;font-size:14px;line-height:1.2">'+e.nom+'</div>';
+      h += '<div style="font-size:12px;color:var(--ink2);margin-top:3px;line-height:1.3">'+posteTxt+'</div>';
+      if(e.statut) h += '<div style="margin-top:5px"><span class="tag '+tagClass(e.statut)+'">'+e.statut+'</span>'+(e.actif===false?'<span style="margin-left:6px;font-size:10px;color:var(--rd);font-weight:600">(inactif)</span>':'')+'</div>';
+      h += '</div></div>';
+      if(e.email) h += '<div style="font-size:12px;color:var(--ink2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">&#9993; '+e.email+'</div>';
+      if(e.telephone) h += '<div style="font-size:12px;color:var(--ink2)">&#9742; '+e.telephone + (e.poste_tel?' p. '+e.poste_tel:'')+'</div>';
+      h += '</div>'; // fin clickable
+      h += '</div>'; // fin card
+    });
+    h += '</div>'; // fin grille
+    h += '</div>'; // fin section dept
+  });
   _repFiltered = filtered;
   el.innerHTML = h;
+}
+
+// Helper : ouvrir l'editeur a partir du nom (utilise par le kebab du repertoire)
+function openEditEmpByName(nom){
+  var e = _repList.find(function(x){return x.nom===nom;});
+  if(!e){ toast('Employé introuvable',1); return; }
+  // _empList est utilise par openEditEmp ; on s'assure qu'il est synchro
+  if(!_empList || !_empList.length) _empList = _repList;
+  var idx = _empList.findIndex(function(x){return x.nom===nom;});
+  if(idx < 0){ _empList.push(e); idx = _empList.length-1; }
+  else { _empList[idx] = e; }
+  openEditEmp(idx);
+}
+
+// Helper : toggle actif/inactif d'un employe
+async function toggleEmpActif(id, currentActive){
+  try {
+    await authFetch('/rest/v1/rh_employes?id=eq.'+id, 'PATCH', {actif: !currentActive});
+    toast(currentActive ? 'Désactivé' : 'Activé');
+    loadRepertoire();
+  } catch(e){ toast('Erreur: '+e.message, 1); }
 }
 
 var _repFiltered = [];
@@ -3906,13 +3992,24 @@ function closeRepCard(){ document.getElementById('rep-card-modal').style.display
 // ════════════════════════════════════════════════════════════════
 var _empList = [];
 async function loadConfig() {
-  // Charger employés
-  var empEl = document.getElementById('config-emp-table');
-  // Override le fond blanc heritage de .card-table pour laisser passer l'espacement
-  empEl.style.background = 'transparent';
-  empEl.style.border = 'none';
-  empEl.style.borderRadius = '0';
-  empEl.style.overflow = 'visible';
+  // S'assurer que les referentiels sont charges (depts + types_poste)
+  if(!REF_DEPTS.length || !REF_TYPES.length) await loadReferentiels();
+  // La gestion des employes est faite dans Repertoire desormais
+  // On garde quand meme _empList synchro pour les modals d'edition
+  try {
+    var r = await authFetch('/rest/v1/rh_employes?select=*&order=nom');
+    _empList = r.data || [];
+    _empList.forEach(function(e){ if(e.photo_url) EMP_PHOTOS[e.nom]=e.photo_url; });
+  } catch(e){ /* non bloquant */ }
+
+  // ── Tout le code ci-dessous (groupement, rendu, kebab) etait pour la section Employes deplacee ──
+  // On le saute en mettant un bloc try/catch silencieux qui ne fait rien si config-emp-table n'existe pas
+  if(false){
+    var empEl = document.getElementById('config-emp-table');
+    empEl.style.background = 'transparent';
+    empEl.style.border = 'none';
+    empEl.style.borderRadius = '0';
+    empEl.style.overflow = 'visible';
   try {
     // S'assurer que les referentiels sont charges
     if(!REF_DEPTS.length || !REF_TYPES.length) await loadReferentiels();
@@ -4025,6 +4122,7 @@ async function loadConfig() {
     });
     empEl.innerHTML = h;
   } catch(e) { empEl.innerHTML = '<div style="color:var(--rd);padding:20px">Erreur: ' + e.message + '</div>'; }
+  } // fin if(false) bloc desactive
 
   // Render des referentiels (depts + types de poste)
   renderRefSection();
