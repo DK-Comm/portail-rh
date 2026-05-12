@@ -844,6 +844,17 @@ var SUPA = {
   <div class="modal-box">
     <div class="modal-title" id="emp-modal-title">Ajouter un employ&eacute;</div>
     <input type="hidden" id="em-id">
+    <!-- Photo -->
+    <div style="display:flex;align-items:center;gap:18px;padding:16px;background:var(--s2);border-radius:10px;margin-bottom:16px">
+      <div id="em-photo-preview" style="width:84px;height:84px;border-radius:50%;background:var(--bd);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden;border:2px solid var(--bd2)">?</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <label style="font-size:11px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px">Photo de l'employ&eacute;</label>
+        <input type="file" id="em-photo-file" accept="image/*" style="font-size:12px" onchange="onPhotoSelected(event)">
+        <input type="hidden" id="em-photo-url">
+        <div style="font-size:11px;color:var(--ink3)">JPG, PNG ou WebP &middot; max 5 Mo &middot; upload automatique &agrave; l'enregistrement</div>
+        <button type="button" class="btn-sm btn-secondary" id="em-photo-remove" style="display:none;align-self:flex-start;font-size:11px;padding:4px 10px" onclick="removePhoto()">&#10005; Retirer photo</button>
+      </div>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Nom complet</label><input id="em-nom" placeholder="Pr&eacute;nom Nom"></div>
       <div class="form-group"><label>Email</label><input id="em-email" type="email" placeholder="prenom.nom@espacemuni.org"></div>
@@ -951,7 +962,19 @@ function isFer(y,m,d){return !!FER[y+'-'+m+'-'+d];}
 function isWk(dw){return dw===0||dw===6;}
 function col(n){var c=['#2563eb','#16a34a','#7c3aed','#dc2626','#d97706','#0891b2','#be185d','#1a1d2e'];return c[n.charCodeAt(0)%c.length];}
 function ini(n){return n.split(' ').slice(0,2).map(function(w){return w[0]?w[0].toUpperCase():'';}).join('');}
-function photo(n){return PH[n]||'';}
+// Cache global des photos par nom (alimente depuis la base)
+var EMP_PHOTOS = {};
+function photo(n){return EMP_PHOTOS[n]||PH[n]||'';}
+async function loadEmpPhotos(){
+  try{
+    var r=await fetch(SUPA.url+'/rest/v1/rh_employes?select=nom,photo_url',{
+      headers:{'apikey':SUPA.key,'Authorization':'Bearer '+(SUPA.tok||SUPA.key)}
+    });
+    if(!r.ok)return;
+    var rows=await r.json();
+    rows.forEach(function(e){ if(e.photo_url) EMP_PHOTOS[e.nom]=e.photo_url; });
+  }catch(e){console.warn('loadEmpPhotos:',e);}
+}
 
 // === PHOTO ELEMENT (safe, no inline handlers) ===
 function mkAv(name, sz) {
@@ -2520,6 +2543,8 @@ function authStart(nom) {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   S._empCache = {}; S._planCache = {};
+  // Charger les photos depuis la base (async, en parallèle de selEmp)
+  loadEmpPhotos();
   selEmp(nom);
 }
 
@@ -2592,6 +2617,7 @@ window.onload = function() {
         SUPA.tok = s.tok;
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
+        loadEmpPhotos();
         selEmp(s.nom);
         return;
       }
@@ -3075,23 +3101,56 @@ async function loadConfig() {
   // Charger employés
   var empEl = document.getElementById('config-emp-table');
   try {
-    var r = await authFetch('/rest/v1/rh_employes?select=*&order=nom');
+    var r = await authFetch('/rest/v1/rh_employes?select=*&order=departement,statut.desc,nom');
     _empList = r.data || [];
-    var h = '<table><thead><tr><th>Nom</th><th>Email</th><th>Statut</th><th>Dept</th><th>H/sem</th><th>Actif</th><th>Actions</th></tr></thead><tbody>';
-    _empList.forEach(function(e, i) {
-      h += '<tr>';
-      h += '<td><strong>' + e.nom + '</strong><br><small style="color:var(--ink3)">' + (e.poste||'') + '</small></td>';
-      h += '<td style="font-size:12px;color:var(--ink2)">' + (e.email||'—') + '</td>';
-      h += '<td><span class="tag ' + (e.statut==='Direction'?'tag-direction':'tag-employe') + '">' + e.statut + '</span></td>';
-      h += '<td style="font-size:12px">' + (e.departement||'') + '</td>';
-      h += '<td>' + e.heures_semaine + 'h</td>';
-      h += '<td><span style="color:' + (e.actif?'var(--gr)':'var(--rd)') + ';font-weight:600">' + (e.actif?'✓ Oui':'✗ Non') + '</span></td>';
-      h += '<td style="display:flex;gap:6px">';
-      h += '<button class="btn-sm btn-secondary" onclick="openEditEmp(' + i + ')">Modifier</button>';
-      h += '<button class="btn-sm btn-danger" onclick="deleteEmp(' + JSON.stringify(e.id) + ','+JSON.stringify(e.nom)+')">Supprimer</button>';
-      h += '</td></tr>';
+    // Mettre a jour le cache de photos
+    _empList.forEach(function(e){ if(e.photo_url) EMP_PHOTOS[e.nom]=e.photo_url; });
+    // Grouper par departement
+    var DEPT_ORDER = ['Direction administrative','Programmes & services','Communications & evenements','Non defini'];
+    var DEPT_ICON = {
+      'Direction administrative':'&#127970;',
+      'Programmes & services':'&#127760;',
+      'Communications & evenements':'&#128227;',
+      'Non defini':'&#10067;'
+    };
+    var groups = {};
+    _empList.forEach(function(e,i){
+      var d = e.departement || 'Non defini';
+      if (!groups[d]) groups[d] = [];
+      groups[d].push({emp:e, idx:i});
     });
-    h += '</tbody></table>';
+    var orderedDepts = DEPT_ORDER.filter(function(d){return groups[d];}).concat(
+      Object.keys(groups).filter(function(d){return DEPT_ORDER.indexOf(d)<0;})
+    );
+    var h = '';
+    orderedDepts.forEach(function(dept){
+      var icon = DEPT_ICON[dept] || '&#128101;';
+      h += '<div style="background:var(--s2);padding:10px 16px;font-size:13px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px">';
+      h += '<span style="font-size:16px">'+icon+'</span>'+dept;
+      h += '<span style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.4px">'+groups[dept].length+' employ&eacute;'+(groups[dept].length>1?'s':'')+'</span>';
+      h += '</div>';
+      h += '<table style="width:100%;border-collapse:collapse"><tbody>';
+      groups[dept].forEach(function(item){
+        var e = item.emp, i = item.idx;
+        var av;
+        if (e.photo_url) {
+          av = '<img src="'+e.photo_url+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.outerHTML=\'<div class=&quot;av&quot; style=&quot;width:36px;height:36px;font-size:13px;background:'+col(e.nom)+'&quot;>'+ini(e.nom)+'</div>\'">';
+        } else {
+          av = '<div class="av" style="width:36px;height:36px;font-size:13px;background:'+col(e.nom)+'">'+ini(e.nom)+'</div>';
+        }
+        h += '<tr>';
+        h += '<td style="padding:10px 14px;display:flex;align-items:center;gap:12px;min-width:240px">'+av+'<div><strong>'+e.nom+'</strong><br><small style="color:var(--ink3)">'+(e.poste||'')+'</small></div></td>';
+        h += '<td style="font-size:12px;color:var(--ink2);padding:10px 14px">'+(e.email||'&mdash;')+'</td>';
+        h += '<td style="padding:10px 14px"><span class="tag '+(e.statut==='Direction'?'tag-direction':'tag-employe')+'">'+e.statut+'</span></td>';
+        h += '<td style="padding:10px 14px;font-size:12px">'+e.heures_semaine+'h</td>';
+        h += '<td style="padding:10px 14px"><span style="color:'+(e.actif?'var(--gr)':'var(--rd)')+';font-weight:600">'+(e.actif?'&#10003; Oui':'&#10005; Non')+'</span></td>';
+        h += '<td style="padding:10px 14px;display:flex;gap:6px">';
+        h += '<button class="btn-sm btn-secondary" onclick="openEditEmp('+i+')">Modifier</button>';
+        h += '<button class="btn-sm btn-danger" onclick="deleteEmp('+JSON.stringify(e.id)+','+JSON.stringify(e.nom)+')">Supprimer</button>';
+        h += '</td></tr>';
+      });
+      h += '</tbody></table>';
+    });
     empEl.innerHTML = h;
   } catch(e) { empEl.innerHTML = '<div style="color:var(--rd);padding:20px">Erreur: ' + e.message + '</div>'; }
   
@@ -3118,6 +3177,69 @@ async function saveParam(id) {
   } catch(e) { toast('Erreur: ' + e.message, 1); }
 }
 
+// === PHOTO PREVIEW & UPLOAD ===
+var _pendingPhotoFile = null; // fichier selectionne, uploade au save
+
+function setPhotoPreview(url, name){
+  var prev = document.getElementById('em-photo-preview');
+  var rm = document.getElementById('em-photo-remove');
+  if (!prev) return;
+  if (url) {
+    prev.innerHTML = '<img src="'+url+'" style="width:100%;height:100%;object-fit:cover">';
+    prev.style.background = 'transparent';
+    if(rm) rm.style.display = 'inline-block';
+  } else if (name) {
+    prev.textContent = ini(name);
+    prev.style.background = col(name);
+    if(rm) rm.style.display = 'none';
+  } else {
+    prev.textContent = '?';
+    prev.style.background = 'var(--bd)';
+    if(rm) rm.style.display = 'none';
+  }
+}
+
+function onPhotoSelected(ev){
+  var f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  if (f.size > 5*1024*1024) { toast('Fichier trop gros (max 5 Mo)', 1); ev.target.value=''; return; }
+  if (!/^image\//.test(f.type)) { toast('Format image requis', 1); ev.target.value=''; return; }
+  _pendingPhotoFile = f;
+  var reader = new FileReader();
+  reader.onload = function(e){ setPhotoPreview(e.target.result, null); };
+  reader.readAsDataURL(f);
+}
+
+function removePhoto(){
+  _pendingPhotoFile = null;
+  document.getElementById('em-photo-url').value = '';
+  document.getElementById('em-photo-file').value = '';
+  var nom = document.getElementById('em-nom').value;
+  setPhotoPreview(null, nom);
+}
+
+async function uploadPhotoToStorage(file, empNom){
+  var ext = (file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'');
+  var safe = empNom.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  var filename = safe + '-' + Date.now() + '.' + ext;
+  var url = SUPA.url + '/storage/v1/object/employee-photos/' + filename;
+  var r = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPA.key,
+      'Authorization': 'Bearer ' + (SUPA.tok || SUPA.key),
+      'Content-Type': file.type,
+      'x-upsert': 'true'
+    },
+    body: file
+  });
+  if (!r.ok) {
+    var t = await r.text();
+    throw new Error('Upload: ' + r.status + ' ' + t.slice(0,150));
+  }
+  return SUPA.url + '/storage/v1/object/public/employee-photos/' + filename;
+}
+
 function openAddEmp() {
   document.getElementById('emp-modal-title').textContent = 'Ajouter un employé';
   document.getElementById('em-id').value = '';
@@ -3131,6 +3253,10 @@ function openAddEmp() {
   document.getElementById('em-salaire').value = '25';
   document.getElementById('em-type-sal').value = 'Horaire';
   document.getElementById('em-charges').value = '15.5';
+  document.getElementById('em-photo-url').value = '';
+  document.getElementById('em-photo-file').value = '';
+  _pendingPhotoFile = null;
+  setPhotoPreview(null, null);
   document.getElementById('emp-modal').style.display = 'flex';
 }
 
@@ -3148,15 +3274,29 @@ function openEditEmp(idx) {
   document.getElementById('em-salaire').value = e.salaire || 25;
   document.getElementById('em-type-sal').value = e.type_salaire || 'Horaire';
   document.getElementById('em-charges').value = e.charges_pct || 15.5;
+  document.getElementById('em-photo-url').value = e.photo_url || '';
+  document.getElementById('em-photo-file').value = '';
+  _pendingPhotoFile = null;
+  setPhotoPreview(e.photo_url || '', e.nom);
   document.getElementById('emp-modal').style.display = 'flex';
 }
 
-function closeEmpModal() { document.getElementById('emp-modal').style.display = 'none'; }
+function closeEmpModal() { document.getElementById('emp-modal').style.display = 'none'; _pendingPhotoFile = null; }
 
 async function saveEmp() {
   var id = document.getElementById('em-id').value;
+  var nom = document.getElementById('em-nom').value.trim();
+  if (!nom) { toast('Nom requis', 1); return; }
+  var photoUrl = document.getElementById('em-photo-url').value || null;
+  // Upload photo si un fichier a ete selectionne
+  if (_pendingPhotoFile) {
+    try {
+      toast('Upload photo en cours...');
+      photoUrl = await uploadPhotoToStorage(_pendingPhotoFile, nom);
+    } catch(e) { toast('Erreur upload: ' + e.message, 1); return; }
+  }
   var data = {
-    nom: document.getElementById('em-nom').value.trim(),
+    nom: nom,
     email: document.getElementById('em-email').value.trim() || null,
     statut: document.getElementById('em-statut').value,
     heures_semaine: parseFloat(document.getElementById('em-h').value),
@@ -3165,9 +3305,9 @@ async function saveEmp() {
     poste: document.getElementById('em-poste').value.trim(),
     salaire: parseFloat(document.getElementById('em-salaire').value),
     type_salaire: document.getElementById('em-type-sal').value,
-    charges_pct: parseFloat(document.getElementById('em-charges').value)
+    charges_pct: parseFloat(document.getElementById('em-charges').value),
+    photo_url: photoUrl
   };
-  if (!data.nom) { toast('Nom requis', 1); return; }
   try {
     if (id) {
       await authFetch('/rest/v1/rh_employes?id=eq.'+id, 'PATCH', data);
@@ -3176,6 +3316,10 @@ async function saveEmp() {
       await authFetch('/rest/v1/rh_employes', 'POST', data);
       toast('Employé ajouté ✓');
     }
+    // Mettre a jour le cache des photos
+    if (photoUrl) EMP_PHOTOS[nom] = photoUrl;
+    else delete EMP_PHOTOS[nom];
+    _pendingPhotoFile = null;
     closeEmpModal();
     loadConfig();
     S._empCache = {};
