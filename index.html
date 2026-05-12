@@ -550,6 +550,8 @@ body.dark{color-scheme:dark}
 .page-title{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:20px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .page-subtitle{font-size:13px;color:var(--ink3);font-weight:400;margin-left:4px}
 .page-subtitle::before{content:'— ';margin-right:2px;opacity:.6}
+/* Selecteurs de date locaux : visibles uniquement pour les employes (Direction utilise le global) */
+body.dir-mode .emp-date-nav{display:none}
 .page-header-bar{position:sticky;top:108px;background:var(--card);z-index:50;padding:14px 28px 12px;margin:-24px -28px 16px;border-bottom:1px solid var(--bd)}
 #sc-kpi .page-title,#sc-config .page-title{position:sticky;top:108px;background:var(--card);z-index:50;padding:14px 28px;margin:-24px -28px 16px;border-bottom:1px solid var(--bd)}
 /* Sticky toolbars pour toutes les pages */
@@ -842,7 +844,7 @@ var SUPA = {
           <button class="vt-btn" onclick="setPV('week',this)">Semaine</button>
           <button class="vt-btn" onclick="setPV('day',this)">Jour</button>
         </div>
-        <div class="navrow" id="ptg-navrow">
+        <div class="navrow emp-date-nav" id="ptg-navrow">
           <button class="navbtn" onclick="ptgNav(-1)">&#8249;</button>
           <div id="ptg-sel-wrap"></div>
           <button class="navbtn" onclick="ptgNav(1)">&#8250;</button>
@@ -872,7 +874,7 @@ var SUPA = {
     <div class="page">
       <div class="vbar">
         <div class="page-title" style="margin-bottom:0">&#128202; Mon r&eacute;sum&eacute; <span class="page-subtitle" id="rsm-subtitle">Chargement...</span></div>
-        <div class="navrow">
+        <div class="navrow emp-date-nav">
           <button class="navbtn" onclick="rsmNav(-1)">&#8249;</button>
           <div id="rsm-sel-wrap"></div>
           <button class="navbtn" onclick="rsmNav(1)">&#8250;</button>
@@ -891,7 +893,7 @@ var SUPA = {
           <button class="vt-btn" onclick="setPlanV('week',this)">Semaine</button>
           <button class="vt-btn" onclick="setPlanV('day',this)">Jour</button>
         </div>
-        <div class="navrow" id="plan-navrow">
+        <div class="navrow emp-date-nav" id="plan-navrow">
           <button class="navbtn" onclick="planNav(-1)">&#8249;</button>
           <div id="plan-sel-wrap"></div>
           <button class="navbtn" onclick="planNav(1)">&#8250;</button>
@@ -1341,6 +1343,7 @@ function selEmp(name){
       var sb=document.getElementById('sidebar');
       var tbp=document.getElementById('tb-period');
       if(S.role==='direction'){
+        document.body.classList.add('dir-mode');
         sb.style.display='flex';
         // Activer le selecteur de periode global dans la topbar
         if(tbp){ tbp.style.display='flex'; updateGlobalPeriodLabel(); }
@@ -1351,6 +1354,7 @@ function selEmp(name){
         document.getElementById('sc-dash').classList.add('on');
         loadDash();
       } else {
+        document.body.classList.remove('dir-mode');
         sb.style.display='none';
         if(tbp) tbp.style.display='none';
       }
