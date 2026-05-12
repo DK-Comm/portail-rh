@@ -482,7 +482,12 @@ body.dark{color-scheme:dark}
 .modal-title{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:20px}
 .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--bd)}
 .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
-.tag-direction{background:var(--pu-s);color:var(--pu)}.tag-employe{background:var(--ac-s);color:var(--ac)}
+.tag-direction{background:var(--pu-s);color:var(--pu)}
+.tag-employe{background:var(--ac-s);color:var(--ac)}
+.tag-stagiaire{background:var(--gr-s);color:var(--gr)}
+.tag-prestataire{background:var(--am-s);color:var(--am)}
+.tag-pigiste{background:#fce7f3;color:#be185d}
+.tag-freelance{background:#e0f2fe;color:#0891b2}
 .kpi-section{margin-bottom:28px}
 .kpi-section-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--ac-s)}
 .fiche-stats{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px}
@@ -871,7 +876,14 @@ var SUPA = {
       <div class="form-group"><label>Email</label><input id="em-email" type="email" placeholder="prenom.nom@espacemuni.org"></div>
     </div>
     <div class="form-row-3">
-      <div class="form-group"><label>Statut</label><select id="em-statut"><option value="Employe">Employ&eacute;</option><option value="Direction">Direction</option></select></div>
+      <div class="form-group"><label>Statut</label><select id="em-statut">
+        <option value="Direction">Direction</option>
+        <option value="Employe">Employ&eacute;</option>
+        <option value="Stagiaire">Stagiaire</option>
+        <option value="Prestataire externe">Prestataire externe</option>
+        <option value="Pigiste">Pigiste</option>
+        <option value="Freelance">Freelance</option>
+      </select></div>
       <div class="form-group"><label>H/semaine</label><input id="em-h" type="number" value="37.5" step="0.5"></div>
       <div class="form-group"><label>Actif</label><select id="em-actif"><option value="true">Oui</option><option value="false">Non</option></select></div>
     </div>
@@ -3117,10 +3129,29 @@ async function loadConfig() {
   empEl.style.borderRadius = '0';
   empEl.style.overflow = 'visible';
   try {
-    var r = await authFetch('/rest/v1/rh_employes?select=*&order=departement,statut.desc,nom');
+    var r = await authFetch('/rest/v1/rh_employes?select=*&order=departement,nom');
     _empList = r.data || [];
+    // Tri custom : Direction d'abord, puis Employe, puis les autres
+    var STATUT_RANK = {'Direction':0,'Employe':1,'Stagiaire':2,'Prestataire externe':3,'Pigiste':4,'Freelance':5};
+    _empList.sort(function(a,b){
+      var da = (a.departement||'').localeCompare(b.departement||'');
+      if(da !== 0) return da;
+      var ra = STATUT_RANK[a.statut] !== undefined ? STATUT_RANK[a.statut] : 99;
+      var rb = STATUT_RANK[b.statut] !== undefined ? STATUT_RANK[b.statut] : 99;
+      if(ra !== rb) return ra - rb;
+      return (a.nom||'').localeCompare(b.nom||'');
+    });
     // Mettre a jour le cache de photos
     _empList.forEach(function(e){ if(e.photo_url) EMP_PHOTOS[e.nom]=e.photo_url; });
+    // Helper classe tag selon statut
+    function tagClass(s){
+      if(s==='Direction') return 'tag-direction';
+      if(s==='Stagiaire') return 'tag-stagiaire';
+      if(s==='Prestataire externe') return 'tag-prestataire';
+      if(s==='Pigiste') return 'tag-pigiste';
+      if(s==='Freelance') return 'tag-freelance';
+      return 'tag-employe';
+    }
     // Grouper par departement
     var DEPT_ORDER = ['Direction administrative','Programmes & services','Communications & evenements','Non defini'];
     var DEPT_ICON = {
@@ -3177,7 +3208,7 @@ async function loadConfig() {
         // Email
         h += '<td style="font-size:12px;color:var(--ink2);padding:10px 14px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'+rowBorder+'" title="'+(e.email||'')+'">'+(e.email||'&mdash;')+'</td>';
         // Statut
-        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span class="tag '+(e.statut==='Direction'?'tag-direction':'tag-employe')+'">'+e.statut+'</span></td>';
+        h += '<td style="padding:10px 14px;vertical-align:middle;'+rowBorder+'"><span class="tag '+tagClass(e.statut)+'">'+e.statut+'</span></td>';
         // H/sem
         h += '<td style="padding:10px 14px;font-size:12px;vertical-align:middle;'+rowBorder+'">'+e.heures_semaine+'h</td>';
         // Actif
