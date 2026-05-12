@@ -960,7 +960,8 @@ var SUPA = {
   <div class="page">
     <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div class="page-title" style="margin-bottom:0">&#128176; Paie <span class="page-subtitle" id="paie-subtitle">Chargement...</span></div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="paie-cycle-sel" onchange="onPaieCycleChange()" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;background:var(--card);color:var(--ink);min-width:280px"></select>
         <button class="btn-sm btn-secondary" onclick="exportPaieCSV()" title="Export CSV pour logiciel de comptabilit&eacute;">&#128203; CSV</button>
         <button class="btn-sm btn-success" onclick="exportPaieXLSX()" title="Export Excel format&eacute; pour consultation">&#128202; Excel</button>
       </div>
@@ -1161,6 +1162,8 @@ var S = {
   teamY:new Date().getFullYear(), teamM:new Date().getMonth(),
   // PERIODE GLOBALE - utilisee par toutes les vues
   gY:new Date().getFullYear(), gM:new Date().getMonth(),
+  // CYCLES DE PAIE (bi-hebdo) - charges depuis rh_config au login
+  payCycleStart:null, payCycleDays:14, gCycle:null,
   // Cache client — evite les appels réseau répétés sur le même mois
   _empCache:{},   // {y_m_emp: data}
   _planCache:{}   // {y_m: planData}
@@ -1198,13 +1201,63 @@ async function loadEmpPhotos(){
 async function loadReferentiels(){
   try{
     var h={'apikey':SUPA.key,'Authorization':'Bearer '+(SUPA.tok||SUPA.key)};
-    var [rd,rt]=await Promise.all([
+    var [rd,rt,rc]=await Promise.all([
       fetch(SUPA.url+'/rest/v1/rh_departements?select=*&order=ordre,nom',{headers:h}).then(_safeJson),
-      fetch(SUPA.url+'/rest/v1/rh_types_poste?select=*&order=ordre,nom',{headers:h}).then(_safeJson)
+      fetch(SUPA.url+'/rest/v1/rh_types_poste?select=*&order=ordre,nom',{headers:h}).then(_safeJson),
+      fetch(SUPA.url+'/rest/v1/rh_config?select=cle,valeur',{headers:h}).then(_safeJson)
     ]);
     REF_DEPTS=Array.isArray(rd)?rd:[];
     REF_TYPES=Array.isArray(rt)?rt:[];
+    // Charger les params de paie
+    (Array.isArray(rc)?rc:[]).forEach(function(p){
+      if(p.cle==='paie_cycle_start') S.payCycleStart = p.valeur;
+      if(p.cle==='paie_cycle_jours') S.payCycleDays = parseInt(p.valeur)||14;
+    });
   }catch(e){console.warn('loadReferentiels:',e);}
+}
+
+// ════════════════════════════════════════════════════════════════
+// CYCLES DE PAIE (bi-hebdo - 14 jours par defaut)
+// ════════════════════════════════════════════════════════════════
+function cycleToRange(cycleNum){
+  if(!S.payCycleStart) return null;
+  var ref = new Date(S.payCycleStart+'T00:00:00');
+  var d = S.payCycleDays || 14;
+  var start = new Date(ref);
+  start.setDate(start.getDate() + (cycleNum-1)*d);
+  var end = new Date(start);
+  end.setDate(end.getDate() + d - 1);
+  return {start:start, end:end, num:cycleNum};
+}
+function dateToCycle(date){
+  if(!S.payCycleStart) return 1;
+  var ref = new Date(S.payCycleStart+'T00:00:00');
+  var d = S.payCycleDays || 14;
+  var diff = Math.floor((date - ref) / (d * 86400000));
+  return diff + 1;
+}
+function currentCycle(){ return dateToCycle(new Date()); }
+function getCyclesForYear(year){
+  // Tous les cycles dont la date de FIN tombe dans l'annee
+  var cycles = [];
+  if(!S.payCycleStart) return cycles;
+  for(var c = 1; c <= 80; c++){
+    var r = cycleToRange(c);
+    if(!r) break;
+    if(r.end.getFullYear() === year) cycles.push(r);
+    if(r.start.getFullYear() > year) break;
+  }
+  return cycles;
+}
+function formatCycleLabel(cycle){
+  // "Cycle X (6 jan - 19 jan 2025)"
+  var s = cycle.start, e = cycle.end;
+  var monS = MFR2[s.getMonth()].slice(0,3).toLowerCase();
+  var monE = MFR2[e.getMonth()].slice(0,3).toLowerCase();
+  if(s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()){
+    return 'Cycle '+cycle.num+' ('+s.getDate()+' au '+e.getDate()+' '+monS+' '+e.getFullYear()+')';
+  }
+  return 'Cycle '+cycle.num+' ('+s.getDate()+' '+monS+' au '+e.getDate()+' '+monE+' '+e.getFullYear()+')';
 }
 
 // === PHOTO ELEMENT (safe, no inline handlers) ===
@@ -3470,29 +3523,67 @@ function exportRecapXLSX() {
 // ════════════════════════════════════════════════════════════════
 var _paieData = null;
 async function loadPaieInit() {
-  // Paie utilise maintenant S.gM/S.gY directement (sans select interne)
+  // S'assurer que les params de paie sont charges
+  if(!S.payCycleStart) await loadReferentiels();
+  // Populer le select des cycles pour l'annee globale
+  var sel = document.getElementById('paie-cycle-sel');
+  if(!sel) return;
+  var cycles = getCyclesForYear(S.gY);
+  sel.innerHTML = '';
+  if(!cycles.length){
+    sel.innerHTML = '<option value="">Aucun cycle pour '+S.gY+'</option>';
+    document.getElementById('paie-content').innerHTML = '<div style="color:var(--am);padding:20px">Aucun cycle de paie configur&eacute; pour '+S.gY+'. Verifiez la date de r&eacute;f&eacute;rence dans Config.</div>';
+    return;
+  }
+  // Default : cycle courant si dans l'annee, sinon le 1er cycle de l'annee
+  var defaultNum = S.gCycle;
+  if(!defaultNum || !cycles.find(function(c){return c.num===defaultNum;})){
+    var cur = currentCycle();
+    defaultNum = cycles.find(function(c){return c.num===cur;}) ? cur : cycles[cycles.length-1].num;
+  }
+  cycles.forEach(function(c){
+    var o = document.createElement('option');
+    o.value = c.num;
+    o.textContent = formatCycleLabel(c);
+    if(c.num === defaultNum) o.selected = true;
+    sel.appendChild(o);
+  });
+  S.gCycle = defaultNum;
+  loadPaie();
+}
+
+function onPaieCycleChange(){
+  S.gCycle = parseInt(document.getElementById('paie-cycle-sel').value);
   loadPaie();
 }
 
 async function loadPaie() {
-  var m = S.gM;
   var el = document.getElementById('paie-content');
   var sub = document.getElementById('paie-subtitle');
-  if(sub) sub.textContent = 'Calcul de la paie pour ' + MOIS[m] + ' ' + S.gY;
+  if(!S.payCycleStart){
+    el.innerHTML = '<div style="color:var(--am);padding:20px">Date de r&eacute;f&eacute;rence des cycles de paie non configur&eacute;e. Allez dans Config.</div>';
+    if(sub) sub.textContent = 'Configuration requise';
+    return;
+  }
+  if(!S.gCycle){
+    el.innerHTML = '<div style="color:var(--ink3);padding:20px">S&eacute;lectionnez un cycle de paie ci-dessus.</div>';
+    return;
+  }
+  var range = cycleToRange(S.gCycle);
+  if(!range){ el.innerHTML = '<div style="color:var(--rd);padding:20px">Cycle invalide</div>'; return; }
+  // Formatter dates ISO
+  function iso(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+  var d1 = iso(range.start), d2 = iso(range.end);
+  if(sub) sub.innerHTML = 'Cycle ' + S.gCycle + ' &middot; du <strong>' + range.start.getDate()+' '+MFR2[range.start.getMonth()]+' '+range.start.getFullYear() + '</strong> au <strong>' + range.end.getDate()+' '+MFR2[range.end.getMonth()]+' '+range.end.getFullYear() + '</strong>';
   el.innerHTML = '<div style="color:var(--ink3);padding:20px">Chargement...</div>';
   try {
-    var y = S.gY;
-    var d1 = y+'-'+('0'+(m+1)).slice(-2)+'-01';
-    var lastD = new Date(y,m+1,0).getDate();
-    var d2 = y+'-'+('0'+(m+1)).slice(-2)+'-'+lastD;
-    
     var [empR, horR] = await Promise.all([
       authFetch('/rest/v1/rh_employes?select=nom,salaire,type_salaire,charges_pct,heures_semaine&actif=eq.true&order=nom'),
       authFetch('/rest/v1/rh_horaires?select=employe,debut,fin&date_pointage=gte.'+d1+'&date_pointage=lte.'+d2+'&limit=1000')
     ]);
     var emps = empR.data || [];
     var horaires = horR.data || [];
-    
+
     var hByEmp = {};
     emps.forEach(function(e){ hByEmp[e.nom]=0; });
     horaires.forEach(function(r) {
@@ -3503,17 +3594,17 @@ async function loadPaie() {
         if(mn>0) hByEmp[r.employe]+=mn/60;
       }
     });
-    
-    var SEUIL = 40;
-    var h = '<div class="card-table"><table><thead><tr><th>Employé</th><th>H travaillées</th><th>H norm.</th><th>H supp.</th><th>Taux /h</th><th>Salaire brut</th><th>H supp (x1.5)</th><th>Total brut</th><th>Charges ' + '%' + '</th><th>Coût total</th></tr></thead><tbody>';
-    
+
+    var h = '<div class="card-table"><table><thead><tr><th>Employé</th><th>H travaillées</th><th>H norm.</th><th>H supp.</th><th>Taux /h</th><th>Salaire brut</th><th>H supp (x1.5)</th><th>Total brut</th><th>Charges %</th><th>Coût total</th></tr></thead><tbody>';
+
     var totBrut = 0, totCout = 0;
     var paieRows = [];
-    
+
     emps.forEach(function(e) {
       var hT = Math.round(hByEmp[e.nom]*10)/10;
       var taux = e.type_salaire === 'Annuel' ? Math.round(e.salaire/52/e.heures_semaine*100)/100 : (e.salaire||25);
-      var hNorm = TARGET_H; // heures normales du mois
+      // Cible heures pour un cycle = heures/semaine * (jours du cycle / 7)
+      var hNorm = Math.round(((e.heures_semaine || 37.5) * (S.payCycleDays || 14) / 7) * 10) / 10;
       var charges = e.charges_pct || 15.5;
       var isAnnuel = e.type_salaire === 'Annuel';
 
@@ -3566,21 +3657,26 @@ async function loadPaie() {
     h += '<td style="color:var(--pu)">' + Math.round(totCout*100)/100 + '$</td></tr>';
     h += '</tbody></table></div>';
     
-    _paieData = {rows:paieRows, mois:MOIS[m], y:y};
+    // Stocker pour exports
+    var cycleLabel = 'Cycle' + S.gCycle;
+    var cyclePeriod = range.start.getDate()+'-'+MFR2[range.start.getMonth()].slice(0,3)+'-'+range.start.getFullYear()+'_au_'+range.end.getDate()+'-'+MFR2[range.end.getMonth()].slice(0,3)+'-'+range.end.getFullYear();
+    _paieData = {rows:paieRows, cycle:S.gCycle, d1:d1, d2:d2, label:cycleLabel, period:cyclePeriod, y:S.gY};
     el.innerHTML = h;
   } catch(e) { el.innerHTML = '<div style="color:var(--rd);padding:20px">Erreur: ' + e.message + '</div>'; }
 }
 
 function exportPaieCSV() {
   if (!_paieData) { toast("Charger la paie d'abord"); return; }
-  var rows = [['Employé','H travaillées','H normales','H supp','Taux/h','Salaire brut','H supp (x1.5)','Total brut','Charges %','Coût total']];
+  var rows = [['Cycle '+_paieData.cycle+' — '+_paieData.d1+' au '+_paieData.d2]];
+  rows.push([]);
+  rows.push(['Employé','H travaillées','H normales','H supp','Taux/h','Salaire brut','H supp (x1.5)','Total brut','Charges %','Coût total']);
   _paieData.rows.forEach(function(r) {
     rows.push([r.nom,r.hT,r.hNorm,r.hSupp,r.taux,r.brut,r.brutSupp,r.totalBrut,r.charges,r.cout]);
   });
-  var csv = rows.map(function(r){ return r.map(function(c){return '"'+c+'"';}).join(','); }).join('\n');
+  var csv = rows.map(function(r){ return r.map(function(c){return '"'+(c==null?'':c)+'"';}).join(','); }).join('\n');
   var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'ESPACE_MUNI_Paie_' + _paieData.mois + '_' + _paieData.y + '.csv';
+  a.download = 'ESPACE_MUNI_Paie_'+_paieData.label+'_'+_paieData.period+'.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   toast('CSV Paie exporté ✓');
 }
@@ -3589,7 +3685,7 @@ function exportPaieXLSX() {
   if (!_paieData) { toast("Charger la paie d'abord"); return; }
   if (typeof XLSX === 'undefined') { toast('Librairie Excel non chargée', 1); return; }
   var data = [];
-  data.push(['ESPACE MUNI — Paie ' + _paieData.mois + ' ' + _paieData.y]);
+  data.push(['ESPACE MUNI — Paie Cycle ' + _paieData.cycle + ' (' + _paieData.d1 + ' au ' + _paieData.d2 + ')']);
   data.push([]);
   data.push(['Employé','H travaillées','H normales','H supp.','Taux/h','Salaire brut','H supp (×1.5)','Total brut','Charges %','Coût total']);
   var totBrut = 0, totCout = 0;
@@ -3632,8 +3728,8 @@ function exportPaieXLSX() {
     }
   }
   var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Paie ' + _paieData.mois);
-  XLSX.writeFile(wb, 'ESPACE_MUNI_Paie_' + _paieData.mois + '_' + _paieData.y + '.xlsx');
+  XLSX.utils.book_append_sheet(wb, ws, 'Cycle ' + _paieData.cycle);
+  XLSX.writeFile(wb, 'ESPACE_MUNI_Paie_' + _paieData.label + '_' + _paieData.period + '.xlsx');
   toast('Excel Paie exporté ✓');
 }
 
@@ -3912,19 +4008,40 @@ async function loadConfig() {
     var r2 = await authFetch('/rest/v1/rh_config?select=*&order=cle');
     var params = r2.data || [];
     var ph = '';
+    // Libelles plus parlants pour les params connus
+    var LABELS = {
+      'annee':'Annee de reference',
+      'h_norm_sem':'Heures normales par semaine',
+      'majoriation_supp':'Majoration heures supp. (multiplicateur)',
+      'seuil_supp':'Seuil heures supp. (h/sem)',
+      'taux_horaire_supp':'Taux horaire heures supp.',
+      'paie_cycle_start':'Date du 1er cycle de paie',
+      'paie_cycle_jours':'Dur&eacute;e du cycle de paie (jours)'
+    };
     params.forEach(function(p) {
-      ph += '<tr><td><strong>' + p.cle + '</strong><br><small style="color:var(--ink3)">' + p.categorie + '</small></td>';
-      ph += '<td><input value="' + p.valeur + '" id="param-' + p.id + '" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:13px;width:120px"></td>';
-      ph += '<td><button class="btn-sm btn-primary" onclick="saveParam(' + JSON.stringify(p.id) + ')">Sauver</button></td></tr>';
+      var label = LABELS[p.cle] || p.cle;
+      // Champ adapte selon la cle
+      var inputHtml;
+      if(p.cle === 'paie_cycle_start'){
+        inputHtml = '<input type="date" value="'+p.valeur+'" id="param-'+p.id+'" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:13px">';
+      } else {
+        inputHtml = '<input value="'+p.valeur+'" id="param-'+p.id+'" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:13px;width:120px">';
+      }
+      ph += '<tr><td><strong>'+label+'</strong><br><small style="color:var(--ink3)">'+p.cle+' &middot; '+p.categorie+'</small></td>';
+      ph += '<td>'+inputHtml+'</td>';
+      ph += '<td><button class="btn-sm btn-primary" onclick="saveParam('+JSON.stringify(p.id)+',\''+p.cle+'\')">Sauver</button></td></tr>';
     });
     paramsEl.innerHTML = ph || '<tr><td colspan="3" style="color:var(--ink3)">Aucun paramètre</td></tr>';
   } catch(e) { paramsEl.innerHTML = '<tr><td colspan="3" style="color:var(--rd)">Erreur</td></tr>'; }
 }
 
-async function saveParam(id) {
+async function saveParam(id, cle) {
   var val = document.getElementById('param-'+id).value;
   try {
     await authFetch('/rest/v1/rh_config?id=eq.'+id, 'PATCH', {valeur: val});
+    // Mettre a jour le cache local si c'est un param de cycle de paie
+    if(cle === 'paie_cycle_start') S.payCycleStart = val;
+    if(cle === 'paie_cycle_jours') S.payCycleDays = parseInt(val) || 14;
     toast('Paramètre sauvegardé ✓');
   } catch(e) { toast('Erreur: ' + e.message, 1); }
 }
@@ -4176,9 +4293,8 @@ function refreshActiveScreen(){
     else if(id === 'sc-kpi'){ _kpiLoaded = false; if(typeof loadKPI === 'function') loadKPI(); }
     else if(id === 'sc-recap'){ _recapLoaded = false; if(typeof loadRecap === 'function') loadRecap(); }
     else if(id === 'sc-paie'){
-      var sel = document.getElementById('paie-month-sel');
-      if(sel) sel.value = S.gM;
-      if(typeof loadPaie === 'function') loadPaie();
+      // Repopuler la liste des cycles pour l'annee globale
+      if(typeof loadPaieInit === 'function') loadPaieInit();
     }
   } catch(e){ console.warn('refresh:', e); }
 }
