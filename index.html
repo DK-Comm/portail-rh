@@ -323,10 +323,94 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
   --sep:rgba(0,0,0,.06);--row-hover:rgba(0,0,0,.03);
 }
 body.dark{
+  /* Fonds & surfaces */
+  --bg:#0f1117;
+  --card:#1a1d2e;
+  --s2:#252836;
+  /* Bordures */
+  --bd:rgba(255,255,255,.1);
+  --bd2:rgba(255,255,255,.15);
+  /* Textes */
+  --ink:#f0f2f8;
+  --ink2:#b0b8c8;
+  --ink3:#8890a8;
+  /* Backgrounds semantiques (versions transparentes pour dark) */
+  --ac-s:rgba(37,99,235,.22);
+  --gr-s:rgba(22,163,74,.22);
+  --am-s:rgba(217,119,6,.22);
+  --rd-s:rgba(220,38,38,.22);
+  --pu-s:rgba(124,58,237,.25);
+  /* Shadows plus prononces sur fond sombre */
+  --sh:0 1px 4px rgba(0,0,0,.4),0 4px 20px rgba(0,0,0,.3);
+  --shd:0 4px 16px rgba(0,0,0,.6),0 8px 40px rgba(0,0,0,.4);
+  /* Vars Dashboard (compat) */
   --dash-bg:#0f1117;--card-bg:#1a1d2e;--card-border:rgba(255,255,255,.08);
-  --ink:#f0f2f8;--ink2:#8892a4;--ink3:#5a6070;
   --sep:rgba(255,255,255,.06);--row-hover:rgba(255,255,255,.04);
 }
+/* Dark mode global : overrides specifiques */
+body.dark input[type=time],
+body.dark input[type=date],
+body.dark input[type=text],
+body.dark input[type=email],
+body.dark input[type=password],
+body.dark input[type=number],
+body.dark select,
+body.dark textarea{background:var(--card);color:var(--ink);border-color:var(--bd)}
+body.dark input::placeholder{color:var(--ink3)}
+body.dark .modal-box{background:var(--card);color:var(--ink)}
+body.dark .modal-overlay{background:rgba(0,0,0,.7)}
+body.dark .toast{background:#252836}
+body.dark .tabs{background:var(--card);border-bottom-color:var(--bd)}
+body.dark .tab{color:var(--ink2)}
+body.dark .tab.on{color:#60a5fa;border-bottom-color:#60a5fa}
+body.dark .tab:hover:not(.on){background:var(--s2);color:var(--ink)}
+body.dark .sidebar{background:var(--card);border-right-color:var(--bd)}
+body.dark .sb-item{color:var(--ink2)}
+body.dark .sb-item:hover{background:var(--s2);color:var(--ink)}
+body.dark .sb-item.on{color:#60a5fa;background:var(--ac-s);border-left-color:#60a5fa}
+body.dark .navbtn,body.dark .nav-sel{background:var(--card);color:var(--ink);border-color:var(--bd)}
+body.dark .navbtn:hover{background:var(--s2)}
+body.dark .nav-sel option{background:var(--card);color:var(--ink)}
+body.dark .kebab-btn{color:var(--ink2)}
+body.dark .kebab-btn:hover{background:var(--s2);color:var(--ink)}
+body.dark .kebab-menu{background:var(--card);border-color:var(--bd)}
+body.dark .kebab-item{color:var(--ink)}
+body.dark .kebab-item:hover{background:var(--s2)}
+body.dark .page-header-bar,body.dark #sc-kpi .page-title,body.dark #sc-config .page-title,
+body.dark #sc-ptg .vbar,body.dark #sc-rsm .vbar,body.dark #sc-plan .vbar,
+body.dark #sc-team .d-nav-row,body.dark #sc-dalerts > .page > div:first-child{background:var(--card);border-bottom-color:var(--bd)}
+body.dark .savebtn{background:#2563eb;color:#fff}
+body.dark .savebtn:hover{background:#1d4ed8}
+body.dark .clrbtn{border-color:var(--bd);color:var(--ink2)}
+body.dark .togrow{background:var(--s2)}
+body.dark .hcalc{background:rgba(37,99,235,.18)}
+body.dark .tc{background:var(--card);border-color:var(--bd);color:var(--ink2)}
+body.dark .cal,body.dark .wk,body.dark .pwrap,body.dark .pmwrap,body.dark .pd-wrap,body.dark .fpan{background:var(--card);border-color:var(--bd)}
+body.dark .cd,body.dark .wk-cell,body.dark .pw-cell{border-color:var(--bd)}
+body.dark .cd-o{background:var(--s2);opacity:.5}
+body.dark .cd-w{background:#13151f}
+body.dark .cd-wk{background:#1f1929}.body.dark .cd-wk:hover{background:#2a2438}
+body.dark .cd:hover:not(.cd-o):not(.cd-w){background:#1a2540}
+body.dark .nc2{background:var(--card);border-color:var(--bd)}
+body.dark .pmtbl tr.me td.nc2{background:#1a2540}
+body.dark .stt tr{border-color:var(--bd)}
+body.dark .stt td{color:var(--ink)}
+body.dark .rsec,body.dark .kcard{background:var(--card);border-color:var(--bd);color:var(--ink)}
+body.dark .kcard-l,body.dark .kcard-s{color:var(--ink2)}
+body.dark .card-table{background:var(--card);border-color:var(--bd)}
+body.dark .card-table th{background:var(--s2);color:var(--ink2);border-color:var(--bd)}
+body.dark .card-table td{border-color:var(--bd);color:var(--ink)}
+body.dark .card-table tr:hover td{background:var(--s2)}
+body.dark .stat-box{background:var(--card);border-color:var(--bd)}
+body.dark .stat-box .sv{color:var(--ink)}
+body.dark .kpi-section-title{color:var(--ink);border-bottom-color:var(--ac-s)}
+body.dark .ev-w{background:rgba(22,163,74,.25);color:#86efac}
+body.dark .ev-b{background:rgba(37,99,235,.25);color:#93c5fd}
+body.dark .ev-c{background:rgba(217,119,6,.25);color:#fcd34d}
+body.dark .ev-m{background:rgba(220,38,38,.25);color:#fca5a5}
+body.dark .ev-f{background:var(--s2);color:var(--ink3)}
+body.dark .ev-p{background:rgba(124,58,237,.25);color:#c4b5fd}
+body.dark .ct{color:var(--ink2)}
 .d-content{background:var(--dash-bg);min-height:100vh}
 .dark .d-topbar{background:#0d1017;border-bottom-color:rgba(255,255,255,.06)}
 .dark .dcard{background:var(--card-bg);border-color:var(--card-border)}
@@ -2675,12 +2759,13 @@ async function authShowPickScreen(email) {
   } catch(err) { authMsg('av-pick-msg', 'Erreur: ' + err.message); }
 }
 
-function authStart(nom) {
+async function authStart(nom) {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   S._empCache = {}; S._planCache = {};
-  // Charger les photos depuis la base (async, en parallèle de selEmp)
-  loadEmpPhotos(); loadReferentiels();
+  // Attendre les photos avant de construire le chip (sinon initiales par defaut)
+  await loadEmpPhotos();
+  loadReferentiels(); // ce dernier peut rester async (non bloquant)
   selEmp(nom);
 }
 
@@ -2737,7 +2822,7 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-window.onload = function() {
+window.onload = async function() {
   initDark();
   ptgSync();
   document.addEventListener('keydown', function(e) {
@@ -2754,7 +2839,8 @@ window.onload = function() {
         SUPA.rtok = s.rtok || null;
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
-        loadEmpPhotos(); loadReferentiels();
+        await loadEmpPhotos();
+        loadReferentiels();
         selEmp(s.nom);
         return;
       }
