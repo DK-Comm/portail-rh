@@ -652,9 +652,9 @@ var SUPA = {
       <h2>Connexion</h2>
       <p>Connectez-vous avec votre email</p>
       <label>Email</label>
-      <input type="email" id="ai-email" placeholder="votre@email.com">
+      <input type="email" id="ai-email" placeholder="votre@email.com" autocomplete="off" autocorrect="off" spellcheck="false">
       <label>Mot de passe</label>
-      <input type="password" id="ai-pwd" placeholder="••••••••">
+      <input type="password" id="ai-pwd" placeholder="••••••••" autocomplete="new-password">
       <button class="ab-btn" id="ab-login" onclick="authLogin()">Se connecter</button>
       <div id="av-login-msg"></div>
       <div class="ab-links"><a onclick="authShowForgot()">Mot de passe oubli&eacute;</a></div>
@@ -669,7 +669,7 @@ var SUPA = {
       <h2>R&eacute;initialiser</h2>
       <p>Recevez un lien par email</p>
       <label>Email</label>
-      <input type="email" id="ai-email-f" placeholder="votre@email.com">
+      <input type="email" id="ai-email-f" placeholder="votre@email.com" autocomplete="off">
       <button class="ab-btn" onclick="authForgot()">Envoyer le lien</button>
       <div id="av-forgot-msg"></div>
       <div class="ab-links"><a onclick="authShowLogin()">Retour</a></div>
@@ -2876,7 +2876,16 @@ function authMsg(id, msg, ok) {
   el.style.display = msg ? 'block' : 'none';
 }
 
-function authShowLogin()  { document.getElementById('av-login').style.display=''; document.getElementById('av-signup').style.display='none'; document.getElementById('av-forgot').style.display='none'; document.getElementById('av-pick').style.display='none'; }
+function authShowLogin()  {
+  document.getElementById('av-login').style.display='';
+  document.getElementById('av-signup').style.display='none';
+  document.getElementById('av-forgot').style.display='none';
+  document.getElementById('av-pick').style.display='none';
+  // Vider les champs (par securite, ne pas laisser les identifiants du user precedent)
+  var elE = document.getElementById('ai-email'); if(elE) elE.value = '';
+  var elP = document.getElementById('ai-pwd');   if(elP) elP.value = '';
+  var elM = document.getElementById('av-login-msg'); if(elM) elM.textContent = '';
+}
 function authShowSignup() { document.getElementById('av-login').style.display='none'; document.getElementById('av-signup').style.display=''; document.getElementById('av-forgot').style.display='none'; document.getElementById('av-pick').style.display='none'; }
 function authShowForgot() { document.getElementById('av-login').style.display='none'; document.getElementById('av-signup').style.display='none'; document.getElementById('av-forgot').style.display=''; document.getElementById('av-pick').style.display='none'; }
 function authShowPick()   { document.getElementById('av-login').style.display='none'; document.getElementById('av-signup').style.display='none'; document.getElementById('av-forgot').style.display='none'; document.getElementById('av-pick').style.display=''; }
@@ -3074,10 +3083,20 @@ function authLogout() {
   localStorage.removeItem('rh_emp');
   localStorage.removeItem('rh_col');
   SUPA.tok = null;
+  SUPA.rtok = null;
   // Reset state
   S.emp = '';
   S.role = 'employe';
-  // Hide menu
+  // Vider TOUS les champs de saisie de l'auth (login/signup/forgot/pick) pour
+  // ne pas laisser les identifiants du user precedent visibles
+  ['ai-email','ai-pwd','ai-email-s','ai-pwd-s','ai-pwd-s2','ai-email-f'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  // Effacer aussi les messages d'erreur eventuels
+  ['av-login-msg','av-signup-msg','av-forgot-msg','av-pick-msg'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.textContent = '';
+  });
+  // Cacher l'app, montrer l'auth
   var menu = document.getElementById('user-menu');
   if (menu) menu.style.display = 'none';
   document.getElementById('main').style.display = 'none';
