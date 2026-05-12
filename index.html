@@ -939,7 +939,10 @@ var SUPA = {
   <div class="page">
     <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div class="page-title" style="margin-bottom:0">&#128197; R&eacute;capitulatif Annuel <span class="page-subtitle" id="recap-subtitle">Chargement...</span></div>
-      <button class="btn-sm btn-success" onclick="exportRecapCSV()">&#11015; CSV</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm btn-secondary" onclick="exportRecapCSV()" title="Export CSV pour logiciel de comptabilit&eacute;">&#128203; CSV</button>
+        <button class="btn-sm btn-success" onclick="exportRecapXLSX()" title="Export Excel format&eacute; pour consultation">&#128202; Excel</button>
+      </div>
     </div>
     <div id="recap-content"><div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div></div>
   </div>
@@ -950,7 +953,10 @@ var SUPA = {
   <div class="page">
     <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div class="page-title" style="margin-bottom:0">&#128176; Paie <span class="page-subtitle" id="paie-subtitle">Chargement...</span></div>
-      <button class="btn-sm btn-success" onclick="exportPaieCSV()">&#11015; CSV Comptable</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm btn-secondary" onclick="exportPaieCSV()" title="Export CSV pour logiciel de comptabilit&eacute;">&#128203; CSV</button>
+        <button class="btn-sm btn-success" onclick="exportPaieXLSX()" title="Export Excel format&eacute; pour consultation">&#128202; Excel</button>
+      </div>
     </div>
     <div id="paie-content"><div style="color:var(--ink3);padding:40px;text-align:center">Chargement...</div></div>
   </div>
@@ -2226,6 +2232,7 @@ function renderAlerts(d){
 ;
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -3307,6 +3314,60 @@ function exportRecapCSV() {
   toast('Export CSV ✓');
 }
 
+function exportRecapXLSX() {
+  if (!_recapData) { toast("Charger le recap d'abord"); return; }
+  if (typeof XLSX === 'undefined') { toast('Librairie Excel non chargée', 1); return; }
+  // Donnees
+  var data = [];
+  data.push(['ESPACE MUNI — Récapitulatif annuel ' + _recapData.y]);
+  data.push([]);
+  data.push(['Employé'].concat(MOIS).concat(['TOTAL']));
+  var grandTotals = new Array(12).fill(0);
+  var grandTotal = 0;
+  _recapData.emps.forEach(function(n) {
+    var tot = 0, row = [n];
+    _recapData.byEmpMonth[n].forEach(function(h, i){
+      var hr = Math.round(h*10)/10;
+      tot += h;
+      grandTotals[i] += h;
+      row.push(hr);
+    });
+    grandTotal += tot;
+    row.push(Math.round(tot*10)/10);
+    data.push(row);
+  });
+  // Ligne TOTAL
+  var totalRow = ['TOTAL'];
+  grandTotals.forEach(function(t){ totalRow.push(Math.round(t*10)/10); });
+  totalRow.push(Math.round(grandTotal*10)/10);
+  data.push(totalRow);
+  // Feuille
+  var ws = XLSX.utils.aoa_to_sheet(data);
+  // Largeurs colonnes
+  ws['!cols'] = [{wch:30}].concat(Array(12).fill({wch:10})).concat([{wch:12}]);
+  // Fusionner le titre
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:13}}];
+  // Style header (ligne 3 = index 2)
+  var range = XLSX.utils.decode_range(ws['!ref']);
+  for (var R = range.s.r; R <= range.e.r; R++) {
+    for (var C = range.s.c; C <= range.e.c; C++) {
+      var cell = ws[XLSX.utils.encode_cell({r:R,c:C})];
+      if (!cell) continue;
+      cell.s = cell.s || {};
+      if (R === 0) cell.s = {font:{bold:true,sz:14,color:{rgb:'1A1D2E'}},alignment:{horizontal:'center'}};
+      else if (R === 2) cell.s = {font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1565C0'}},alignment:{horizontal:'center'}};
+      else if (R === data.length-1) cell.s = {font:{bold:true},fill:{fgColor:{rgb:'F0F2F5'}}};
+      else if (C === 0) cell.s = {font:{bold:true}};
+      else cell.s = {alignment:{horizontal:'right'}};
+    }
+  }
+  // Workbook
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Recap ' + _recapData.y);
+  XLSX.writeFile(wb, 'ESPACE_MUNI_Recap_' + _recapData.y + '.xlsx');
+  toast('Export Excel ✓');
+}
+
 // ════════════════════════════════════════════════════════════════
 // PAIE
 // ════════════════════════════════════════════════════════════════
@@ -3425,6 +3486,58 @@ function exportPaieCSV() {
   a.download = 'ESPACE_MUNI_Paie_' + _paieData.mois + '_' + _paieData.y + '.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   toast('CSV Paie exporté ✓');
+}
+
+function exportPaieXLSX() {
+  if (!_paieData) { toast("Charger la paie d'abord"); return; }
+  if (typeof XLSX === 'undefined') { toast('Librairie Excel non chargée', 1); return; }
+  var data = [];
+  data.push(['ESPACE MUNI — Paie ' + _paieData.mois + ' ' + _paieData.y]);
+  data.push([]);
+  data.push(['Employé','H travaillées','H normales','H supp.','Taux/h','Salaire brut','H supp (×1.5)','Total brut','Charges %','Coût total']);
+  var totBrut = 0, totCout = 0;
+  _paieData.rows.forEach(function(r) {
+    data.push([
+      r.nom,
+      r.hT + 'h',
+      r.hNorm + 'h',
+      r.hSupp>0 ? '+'+r.hSupp+'h' : '—',
+      r.taux + ' $',
+      r.brut,
+      r.brutSupp>0 ? r.brutSupp : '—',
+      r.totalBrut,
+      r.charges + '%',
+      r.cout
+    ]);
+    totBrut += r.totalBrut;
+    totCout += r.cout;
+  });
+  data.push(['TOTAL','','','','','','',Math.round(totBrut*100)/100,'',Math.round(totCout*100)/100]);
+  var ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:32},{wch:14},{wch:12},{wch:12},{wch:10},{wch:14},{wch:14},{wch:14},{wch:11},{wch:14}];
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:9}}];
+  // Format monetaire pour colonnes 5,6,7,9 (F,G,H,J) sur les lignes data
+  var moneyCols = [5,6,7,9];
+  var range = XLSX.utils.decode_range(ws['!ref']);
+  for (var R = range.s.r; R <= range.e.r; R++) {
+    for (var C = range.s.c; C <= range.e.c; C++) {
+      var cell = ws[XLSX.utils.encode_cell({r:R,c:C})];
+      if (!cell) continue;
+      cell.s = cell.s || {};
+      if (R === 0) cell.s = {font:{bold:true,sz:14},alignment:{horizontal:'center'}};
+      else if (R === 2) cell.s = {font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'7C3AED'}},alignment:{horizontal:'center'}};
+      else if (R === data.length-1) cell.s = {font:{bold:true},fill:{fgColor:{rgb:'F0F2F5'}}};
+      else if (C === 0) cell.s = {font:{bold:true}};
+      // Format monetaire
+      if (R > 2 && moneyCols.indexOf(C) >= 0 && typeof cell.v === 'number') {
+        cell.z = '#,##0.00\\ $';
+      }
+    }
+  }
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Paie ' + _paieData.mois);
+  XLSX.writeFile(wb, 'ESPACE_MUNI_Paie_' + _paieData.mois + '_' + _paieData.y + '.xlsx');
+  toast('Excel Paie exporté ✓');
 }
 
 // ════════════════════════════════════════════════════════════════
