@@ -2091,7 +2091,11 @@ async function spFetch(path, opts) {
     throw new Error('Supabase ' + res.status + ': ' + txt.slice(0,120));
   }
   if (res.status === 204) return { ok: true };
-  return res.json();
+  // Gerer les reponses vides (Prefer: return=minimal => body vide meme avec 201)
+  var raw = await res.text();
+  if (!raw) return { ok: true };
+  try { return JSON.parse(raw); }
+  catch(e) { return { ok: true }; }
 }
 
 function dateISO(y, m, d) {
