@@ -2131,9 +2131,10 @@ var supabaseAPI = {
 
   // Sauvegarder un jour (upsert)
   saveDay: async function(emp, y, m, d, deb, fin, type, bur) {
-    await spFetch('rh_horaires', {
+    // UPSERT : on_conflict cible la contrainte UNIQUE (employe, date_pointage)
+    await spFetch('rh_horaires?on_conflict=employe,date_pointage', {
       method: 'POST',
-      prefer: 'resolution=merge-duplicates',
+      prefer: 'resolution=merge-duplicates,return=minimal',
       body: {
         employe: emp,
         date_pointage: dateISO(y,m,d),
