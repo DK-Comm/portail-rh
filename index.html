@@ -1018,22 +1018,25 @@ var EMP_PHOTOS = {};
 var REF_DEPTS = []; // [{id,nom,icone,couleur,ordre,actif}]
 var REF_TYPES = []; // [{id,nom,ordre,actif}]
 function photo(n){return EMP_PHOTOS[n]||PH[n]||'';}
+function _safeJson(r){
+  return r.text().then(function(t){ if(!t) return []; try{return JSON.parse(t);}catch(e){return [];} });
+}
 async function loadEmpPhotos(){
   try{
     var r=await fetch(SUPA.url+'/rest/v1/rh_employes?select=nom,photo_url',{
       headers:{'apikey':SUPA.key,'Authorization':'Bearer '+(SUPA.tok||SUPA.key)}
     });
     if(!r.ok)return;
-    var rows=await r.json();
-    rows.forEach(function(e){ if(e.photo_url) EMP_PHOTOS[e.nom]=e.photo_url; });
+    var rows=await _safeJson(r);
+    if(Array.isArray(rows)) rows.forEach(function(e){ if(e.photo_url) EMP_PHOTOS[e.nom]=e.photo_url; });
   }catch(e){console.warn('loadEmpPhotos:',e);}
 }
 async function loadReferentiels(){
   try{
     var h={'apikey':SUPA.key,'Authorization':'Bearer '+(SUPA.tok||SUPA.key)};
     var [rd,rt]=await Promise.all([
-      fetch(SUPA.url+'/rest/v1/rh_departements?select=*&order=ordre,nom',{headers:h}).then(function(r){return r.json();}),
-      fetch(SUPA.url+'/rest/v1/rh_types_poste?select=*&order=ordre,nom',{headers:h}).then(function(r){return r.json();})
+      fetch(SUPA.url+'/rest/v1/rh_departements?select=*&order=ordre,nom',{headers:h}).then(_safeJson),
+      fetch(SUPA.url+'/rest/v1/rh_types_poste?select=*&order=ordre,nom',{headers:h}).then(_safeJson)
     ]);
     REF_DEPTS=Array.isArray(rd)?rd:[];
     REF_TYPES=Array.isArray(rt)?rt:[];
@@ -2545,8 +2548,11 @@ async function authFetch(path, method, body) {
     throw new Error(r.status + ': ' + txt.slice(0, 100));
   }
   if (r.status === 204 || method === 'DELETE') return { ok: true, data: [] };
-  var data = await r.json();
-  return { ok: true, data: data };
+  // Gerer les reponses vides (Prefer: return=minimal renvoie 201 sans body)
+  var raw = await r.text();
+  if (!raw) return { ok: true, data: [] };
+  try { return { ok: true, data: JSON.parse(raw) }; }
+  catch(e) { return { ok: true, data: [] }; }
 }
 
 async function authLogin() {
