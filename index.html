@@ -2906,16 +2906,44 @@ async function loadPaie() {
       var hT = Math.round(hByEmp[e.nom]*10)/10;
       var taux = e.type_salaire === 'Annuel' ? Math.round(e.salaire/52/e.heures_semaine*100)/100 : (e.salaire||25);
       var hNorm = TARGET_H; // heures normales du mois
+      var charges = e.charges_pct || 15.5;
+      var isAnnuel = e.type_salaire === 'Annuel';
+
+      // Si 0h pointées ET salaire horaire : aucun calcul de coût (pas de fantôme)
+      if (hT === 0 && !isAnnuel) {
+        h += '<tr><td><strong>' + e.nom + '</strong> <span style="font-size:10px;color:var(--ink3)">(horaire)</span></td>';
+        h += '<td style="color:var(--ink3)">0h</td><td>' + hNorm + 'h</td>';
+        h += '<td style="color:var(--ink3)">—</td>';
+        h += '<td>' + taux + '$</td>';
+        h += '<td style="color:var(--ink3)">— <span style="font-size:10px">Aucune saisie</span></td>';
+        h += '<td style="color:var(--ink3)">—</td>';
+        h += '<td style="color:var(--ink3)">—</td>';
+        h += '<td>' + charges + '%</td>';
+        h += '<td style="color:var(--ink3)">—</td></tr>';
+        paieRows.push({nom:e.nom, hT:0, hNorm:hNorm, hSupp:0, taux:taux, brut:0, brutSupp:0, totalBrut:0, charges:charges, cout:0});
+        return;
+      }
+
+      // Calcul brut selon type salaire
       var hSupp = Math.max(0, Math.round((hT - hNorm)*10)/10);
-      var brut = Math.round(hNorm * taux * 100) / 100;
+      var brut;
+      if (isAnnuel) {
+        // Mensualisé : salaire fixe (peu importe les heures réelles)
+        brut = Math.round(hNorm * taux * 100) / 100;
+      } else {
+        // Horaire : payé sur les heures réelles, plafonné à hNorm (les supp sont à part)
+        var hBase = Math.min(hT, hNorm);
+        brut = Math.round(hBase * taux * 100) / 100;
+      }
       var brutSupp = Math.round(hSupp * taux * 1.5 * 100) / 100;
       var totalBrut = Math.round((brut + brutSupp)*100)/100;
-      var charges = e.charges_pct || 15.5;
       var cout = Math.round(totalBrut * (1 + charges/100) * 100) / 100;
       totBrut += totalBrut; totCout += cout;
       paieRows.push({nom:e.nom, hT:hT, hNorm:hNorm, hSupp:hSupp, taux:taux, brut:brut, brutSupp:brutSupp, totalBrut:totalBrut, charges:charges, cout:cout});
-      
-      h += '<tr><td><strong>' + e.nom + '</strong></td><td>' + hT + 'h</td><td>' + hNorm + 'h</td>';
+
+      var typeLabel = isAnnuel ? '(mensualisé)' : '(horaire)';
+      h += '<tr><td><strong>' + e.nom + '</strong> <span style="font-size:10px;color:var(--ink3)">' + typeLabel + '</span></td>';
+      h += '<td>' + hT + 'h</td><td>' + hNorm + 'h</td>';
       h += '<td style="color:' + (hSupp>0?'var(--gr)':'var(--ink3)') + '">' + (hSupp>0?'+'+hSupp+'h':'—') + '</td>';
       h += '<td>' + taux + '$</td>';
       h += '<td>' + brut.toLocaleString('fr-CA',{minimumFractionDigits:2}) + '$</td>';
