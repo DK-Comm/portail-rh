@@ -1592,12 +1592,12 @@ function dashNav(dir){
   loadDash();
 }
 function dashPeriod(p,el){
+  console.log('[dashPeriod] click', p, 'avant:', S.dashPeriod, S.dashY, S.dashM);
   document.querySelectorAll('.d-pbtn').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
   S.dashPeriod=p;
-  // Garder le contexte temporel (mois affiché) — juste changer la granularite
+  // Garder le contexte temporel (mois affiche) — juste changer la granularite
   if(p==='week'){
-    // Aligner la semaine sur le 1er du mois affiche (sauf si on est deja sur ce mois courant -> garder la semaine courante)
     var now=new Date();
     if(S.dashY===now.getFullYear() && S.dashM===now.getMonth()) S.dashW=mon0(now);
     else S.dashW=mon0(new Date(S.dashY,S.dashM,1));
@@ -1605,7 +1605,15 @@ function dashPeriod(p,el){
     S.dashQ=Math.floor(S.dashM/3);
     S.dashM=S.dashQ*3;
   }
-  // Pour 'month' : on garde S.dashY/S.dashM tels quels
+  console.log('[dashPeriod] apres:', S.dashPeriod, S.dashY, S.dashM);
+  // Force la mise a jour du label IMMEDIATEMENT (bypass cache potentiel)
+  var r=dashRange();
+  console.log('[dashPeriod] label calcule:', r.label, 'periode:', r.period);
+  var sub=document.getElementById('dash-sub');
+  if(sub) sub.textContent=r.label;
+  // Invalider le cache du dashboard pour forcer un reload propre quand on switch
+  var oldCk='dash_'+r.d1+'_'+r.d2;
+  delete S._planCache[oldCk];
   loadDash();
 }
 function teamNav(dir){S.teamM+=dir;if(S.teamM>11){S.teamM=0;S.teamY++;}if(S.teamM<0){S.teamM=11;S.teamY--;}loadTeam();}
