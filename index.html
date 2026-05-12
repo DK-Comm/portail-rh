@@ -54,14 +54,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .main-area{flex:1;display:flex;flex-direction:column;min-width:0}
 
 /* SELECT SCREEN */
-.sel-wrap{min-height:calc(100vh - 60px);display:flex;align-items:center;justify-content:center;padding:48px 28px}
-.sel-box{background:var(--card);border-radius:20px;padding:40px;width:100%;max-width:800px;box-shadow:var(--shd);border:1px solid var(--bd)}
-.sel-box h2{font-size:26px;font-weight:800;margin-bottom:6px}
-.sel-box p{color:var(--ink3);font-size:15px;margin-bottom:28px}
-.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px}
-.emp-card{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 14px;border:2px solid var(--bd);border-radius:var(--r);cursor:pointer;transition:all .18s;background:var(--card);text-align:center}
-.emp-card:hover{border-color:var(--ac);background:var(--ac-s);transform:translateY(-2px);box-shadow:var(--sh)}
-.emp-card-name{font-size:13px;font-weight:600;color:var(--ink);line-height:1.35}
 
 /* APP SCREENS */
 .app{display:flex;flex-direction:column;min-height:100vh}
@@ -785,17 +777,6 @@ var SUPA = {
   </div>
 </div>
 
-<!-- SELECTION -->
-<div id="scr-sel" class="sel-wrap">
-  <div class="sel-box">
-    <h2>&#128075; Bonjour !</h2>
-    <p>Selectionnez votre nom pour acceder a votre espace horaires</p>
-    <div class="emp-grid" id="emp-grid">
-      <div class="spin">Chargement des employes...</div>
-    </div>
-  </div>
-</div>
-
 <!-- MAIN -->
 <div id="main" style="display:none">
   <div class="app-body">
@@ -1427,49 +1408,10 @@ function gotoTab(id,el){
   if(id==='ptg'){loadPtgData();renderPtg();}
 }
 
-// === EMP SELECT ===
+// === EMP SELECT (auth via Supabase, plus de picker pre-auth) ===
 function showApp(){
   document.getElementById('install-screen').style.display='none';
   document.getElementById('app').style.display='flex';
-}
-function loadEmps(){
-  var g=document.getElementById('emp-grid');
-  g.innerHTML='';
-  var sp=document.createElement('div');sp.className='spin';sp.textContent='Chargement des employes...';
-  g.appendChild(sp);
-
-  var timer=setTimeout(function(){
-    if(g.querySelector('.spin')){
-      g.innerHTML='';
-      var err=document.createElement('div');
-      err.style.cssText='color:var(--rd);padding:16px;font-size:14px;line-height:1.7';
-      err.innerHTML='<strong>\u26a0 Autorisation requise</strong><br>Dans Apps Script : executer api_getEmployeeNames, autoriser, redeployer.';
-      g.appendChild(err);
-    }
-  },10000);
-
-  google.script.run
-    .withSuccessHandler(function(names){showApp();
-      clearTimeout(timer);
-      g.innerHTML='';
-      if(!names||!names.length){
-        var err=document.createElement('div');err.style.cssText='color:var(--rd);padding:14px';err.textContent='Aucun employe dans Config.';g.appendChild(err);return;
-      }
-      names.forEach(function(n){
-        var card=document.createElement('div');
-        card.className='emp-card';
-        var av=mkAv(n,72);
-        var nm=document.createElement('div');nm.className='emp-card-name';nm.textContent=n;
-        card.appendChild(av);card.appendChild(nm);
-        card.onclick=function(){selEmp(n);};
-        g.appendChild(card);
-      });
-    })
-    .withFailureHandler(function(e){
-      clearTimeout(timer);g.innerHTML='';
-      var err=document.createElement('div');err.style.cssText='color:var(--rd);padding:14px';err.textContent='Erreur: '+e.message;g.appendChild(err);
-    })
-    .api_getEmployeeNames();
 }
 
 function refreshPortail(){
@@ -1522,7 +1464,6 @@ function selEmp(name){
   }
   document.getElementById('chip-name').textContent=name.split(' ')[0];
   document.getElementById('chip').style.display='flex';
-  document.getElementById('scr-sel').style.display='none';
   document.getElementById('main').style.display='flex';
   // Détecter rôle direction
   google.script.run
@@ -2810,8 +2751,7 @@ async function startInstall(){
     wizLog('Installation complete ✓','ok');
     setTimeout(function(){
       document.getElementById('install-screen').style.display='none';
-      document.getElementById('app').style.display='flex';
-      loadEmps();
+      document.getElementById('auth-screen').style.display='flex';
     },1500);
 
   } catch(err) {
@@ -2851,8 +2791,7 @@ async function checkAndInstall(){
         document.getElementById('wiz-title').textContent='✅ Deja configure';
         setTimeout(function(){
           document.getElementById('install-screen').style.display='none';
-          document.getElementById('app').style.display='flex';
-          loadEmps();
+          document.getElementById('auth-screen').style.display='flex';
         },1000);
       } else {
         document.getElementById('wiz-btn').style.display='block';
