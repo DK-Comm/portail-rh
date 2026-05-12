@@ -1149,6 +1149,20 @@ var SUPA = {
   </div>
 </div>
 
+<!-- MODAL HISTORIQUE EMPLOYE (timeline des changements) -->
+<div class="modal-overlay" id="emp-history-modal" style="display:none" onclick="if(event.target===this)closeEmpHistoryModal()">
+  <div class="modal-box" style="max-width:760px;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:90vh">
+    <div style="padding:18px 22px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:15px;font-weight:700">&#128218; Historique des changements <span id="emp-history-name" style="color:var(--ink3);font-weight:500"></span></div>
+      <button onclick="closeEmpHistoryModal()" style="background:none;border:0;font-size:22px;color:var(--ink3);cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <div id="emp-history-content" style="padding:18px 22px;overflow:auto;flex:1">Chargement...</div>
+    <div style="padding:14px 22px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end">
+      <button onclick="closeEmpHistoryModal()" class="btn-sm" style="background:transparent;color:var(--ink2);border:1px solid var(--bd)">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL REFERENTIEL (dept ou type) -->
 <div class="modal-overlay" id="ref-modal" style="display:none" onclick="if(event.target===this)closeRefModal()">
   <div class="modal-box" style="max-width:480px">
@@ -1232,7 +1246,16 @@ var SUPA = {
       <div class="form-group"><label>Type salaire</label><select id="em-type-sal"><option value="Horaire">Horaire</option><option value="Annuel">Annuel</option></select></div>
       <div class="form-group"><label>Charges %</label><input id="em-charges" type="number" value="15.5" step="0.1"></div>
     </div>
-    <div class="modal-footer">
+    <!-- Date d'effet : pour l'historique versionne -->
+    <div style="background:#fef9e7;border:1px solid #f4d35e;border-radius:8px;padding:10px 14px;margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:18px">&#128197;</span>
+      <div style="flex:1;min-width:200px">
+        <label style="font-size:12px;font-weight:700;color:#7a5d00;display:block">Date d'effet des changements</label>
+        <small style="font-size:11px;color:#7a5d00">Les modifications de salaire, heures/sem, statut, etc. seront historisees a partir de cette date. Important pour les rapports retrospectifs.</small>
+      </div>
+      <input id="em-valid-from" type="date" style="padding:7px 10px;border:1.5px solid #f4d35e;border-radius:6px;font-size:13px;background:#fff">
+    </div>
+    <div class="modal-footer" style="margin-top:14px">
       <button class="btn-sm btn-secondary" onclick="closeEmpModal()">Annuler</button>
       <button class="btn-sm btn-primary" onclick="saveEmp()">Enregistrer</button>
     </div>
@@ -2586,12 +2609,15 @@ var supabaseAPI = {
 
   // Dashboard direction (signature: d1, d2 ISO yyyy-mm-dd, target H, period)
   // Note : target represente l'objectif pour un employe a 37.5h/sem.
-  // Pour chaque employe, on calcule SON propre target en fonction de heures_semaine.
+  // Pour chaque employe, on calcule SON propre target en fonction de heures_semaine
+  // valide au moment de la periode (historique versionne).
   getDashboard: async function(d1, d2, target, period) {
     target = target || 162.5;
     period = period || 'month';
     // Nombre de semaines dans la periode (162.5h / 37.5h = ~4.33 pour 1 mois)
     var weeksInPeriod = target / 37.5;
+    // Charger l'historique pour cibles temporelles (utilise d1 comme date de reference)
+    if(typeof loadHistoryCache === 'function') await loadHistoryCache();
     var [empsData, horaires] = await Promise.all([
       spFetch('rh_employes?select=nom,heures_semaine,departement,poste&actif=eq.true'),
       spFetchAll('rh_horaires?date_pointage=gte.' + d1 + '&date_pointage=lte.' + d2 + '&select=employe,date_pointage,debut,fin,bureau,type_jour&order=date_pointage')
@@ -2622,8 +2648,11 @@ var supabaseAPI = {
           if(mn>0){h+=mn/60;worked++;if(r.bureau===true)bur++;}
         } else if(r.type_jour && r.type_jour !== 'work'){abs++;}
       });
-      // Target individuel : heures_semaine de l'employe (fallback 37.5) * nb semaines dans la periode
-      var empWeekly = parseFloat(e.heures_semaine) || 37.5;
+      // Target individuel : heures_semaine VALIDE au debut de la periode (d1) selon l'historique
+      var fallbackWeekly = parseFloat(e.heures_semaine) || 37.5;
+      var empWeekly = (typeof histValueAt === 'function')
+        ? (parseFloat(histValueAt(e.nom, 'heures_semaine', d1, fallbackWeekly)) || fallbackWeekly)
+        : fallbackWeekly;
       var empTargetForPeriod = Math.round(empWeekly * weeksInPeriod * 10) / 10;
       totalTargetH += empTargetForPeriod;
       var hR=Math.round(h*10)/10;
@@ -3318,10 +3347,17 @@ async function loadFiche() {
       }
     });
     
-    // Target personnalise selon heures_semaine de l'employe
-    var empHSem = parseFloat(empData.heures_semaine) || 37.5;
-    var tgtMois = Math.round(empHSem * 4.33 * 10) / 10;     // h/mois
-    var tgtAnnuel = Math.round(empHSem * 52 * 10) / 10;      // h/an (52 semaines)
+    // Charger l'historique si pas encore fait
+    await loadHistoryCache();
+    // Target VARIABLE selon historique : pour chaque mois, on prend heures_semaine valide
+    var empHSemFallback = parseFloat(empData.heures_semaine) || 37.5;
+    // Cible mensuelle PAR MOIS (utilisera histHSemAtMonth ci-dessous dans la boucle)
+    // Cible annuelle = somme des cibles mensuelles
+    var tgtAnnuel = 0;
+    for(var mi=0; mi<12; mi++){
+      tgtAnnuel += histHSemAtMonth(emp, y, mi, empHSemFallback) * 4.33;
+    }
+    tgtAnnuel = Math.round(tgtAnnuel * 10) / 10;
     var hR = Math.round(totalH*10)/10;
     var pct = tgtAnnuel>0 ? Math.round(hR/tgtAnnuel*100) : 0;
     var hSupp = Math.max(0, Math.round((totalH - tgtAnnuel)*10)/10);
@@ -3355,7 +3391,10 @@ async function loadFiche() {
     h += '<div class="stat-box"><div class="sv">' + bureauPct + '%</div><div class="sl">Taux bureau</div></div>';
     h += '<div class="stat-box"><div class="sv">' + hSupp + 'h</div><div class="sl">Heures supp.</div></div>';
     h += '<div class="stat-box"><div class="sv">' + totalConge + 'j</div><div class="sl">Congés</div></div>';
-    h += '</div></div>';
+    h += '</div>';
+    // Bouton voir l'historique (changements de salaire, heures_semaine, etc.)
+    h += '<div style="width:100%;margin-top:12px;text-align:right"><button onclick="openEmpHistory('+JSON.stringify(emp)+')" class="btn-sm" style="background:var(--s2);color:var(--ink);border:1px solid var(--bd);padding:6px 12px;font-size:12px">&#128218; Voir l\'historique des changements</button></div>';
+    h += '</div>';
     
     // Tableau mensuel
     h += '<div class="card-table"><table>';
@@ -3363,6 +3402,9 @@ async function loadFiche() {
     for (var m = 0; m < 12; m++) {
       var bm = byMonth[m];
       var hm = Math.round(bm.h*10)/10;
+      // Cible mensuelle SELON HISTORIQUE : heures_semaine valide au 1er du mois
+      var hSemMonth = histHSemAtMonth(emp, y, m, empHSemFallback);
+      var tgtMois = Math.round(hSemMonth * 4.33 * 10) / 10;
       var ecart = Math.round((bm.h - tgtMois)*10)/10;
       var pm = tgtMois>0 ? Math.round(bm.h/tgtMois*100) : 0;
       var bpct = bm.worked > 0 ? Math.round(bm.bur/bm.worked*100) : 0;
@@ -3404,6 +3446,8 @@ async function loadKPI() {
     ]);
     var emps = empR.data || [];
     var horaires = horR.data || [];
+    // Charger l'historique pour cibles temporelles
+    await loadHistoryCache();
     
     // Calculer stats par employé (stocke heuresSemaine pour le calcul des cibles individuelles)
     var empStats = {};
@@ -3436,12 +3480,14 @@ async function loadKPI() {
     h += '<div class="kpi-section"><div class="kpi-section-title">KPI Standards — Par employé</div>';
     h += '<div class="card-table"><table><thead><tr><th>Employé</th><th>H travaillées</th><th>H cible</th><th>H supp</th><th>Taux prés.</th><th>Taux abs.</th><th>J congé</th><th>J maladie</th><th>Moy h/j</th><th>Moy h/sem</th></tr></thead><tbody>';
     rows.forEach(function(e) {
-      // Cible annuelle personnalisee selon heures_semaine de l'employe
-      var cible = Math.round(e.heuresSemaine * 52 * 10) / 10;
+      // Cible annuelle SELON HISTORIQUE : somme des cibles mensuelles
+      var cible = 0;
+      for(var mi=0; mi<12; mi++) cible += histHSemAtMonth(e.nom, y, mi, e.heuresSemaine) * 4.33;
+      cible = Math.round(cible * 10) / 10;
       var hR = Math.round(e.h*10)/10, supp = Math.max(0,Math.round((e.h-cible)*10)/10);
       var moyHJ = e.worked>0?Math.round(e.h/e.worked*10)/10:0;
       var moyHSem = Math.round(e.h/52*10)/10;
-      h += '<tr><td><strong>' + e.nom + '</strong></td><td>' + hR + 'h</td><td>' + cible + 'h</td>';
+      h += '<tr><td><strong>' + esc(e.nom) + '</strong></td><td>' + hR + 'h</td><td>' + cible + 'h</td>';
       h += '<td style="color:' + (supp>0?'var(--gr)':'var(--ink2)') + '">+' + supp + 'h</td>';
       h += '<td>' + Math.round(e.worked/(e.worked+e.abs)*100||0) + '%</td>';
       h += '<td>' + Math.round(e.abs/(e.worked+e.abs||1)*100) + '%</td>';
@@ -3455,11 +3501,11 @@ async function loadKPI() {
     MOIS.forEach(function(m){h+='<th>'+m.slice(0,3)+'</th>';});
     h += '<th>Total</th></tr></thead><tbody>';
     rows.forEach(function(e) {
-      // Cible mensuelle personnalisee
-      var tgtMonth = e.heuresSemaine * 4.33;
       var total = 0;
-      h += '<tr><td><strong>' + e.nom + '</strong></td>';
-      e.byMonth.forEach(function(bm) {
+      h += '<tr><td><strong>' + esc(e.nom) + '</strong></td>';
+      e.byMonth.forEach(function(bm, mi) {
+        // Cible mensuelle SELON HISTORIQUE pour le mois mi
+        var tgtMonth = histHSemAtMonth(e.nom, y, mi, e.heuresSemaine) * 4.33;
         var supp = Math.max(0, Math.round((bm.h - tgtMonth)*10)/10);
         total += supp;
         h += '<td style="' + (supp>0?'color:var(--gr);font-weight:600':'color:var(--ink3)') + '">' + (supp>0?'+'+supp:'—') + '</td>';
@@ -3489,11 +3535,12 @@ async function loadKPI() {
     h += '<div class="kpi-section"><div class="kpi-section-title">ETP — Équivalent Temps Plein</div>';
     h += '<div class="card-table"><table><thead><tr><th>Employé</th><th>H travaillées</th><th>H annuelles ETP</th><th>ETP réel</th><th>Statut</th></tr></thead><tbody>';
     rows.forEach(function(e) {
-      // Cible annuelle personnalisee (ETP = ratio heures travaillees / heures contractuelles)
-      var cibleAnnuelle = e.heuresSemaine * 52;
+      // Cible annuelle SELON HISTORIQUE (somme des cibles mensuelles)
+      var cibleAnnuelle = 0;
+      for(var mi=0; mi<12; mi++) cibleAnnuelle += histHSemAtMonth(e.nom, y, mi, e.heuresSemaine) * 4.33;
       var hR = Math.round(e.h*10)/10;
       var etp = cibleAnnuelle>0 ? Math.round(e.h/cibleAnnuelle*100)/100 : 0;
-      h += '<tr><td><strong>' + e.nom + '</strong></td><td>' + hR + 'h</td><td>' + Math.round(cibleAnnuelle*10)/10 + 'h</td>';
+      h += '<tr><td><strong>' + esc(e.nom) + '</strong></td><td>' + hR + 'h</td><td>' + Math.round(cibleAnnuelle*10)/10 + 'h</td>';
       h += '<td style="font-weight:600">' + etp + '</td>';
       h += '<td style="color:' + (etp>=1?'var(--gr)':etp>=0.8?'var(--am)':'var(--rd)') + '">' + (etp>=1?'ETP complet':etp>=0.8?'Quasi ETP':'Partiel') + '</td></tr>';
     });
@@ -3552,6 +3599,8 @@ async function loadRecap() {
     empData.forEach(function(e){ hSemByEmp[e.nom] = parseFloat(e.heures_semaine) || 37.5; });
     var horaires = horR.data || [];
 
+    // Charger l'historique pour cibles temporelles
+    await loadHistoryCache();
     var byEmpMonth = {};
     emps.forEach(function(n){ byEmpMonth[n] = new Array(12).fill(0); });
     horaires.forEach(function(r) {
@@ -3571,12 +3620,12 @@ async function loadRecap() {
     var totals = new Array(12).fill(0), grandTotal = 0;
     emps.forEach(function(n) {
       var tot = 0;
-      // Cible mensuelle personnalisee pour cet employe
-      var tgtMonth = (hSemByEmp[n] || 37.5) * 4.33;
-      h += '<tr><td><strong>' + n + '</strong></td>';
+      h += '<tr><td><strong>' + esc(n) + '</strong></td>';
       byEmpMonth[n].forEach(function(hm, i) {
         var hr = Math.round(hm*10)/10;
         totals[i] += hm; tot += hm;
+        // Cible mensuelle SELON HISTORIQUE pour ce mois precis
+        var tgtMonth = histHSemAtMonth(n, y, i, hSemByEmp[n] || 37.5) * 4.33;
         var pct = tgtMonth>0 ? Math.round(hm/tgtMonth*100) : 0;
         h += '<td style="' + (pct>=95?'color:var(--gr)':pct<70?'color:var(--rd)':'') + '">' + (hr||'—') + '</td>';
       });
@@ -3727,6 +3776,8 @@ async function loadPaie() {
     ]);
     var emps = empR.data || [];
     var horaires = horR.data || [];
+    // Charger l'historique pour utiliser les valeurs valides au DEBUT du cycle (d1)
+    await loadHistoryCache();
 
     var hByEmp = {};
     emps.forEach(function(e){ hByEmp[e.nom]=0; });
@@ -3746,11 +3797,16 @@ async function loadPaie() {
 
     emps.forEach(function(e) {
       var hT = Math.round(hByEmp[e.nom]*10)/10;
-      var taux = e.type_salaire === 'Annuel' ? Math.round(e.salaire/52/e.heures_semaine*100)/100 : (e.salaire||25);
+      // VALEURS HISTORIQUES au debut du cycle (d1 = YYYY-MM-DD)
+      var salaireHist     = parseFloat(histValueAt(e.nom, 'salaire',      d1, e.salaire))      || e.salaire || 25;
+      var typeSalaireHist = histValueAt(e.nom, 'type_salaire', d1, e.type_salaire) || e.type_salaire || 'Horaire';
+      var chargesHist     = parseFloat(histValueAt(e.nom, 'charges_pct',  d1, e.charges_pct))  || e.charges_pct || 15.5;
+      var hSemHist        = parseFloat(histValueAt(e.nom, 'heures_semaine', d1, e.heures_semaine)) || e.heures_semaine || 37.5;
+      var taux = typeSalaireHist === 'Annuel' ? Math.round(salaireHist/52/hSemHist*100)/100 : (salaireHist||25);
       // Cible heures pour un cycle = heures/semaine * (jours du cycle / 7)
-      var hNorm = Math.round(((e.heures_semaine || 37.5) * (S.payCycleDays || 14) / 7) * 10) / 10;
-      var charges = e.charges_pct || 15.5;
-      var isAnnuel = e.type_salaire === 'Annuel';
+      var hNorm = Math.round((hSemHist * (S.payCycleDays || 14) / 7) * 10) / 10;
+      var charges = chargesHist;
+      var isAnnuel = typeSalaireHist === 'Annuel';
 
       // Si 0h pointées ET salaire horaire : aucun calcul de coût (pas de fantôme)
       if (hT === 0 && !isAnnuel) {
@@ -4895,6 +4951,8 @@ function openAddEmp() {
   document.getElementById('em-photo-url').value = '';
   document.getElementById('em-photo-file').value = '';
   _pendingPhotoFile = null;
+  // Date d'effet : aujourd'hui par defaut pour un nouvel employe
+  document.getElementById('em-valid-from').value = new Date().toISOString().substring(0,10);
   setPhotoPreview(null, null);
   document.getElementById('emp-modal').style.display = 'flex';
 }
@@ -4918,11 +4976,143 @@ function openEditEmp(idx) {
   document.getElementById('em-photo-url').value = e.photo_url || '';
   document.getElementById('em-photo-file').value = '';
   _pendingPhotoFile = null;
+  // Date d'effet : aujourd'hui par defaut pour une modification
+  document.getElementById('em-valid-from').value = new Date().toISOString().substring(0,10);
+  // Stocker une copie des valeurs initiales pour detecter les changements
+  _empBeforeEdit = {
+    heures_semaine: e.heures_semaine,
+    salaire: e.salaire,
+    type_salaire: e.type_salaire,
+    charges_pct: e.charges_pct,
+    statut: e.statut,
+    departement: e.departement,
+    poste: e.poste,
+    type_poste: e.type_poste,
+    nom: e.nom,
+    id: e.id
+  };
   setPhotoPreview(e.photo_url || '', e.nom);
   document.getElementById('emp-modal').style.display = 'flex';
 }
+var _empBeforeEdit = null;
 
 function closeEmpModal() { document.getElementById('emp-modal').style.display = 'none'; _pendingPhotoFile = null; }
+
+// ════════════════════════════════════════════════════════════════
+// HELPERS HISTORIQUE — lookup de valeurs valides a une date donnee
+// ════════════════════════════════════════════════════════════════
+// Cache global : historique en memoire pour eviter les requetes repetees
+var _HIST_CACHE = null;        // { 'nom|champ' : [{valid_from:'YYYY-MM-DD', valeur:'...'}, ...] sorted desc }
+var _HIST_CACHE_LOADED = false;
+
+async function loadHistoryCache(){
+  if(_HIST_CACHE_LOADED) return _HIST_CACHE;
+  try {
+    var r = await authFetchAll('/rest/v1/rh_employes_history?select=nom,champ,valeur,valid_from&order=nom,champ,valid_from.desc');
+    var rows = r.data || [];
+    var cache = {};
+    rows.forEach(function(row){
+      var k = row.nom + '|' + row.champ;
+      if(!cache[k]) cache[k] = [];
+      cache[k].push({valid_from: row.valid_from, valeur: row.valeur});
+    });
+    // Chaque tableau est deja trie DESC par valid_from grace au ORDER BY
+    _HIST_CACHE = cache;
+    _HIST_CACHE_LOADED = true;
+    return _HIST_CACHE;
+  } catch(e){
+    console.warn('loadHistoryCache:', e.message);
+    _HIST_CACHE = {};
+    _HIST_CACHE_LOADED = true;
+    return _HIST_CACHE;
+  }
+}
+// Invalide le cache (a appeler apres modification d'un employe)
+function invalidateHistoryCache(){ _HIST_CACHE = null; _HIST_CACHE_LOADED = false; }
+
+// Retourne la valeur du champ valide pour nom a la date donnee (string YYYY-MM-DD).
+// Fallback si historique manquant.
+function histValueAt(nom, champ, dateISO, fallback){
+  if(!_HIST_CACHE) return fallback;
+  var arr = _HIST_CACHE[nom + '|' + champ];
+  if(!arr || !arr.length) return fallback;
+  // Cherche la 1ere entree dont valid_from <= dateISO (les entrees sont DESC)
+  for(var i=0; i<arr.length; i++){
+    if(arr[i].valid_from <= dateISO){
+      return arr[i].valeur !== undefined && arr[i].valeur !== null ? arr[i].valeur : fallback;
+    }
+  }
+  return fallback;
+}
+// Helper pratique : heures_semaine valides au mois (y, m) — utilise le 1er du mois
+function histHSemAtMonth(nom, y, m, fallback){
+  var iso = y + '-' + ('0'+(m+1)).slice(-2) + '-01';
+  var v = histValueAt(nom, 'heures_semaine', iso, fallback);
+  return parseFloat(v) || fallback || 37.5;
+}
+// Helper : salaire valide au mois (y, m)
+function histSalaryAtMonth(nom, y, m, fallback){
+  var iso = y + '-' + ('0'+(m+1)).slice(-2) + '-01';
+  var v = histValueAt(nom, 'salaire', iso, fallback);
+  return parseFloat(v) || fallback || 0;
+}
+
+// ════════════════════════════════════════════════════════════════
+// HISTORIQUE EMPLOYE (timeline des changements)
+// ════════════════════════════════════════════════════════════════
+var _CHAMP_LABELS = {
+  heures_semaine: 'Heures/semaine',
+  salaire: 'Salaire',
+  type_salaire: 'Type de salaire',
+  charges_pct: 'Charges (%)',
+  statut: 'Statut',
+  departement: 'Departement',
+  poste: 'Specialisation',
+  type_poste: 'Type de poste'
+};
+async function openEmpHistory(nom){
+  if(!nom){ toast('Nom requis',1); return; }
+  document.getElementById('emp-history-name').textContent = '— ' + nom;
+  document.getElementById('emp-history-content').innerHTML = '<div class="spin" style="padding:18px">Chargement...</div>';
+  document.getElementById('emp-history-modal').style.display = 'flex';
+  try {
+    var r = await authFetch('/rest/v1/rh_employes_history?nom=eq.'+encodeURIComponent(nom)+'&order=valid_from.desc,changed_at.desc&select=champ,valeur,valid_from,changed_at,changed_by');
+    var rows = r.data || [];
+    if(!rows.length){
+      document.getElementById('emp-history-content').innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink3)">Aucun historique disponible pour cet employe.</div>';
+      return;
+    }
+    // Grouper par champ
+    var byChamp = {};
+    rows.forEach(function(r){ (byChamp[r.champ] = byChamp[r.champ] || []).push(r); });
+    var h = '';
+    h += '<div style="background:#e8f4fd;border:1px solid #b8e0fb;border-radius:8px;padding:10px 14px;font-size:11.5px;color:#1e5582;margin-bottom:14px">';
+    h += '&#128161; <strong>Lecture :</strong> chaque ligne represente une valeur en vigueur a partir d\'une date donnee. La derniere valeur (plus recente) est celle actuellement appliquee.';
+    h += '</div>';
+    Object.keys(_CHAMP_LABELS).forEach(function(champ){
+      var arr = byChamp[champ];
+      if(!arr || !arr.length) return;
+      h += '<div style="margin-bottom:16px">';
+      h += '<div style="font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:8px"><span style="background:var(--ac-s);color:var(--ac);padding:2px 8px;border-radius:5px;font-size:11px">'+esc(_CHAMP_LABELS[champ])+'</span><small style="color:var(--ink3);font-weight:400">'+arr.length+' valeur(s)</small></div>';
+      h += '<div style="border:1px solid var(--bd);border-radius:7px;overflow:hidden">';
+      arr.forEach(function(r, i){
+        var isLatest = i === 0;
+        h += '<div style="display:flex;align-items:center;gap:12px;padding:9px 12px;'+(i>0?'border-top:1px solid var(--bd);':'')+'background:'+(isLatest?'#f0f9ff':'var(--card)')+'">';
+        h += '<div style="flex-shrink:0;width:120px;font-size:11.5px;color:var(--ink3)">Valide à partir du<br><strong style="color:var(--ink);font-weight:600">'+esc(r.valid_from)+'</strong></div>';
+        h += '<div style="flex:1;font-size:13px;font-weight:600;color:var(--ink)">'+esc(r.valeur||'(vide)')+(isLatest?'<span style="margin-left:8px;color:var(--gn);font-size:11px;background:#e8f5e9;padding:2px 6px;border-radius:4px">EN COURS</span>':'')+'</div>';
+        if(r.changed_by){
+          h += '<div style="flex-shrink:0;font-size:10.5px;color:var(--ink3);text-align:right">par '+esc(r.changed_by)+'<br><span style="font-size:10px">'+esc((r.changed_at||'').substring(0,10))+'</span></div>';
+        }
+        h += '</div>';
+      });
+      h += '</div></div>';
+    });
+    document.getElementById('emp-history-content').innerHTML = h;
+  } catch(e){
+    document.getElementById('emp-history-content').innerHTML = '<div style="color:var(--rd);padding:14px">Erreur : '+esc(e.message)+'</div>';
+  }
+}
+function closeEmpHistoryModal(){ document.getElementById('emp-history-modal').style.display = 'none'; }
 
 async function saveEmp() {
   var id = document.getElementById('em-id').value;
@@ -4952,14 +5142,54 @@ async function saveEmp() {
     charges_pct: parseFloat(document.getElementById('em-charges').value),
     photo_url: photoUrl
   };
+  // Date d'effet pour l'historique
+  var validFrom = document.getElementById('em-valid-from').value || new Date().toISOString().substring(0,10);
+  // Email de l'utilisateur qui fait le changement (pour audit)
+  var ses = JSON.parse(sessionStorage.getItem('rh_s')||'{}');
+  var changedBy = ses.email || 'unknown';
   try {
+    var employeId = id;
     if (id) {
       await authFetch('/rest/v1/rh_employes?id=eq.'+id, 'PATCH', data);
       toast('Employé modifié ✓');
     } else {
-      await authFetch('/rest/v1/rh_employes', 'POST', data);
+      var res = await authFetch('/rest/v1/rh_employes', 'POST', data);
+      // Recuperer le nouvel id pour l'historique
+      try {
+        var newR = await authFetch('/rest/v1/rh_employes?nom=eq.'+encodeURIComponent(nom)+'&select=id&limit=1');
+        if(newR.data && newR.data[0]) employeId = newR.data[0].id;
+      } catch(e){}
       toast('Employé ajouté ✓');
     }
+    // Historiser les champs qui ont change (ou tous si nouvel employe)
+    var historiseFields = ['heures_semaine','salaire','type_salaire','charges_pct','statut','departement','poste','type_poste'];
+    var historyRows = [];
+    historiseFields.forEach(function(champ){
+      var newVal = data[champ];
+      var oldVal = _empBeforeEdit ? _empBeforeEdit[champ] : undefined;
+      var changed = !id || String(newVal||'') !== String(oldVal||'');
+      if(changed && newVal !== null && newVal !== undefined){
+        historyRows.push({
+          employe_id: employeId,
+          nom: nom,
+          champ: champ,
+          valeur: String(newVal),
+          valid_from: validFrom,
+          changed_by: changedBy
+        });
+      }
+    });
+    if(historyRows.length){
+      try {
+        await authFetch('/rest/v1/rh_employes_history', 'POST', historyRows);
+      } catch(e){
+        // Non bloquant : si l'historique echoue, l'update employe a deja eu lieu
+        console.warn('Historique non enregistre :', e.message);
+      }
+    }
+    // Invalider le cache historique pour que les prochains calculs voient les changements
+    invalidateHistoryCache();
+    _empBeforeEdit = null;
     // Mettre a jour le cache des photos
     if (photoUrl) EMP_PHOTOS[nom] = photoUrl;
     else delete EMP_PHOTOS[nom];
