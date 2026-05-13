@@ -4408,24 +4408,14 @@ function renderRepertoire() {
       if(e.type_poste && e.poste) posteTxt = e.type_poste + ' · ' + e.poste;
       else posteTxt = e.type_poste || e.poste || '';
       h += '<div style="background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;transition:transform .12s,box-shadow .12s;box-shadow:var(--sh);position:relative" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.12)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'var(--sh)\'">';
-      // Kebab menu (admin uniquement) - utilise idx pour eviter pb de guillemets dans onclick
-      if(isDir){
-        var menuId = 'krep-'+idx;
-        var actLbl = e.actif !== false ? 'Désactiver' : 'Activer';
-        var actIcon = e.actif !== false ? '' : '';
-        h += '<div style="position:absolute;top:10px;right:10px;z-index:5">';
-        h += '<button class="kebab-btn" onclick="event.stopPropagation();toggleKebab(\''+menuId+'\',event)" title="Actions admin"></button>';
-        h += '<div class="kebab-menu" id="'+menuId+'">';
-        h += '<button class="kebab-item" onclick="event.stopPropagation();closeKebab();repEdit('+idx+')"><span class="kebab-icon"></span>Modifier</button>';
-        h += '<button class="kebab-item" onclick="event.stopPropagation();closeKebab();repToggleActif('+idx+')"><span class="kebab-icon">'+actIcon+'</span>'+actLbl+'</button>';
-        h += '<button class="kebab-item danger" onclick="event.stopPropagation();closeKebab();repDelete('+idx+')"><span class="kebab-icon"></span>Supprimer</button>';
-        h += '</div></div>';
-      }
+      // Note : les actions admin (Modifier/Desactiver/Supprimer) ont ete deplacees
+      // dans la modale vCard (bouton Configurer en bas), pour eviter de surcharger
+      // visuellement les cards et permettre un acces centralise.
       // Card clickable (vCard)
       h += '<div onclick="openRepCard('+idx+')" style="cursor:pointer">';
       h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">';
       h += photoHTML;
-      h += '<div style="overflow:hidden;flex:1;padding-right:'+(isDir?'24px':'0')+'">';
+      h += '<div style="overflow:hidden;flex:1">';
       h += '<div style="font-weight:700;font-size:16px;line-height:1.2">'+esc(e.nom)+'</div>';
       h += '<div style="font-size:14px;color:var(--ink2);margin-top:3px;line-height:1.3">'+esc(posteTxt)+'</div>';
       if(e.statut) h += '<div style="margin-top:5px"><span class="tag '+tagClass(e.statut)+'">'+esc(e.statut)+'</span>'+(e.actif===false?'<span style="margin-left:6px;font-size:12px;color:var(--rd);font-weight:600">(inactif)</span>':'')+'</div>';
@@ -4495,25 +4485,27 @@ function openRepCard(idx) {
     if(s==='Freelance') return 'tag-freelance';
     return 'tag-employe';
   }
-  var h = '<div style="background:linear-gradient(135deg,'+c+','+c+'dd);padding:30px 24px 50px;text-align:center;position:relative">';
-  h += '<button onclick="closeRepCard()" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center"></button>';
+  // Header avec photo et bouton fermer bien visible
+  var h = '<div style="background:linear-gradient(135deg,'+c+','+c+'dd);padding:24px 24px 70px;text-align:center;position:relative">';
+  h += '<button onclick="closeRepCard()" title="Fermer" style="position:absolute;top:14px;right:14px;background:rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.5);color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1;transition:background .12s" onmouseover="this.style.background=\'rgba(0,0,0,.6)\'" onmouseout="this.style.background=\'rgba(0,0,0,.35)\'">&times;</button>';
   h += '<div style="display:inline-block">'+photoHTML+'</div>';
   h += '</div>';
-  h += '<div style="padding:0 24px 24px;margin-top:-30px;text-align:center">';
-  h += '<div style="font-size:24px;font-weight:800;color:var(--ink)">'+esc(e.nom)+'</div>';
-  if(posteTxt) h += '<div style="font-size:16px;color:var(--ink2);margin-top:4px">'+esc(posteTxt)+'</div>';
+  // Bloc nom : remonte par-dessus le header vert (-50px) sur fond carte avec ombre pour visibilite
+  h += '<div style="padding:0 24px 24px;margin-top:-50px;text-align:center;position:relative;z-index:1">';
+  h += '<div style="background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,.10)">';
+  h += '<div style="font-size:24px;font-weight:800;color:var(--ink);line-height:1.2">'+esc(e.nom)+'</div>';
+  if(posteTxt) h += '<div style="font-size:16px;color:var(--ink2);margin-top:6px">'+esc(posteTxt)+'</div>';
   if(e.statut) h += '<div style="margin-top:10px"><span class="tag '+tcls(e.statut)+'">'+esc(e.statut)+'</span></div>';
+  h += '</div>';
   h += '</div>';
   h += '<div style="padding:0 24px 24px;display:flex;flex-direction:column;gap:8px">';
   if(e.departement){
     h += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px">';
-    h += '<span style="font-size:20px"></span>';
-    h += '<div><div style="font-size:13px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">D&eacute;partement</div><div style="font-size:15px;font-weight:600;margin-top:2px">'+esc(e.departement)+'</div></div>';
+    h += '<div style="flex:1"><div style="font-size:13px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">D&eacute;partement</div><div style="font-size:15px;font-weight:600;margin-top:2px">'+esc(e.departement)+'</div></div>';
     h += '</div>';
   }
   if(e.email){
     h += '<a href="mailto:'+encodeURIComponent(e.email)+'" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px;transition:background .12s" onmouseover="this.style.background=\'var(--ac-s)\'" onmouseout="this.style.background=\'var(--s2)\'">';
-    h += '<span style="font-size:20px"></span>';
     h += '<div style="flex:1"><div style="font-size:13px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">Courriel</div><div style="font-size:15px;font-weight:600;margin-top:2px">'+esc(e.email)+'</div></div>';
     h += '<span style="color:var(--ac);font-size:16px">&rarr;</span>';
     h += '</a>';
@@ -4521,14 +4513,35 @@ function openRepCard(idx) {
   if(e.telephone){
     var telLink = 'tel:'+encodeURIComponent(e.telephone.replace(/\s/g,''))+(e.poste_tel?',,'+encodeURIComponent(e.poste_tel):'');
     h += '<a href="'+telLink+'" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px;transition:background .12s" onmouseover="this.style.background=\'var(--ac-s)\'" onmouseout="this.style.background=\'var(--s2)\'">';
-    h += '<span style="font-size:20px"></span>';
     h += '<div style="flex:1"><div style="font-size:13px;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px">T&eacute;l&eacute;phone</div><div style="font-size:15px;font-weight:600;margin-top:2px">'+esc(e.telephone)+(e.poste_tel?' &middot; poste '+esc(e.poste_tel):'')+'</div></div>';
     h += '<span style="color:var(--ac);font-size:16px">&rarr;</span>';
     h += '</a>';
   }
   h += '</div>';
+  // Section Configurer (admin uniquement) - bouton deroulant qui revele les actions
+  if(typeof S !== 'undefined' && S.role === 'direction'){
+    var actLbl = e.actif !== false ? 'Désactiver' : 'Activer';
+    h += '<div style="padding:0 24px 20px;border-top:1px solid var(--bd);margin-top:6px;padding-top:14px">';
+    h += '<button onclick="toggleRepCardConfig()" id="rep-config-btn" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);transition:background .12s" onmouseover="this.style.background=\'var(--ac-s)\'" onmouseout="this.style.background=\'var(--s2)\'">';
+    h += '<span>Configurer</span><span id="rep-config-arrow" style="font-size:13px;color:var(--ink3);transition:transform .15s">&#9660;</span>';
+    h += '</button>';
+    h += '<div id="rep-config-panel" style="display:none;margin-top:10px;display:none;flex-direction:column;gap:6px">';
+    h += '<button onclick="closeRepCard();repEdit('+idx+')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--card);border:1px solid var(--bd);border-radius:8px;cursor:pointer;text-align:left;font-size:14px;font-weight:500;color:var(--ink);transition:background .12s" onmouseover="this.style.background=\'var(--s2)\'" onmouseout="this.style.background=\'var(--card)\'">&#9999; <span>Modifier la fiche</span></button>';
+    h += '<button onclick="closeRepCard();repToggleActif('+idx+')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--card);border:1px solid var(--bd);border-radius:8px;cursor:pointer;text-align:left;font-size:14px;font-weight:500;color:var(--ink);transition:background .12s" onmouseover="this.style.background=\'var(--s2)\'" onmouseout="this.style.background=\'var(--card)\'">'+(e.actif !== false ? '&#128683;' : '&#10003;')+' <span>'+actLbl+'</span></button>';
+    h += '<button onclick="closeRepCard();repDelete('+idx+')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--card);border:1px solid var(--bd);border-radius:8px;cursor:pointer;text-align:left;font-size:14px;font-weight:500;color:var(--rd);transition:background .12s" onmouseover="this.style.background=\'#fee2e2\'" onmouseout="this.style.background=\'var(--card)\'">&#128465; <span>Supprimer</span></button>';
+    h += '</div>';
+    h += '</div>';
+  }
   document.getElementById('rep-card-content').innerHTML = h;
   document.getElementById('rep-card-modal').style.display = 'flex';
+}
+function toggleRepCardConfig(){
+  var panel = document.getElementById('rep-config-panel');
+  var arrow = document.getElementById('rep-config-arrow');
+  if(!panel) return;
+  var isOpen = panel.style.display === 'flex';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  if(arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 function closeRepCard(){ document.getElementById('rep-card-modal').style.display='none'; }
 
