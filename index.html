@@ -4869,10 +4869,17 @@ async function saveParam(id, cle) {
   var val = document.getElementById('param-'+id).value;
   try {
     await authFetch('/rest/v1/rh_config?id=eq.'+id, 'PATCH', {valeur: val});
-    // Mettre a jour le cache local si c'est un param de cycle de paie
+    // Mettre a jour les caches locaux selon le parametre
     if(cle === 'paie_cycle_start') S.payCycleStart = val;
     if(cle === 'paie_cycle_jours') S.payCycleDays = parseInt(val) || 14;
-    toast('Paramètre sauvegardé ');
+    if(cle === 'min_jours_bureau_sem'){
+      S.minJoursBureauSem = parseFloat(val) || 2;
+      // Invalider les caches qui calculent des cibles pour forcer recalcul au prochain affichage
+      if(S._planCache) S._planCache = {};
+      if(typeof invalidateHistoryCache === 'function') invalidateHistoryCache();
+    }
+    if(cle === 'h_norm_sem') S.hNormSem = parseFloat(val) || 37.5;
+    toast('Paramètre sauvegardé ✓ — rechargez le Dashboard / la Fiche pour voir les nouveaux calculs');
   } catch(e) { toast('Erreur: ' + e.message, 1); }
 }
 
