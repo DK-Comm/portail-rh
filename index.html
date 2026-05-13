@@ -28,6 +28,11 @@ html,body{overflow-x:hidden;max-width:100vw}
 body,button,input,textarea,select{font-family:'Be Vietnam Pro','Segoe UI',system-ui,sans-serif;font-weight:500}
 body{background:var(--bg);color:var(--ink);font-size:17px;line-height:1.55;min-height:100vh}
 strong,b,h1,h2,h3,h4,h5,h6{font-weight:700}
+/* Inputs date : forcer un schema clair pour que le texte soit lisible meme en mode sombre */
+body.dark input[type="date"]{color-scheme:dark}
+input[type="date"]{cursor:pointer}
+input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.8}
+input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .main-area{min-width:0}
 /* Sur mobile/tablette : laisser le scroll horizontal pour pouvoir naviguer dans la page (app non mobile-optimized) */
 @media (max-width:768px){
@@ -1191,7 +1196,7 @@ var SUPA = {
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:18px;padding:14px;background:var(--s2);border:1px solid var(--bd);border-radius:10px">
         <div>
           <label style="font-size:13px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Date d'effet</label>
-          <input type="date" id="ar-valid-from" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card)">
+          <input type="date" id="ar-valid-from" onclick="this.showPicker&&this.showPicker()" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card);color:var(--ink);cursor:pointer">
         </div>
         <div>
           <label style="font-size:13px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Mode rapide</label>
@@ -1366,7 +1371,7 @@ var SUPA = {
         <label style="font-size:14px;font-weight:700;color:#7a5d00;display:block">Date d'effet des changements</label>
         <small style="font-size:13px;color:#7a5d00">Les modifications de salaire, heures/sem, statut, etc. seront historisees a partir de cette date. Important pour les rapports retrospectifs.</small>
       </div>
-      <input id="em-valid-from" type="date" style="padding:7px 10px;border:1.5px solid #f4d35e;border-radius:6px;font-size:15px;background:#fff">
+      <input id="em-valid-from" type="date" onclick="this.showPicker&&this.showPicker()" style="padding:7px 10px;border:1.5px solid #f4d35e;border-radius:6px;font-size:15px;background:#fff;color:#1a1d2e;color-scheme:light">
     </div>
     <div class="modal-footer" style="margin-top:14px">
       <button class="btn-sm btn-secondary" onclick="closeEmpModal()">Annuler</button>
@@ -4566,7 +4571,7 @@ async function loadConfig() {
       // Champ adapte selon la cle
       var inputHtml;
       if(p.cle === 'paie_cycle_start'){
-        inputHtml = '<input type="date" value="'+p.valeur+'" id="param-'+p.id+'" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:15px">';
+        inputHtml = '<input type="date" value="'+p.valeur+'" id="param-'+p.id+'" onclick="this.showPicker&&this.showPicker()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:15px;background:var(--card);color:var(--ink);cursor:pointer">';
       } else {
         inputHtml = '<input value="'+p.valeur+'" id="param-'+p.id+'" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:15px;width:120px">';
       }
