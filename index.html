@@ -2256,6 +2256,31 @@ function renderRsm(s){
   var kg=document.createElement('div');kg.className='kgrid';
   kpis.forEach(function(k){var c=k.l==='Absences'?'':kc(k.p,k.lo,k.hi);var f=k.l==='Absences'?'var(--ink3)':kf(k.p,k.lo,k.hi);var kd=document.createElement('div');kd.className='kcard '+c;kd.innerHTML='<div class="kcard-l">'+k.l+'</div><div class="kcard-v">'+k.v+'</div><div class="kcard-s">'+k.s+'</div><div class="kcard-bar"><div class="kcard-fill" style="width:'+k.p+'%;background:'+f+'"></div></div>';kg.appendChild(kd);});
   area.appendChild(kg);
+
+  // === BANQUES D'ABSENCES (annee en cours) \u2014 meme rendu que Fiche employe ===
+  var banqueMaladie = s.banqueMaladie || 10;
+  var banquePerso = s.banquePerso || 3;
+  var maladieUtilise = s.maladieUtilise || 0;
+  var persoUtilise = s.persoUtilise || 0;
+  var restantMaladie = Math.max(0, banqueMaladie - maladieUtilise);
+  var restantPerso = Math.max(0, banquePerso - persoUtilise);
+  var banquesDiv = document.createElement('div');
+  banquesDiv.style.cssText = 'display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap';
+  function bankCard(title, restant, total, utilise){
+    var col = restant<=2?'var(--rd)':restant<=4?'var(--am)':'var(--gr)';
+    var widthPct = total>0?Math.round((restant/total)*100):0;
+    var div = document.createElement('div');
+    div.style.cssText = 'flex:1;min-width:240px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 18px';
+    div.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-size:15px;font-weight:700;color:var(--ink)">'+title+'</div><div style="font-size:13px;color:var(--ink3)">Annee '+S.rY+'</div></div>' +
+      '<div style="font-size:26px;font-weight:800;color:'+col+'">'+restant+' <span style="font-size:15px;color:var(--ink3);font-weight:500">/ '+total+' j restant(s)</span></div>' +
+      '<div style="font-size:14px;color:var(--ink2);margin-top:4px">Utilis&eacute; : <strong>'+utilise+' j</strong></div>' +
+      '<div style="height:6px;background:var(--bd);border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;background:'+col+';width:'+widthPct+'%"></div></div>';
+    return div;
+  }
+  banquesDiv.appendChild(bankCard('Banque maladie', restantMaladie, banqueMaladie, maladieUtilise));
+  banquesDiv.appendChild(bankCard('Banque perso (cong&eacute;s)', restantPerso, banquePerso, persoUtilise));
+  area.appendChild(banquesDiv);
   // Stats
   var rc=document.createElement('div');rc.className='r2c';
   var left=document.createElement('div');
@@ -3093,14 +3118,32 @@ var supabaseAPI = {
         if(mn>0){h+=mn/60;worked++;if(inf.bureau)bur++;}
       } else if(inf.type&&inf.type!=='work'){abs++;}
     });
-    // Recuperer heures_semaine pour calculer target mensuel personnalise
-    var hSem = 37.5;
+    // Recuperer infos employe pour target + banques
+    var hSem = 37.5, banqueMaladie = 10, banquePerso = 3;
     try {
-      var r = await spFetch('rh_employes?select=heures_semaine&nom=eq.'+encodeURIComponent(emp)+'&limit=1');
-      if(r && r[0] && r[0].heures_semaine) hSem = parseFloat(r[0].heures_semaine);
+      var r = await spFetch('rh_employes?select=heures_semaine,banque_maladie,banque_perso&nom=eq.'+encodeURIComponent(emp)+'&limit=1');
+      if(r && r[0]){
+        if(r[0].heures_semaine) hSem = parseFloat(r[0].heures_semaine);
+        if(r[0].banque_maladie !== null && r[0].banque_maladie !== undefined) banqueMaladie = parseInt(r[0].banque_maladie);
+        if(r[0].banque_perso !== null && r[0].banque_perso !== undefined) banquePerso = parseInt(r[0].banque_perso);
+      }
     } catch(e){}
     var targetH = Math.round(hSem * 4.33 * 10) / 10;
-    return {totalH:Math.round(h*10)/10,worked:worked,bur:bur,abs:abs,heuresSemaine:hSem,targetH:targetH};
+    // Compter les absences ANNUELLES (toute l'annee y) pour le decompte des banques
+    var totalMaladieY = 0, totalPersoY = 0;
+    try {
+      var horY = await spFetchAll('rh_horaires?select=type_jour,date_pointage&employe=eq.'+encodeURIComponent(emp)+'&date_pointage=gte.'+y+'-01-01&date_pointage=lte.'+y+'-12-31');
+      (horY||[]).forEach(function(rr){
+        if(rr.type_jour === 'Malade') totalMaladieY++;
+        else if(rr.type_jour === 'CONGE' || rr.type_jour === 'VACANCES') totalPersoY++;
+      });
+    } catch(e){}
+    return {
+      totalH:Math.round(h*10)/10, worked:worked, bur:bur, abs:abs,
+      heuresSemaine:hSem, targetH:targetH,
+      banqueMaladie:banqueMaladie, banquePerso:banquePerso,
+      maladieUtilise:totalMaladieY, persoUtilise:totalPersoY
+    };
   },
 
   // Dashboard direction (signature: d1, d2 ISO yyyy-mm-dd, target H, period)
