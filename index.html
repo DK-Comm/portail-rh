@@ -2814,13 +2814,30 @@ function renderDash(d){
 
   // ── SECTION 5 : Table complète ──
   h+='<div class="d-sect"><div class="d-sect-lbl">Detail complet &mdash; '+dashRange().label+'</div>';
+  // Cible bureau et % attendu pour la periode (selon param min_jours_bureau_sem)
+  var minJB_d = S.minJoursBureauSem || 2;
+  var weeksInP = (dashRange().target || 162.5) / 37.5;  // 1 / 4.33 / 13 selon periode
+  var cibleBurP = Math.round(minJB_d * weeksInP * 10) / 10;  // jours bureau attendus dans la periode
+  var ciblePctBur = Math.round(minJB_d / 5 * 100);
   h+='<div class="dcard"><div class="dcard-body" style="padding-top:0"><div style="overflow-x:auto"><table class="dtbl"><thead><tr><th>Employe</th><th>Departement</th><th>Poste</th><th>H trav.</th><th>% obj.</th><th>J bureau</th><th>Taux bur.</th><th>H moy/j</th><th>Absences</th><th>Statut</th></tr></thead><tbody>';
   if(d.empStats){d.empStats.forEach(function(e){
     var pc=e.pct>=95?'dp-ok':e.pct>=80?'dp-warn':'dp-err';
-    var bc=e.bureauPct>=40?'dp-ok':e.bureauPct>=25?'dp-warn':'dp-err';
+    var bc=e.bureauPct>=ciblePctBur?'dp-ok':e.bureauPct>=ciblePctBur*0.6?'dp-warn':'dp-err';
     var moy=e.worked>0?Math.round(e.h/e.worked*10)/10:0;
-    var glob=e.pct>=95&&e.bureauPct>=40?'<span class="dpill dp-ok">Conforme</span>':e.worked===0?'<span class="dpill dp-err">Pas de saisie</span>':e.pct>=80?'<span class="dpill dp-warn">Partiel</span>':'<span class="dpill dp-err">A surveiller</span>';
-    h+='<tr><td style="font-weight:600">'+e.name+'</td><td style="font-size:13px;color:var(--ink2)">'+(e.dept||'—')+'</td><td style="font-size:13px;color:var(--ink2)">'+( POSTES[e.name]||'—')+'</td><td>'+e.h+'h</td><td><span class="dpill '+pc+'">'+e.pct+'%</span></td><td>'+e.bur+'j</td><td><span class="dpill '+bc+'">'+e.bureauPct+'%</span></td><td>'+moy+'h</td><td>'+e.abs+'j</td><td>'+glob+'</td></tr>';
+    var glob=e.pct>=95&&e.bureauPct>=ciblePctBur?'<span class="dpill dp-ok">Conforme</span>':e.worked===0?'<span class="dpill dp-err">Pas de saisie</span>':e.pct>=80?'<span class="dpill dp-warn">Partiel</span>':'<span class="dpill dp-err">A surveiller</span>';
+    var hCible = e.target || 0;
+    h+='<tr>';
+    h+='<td style="font-weight:600">'+esc(e.name)+'</td>';
+    h+='<td style="font-size:13px;color:var(--ink2)">'+esc(e.dept||'—')+'</td>';
+    h+='<td style="font-size:13px;color:var(--ink2)">'+esc(POSTES[e.name]||'—')+'</td>';
+    h+='<td>'+e.h+'h <small style="color:var(--ink3)">/ '+hCible+'h</small></td>';
+    h+='<td><span class="dpill '+pc+'">'+e.pct+'%</span></td>';
+    h+='<td>'+e.bur+'j <small style="color:var(--ink3)">/ '+cibleBurP+'j</small></td>';
+    h+='<td><span class="dpill '+bc+'">'+e.bureauPct+'% <small>/ '+ciblePctBur+'%</small></span></td>';
+    h+='<td>'+moy+'h</td>';
+    h+='<td>'+e.abs+'j</td>';
+    h+='<td>'+glob+'</td>';
+    h+='</tr>';
   });}
   h+='</tbody></table></div></div></div>';
 
@@ -2868,20 +2885,26 @@ function dkpi(label,val,sub,barPct,deltaCls,deltaLbl,accentColor,accentDark){
 
 function renderTeam(d){
   if(!d||!d.empStats){document.getElementById('team-content').innerHTML='<div class="spin">Pas de donnees</div>';return;}
+  // Cibles dynamiques basees sur min_jours_bureau_sem
+  var minJB_t = S.minJoursBureauSem || 2;
+  var weeksInP_t = (d.kpis && d.kpis.target ? d.kpis.target : 162.5) / 37.5;
+  var cibleBurP_t = Math.round(minJB_t * weeksInP_t * 10) / 10;
+  var ciblePctBur_t = Math.round(minJB_t / 5 * 100);
   var h='<div class="dcard"><div class="dcard-hdr"><h3>Detail par employe &mdash; '+MFR2[S.teamM]+' '+S.teamY+'</h3></div><div class="dcard-body">';
   h+='<table class="dtbl"><thead><tr><th>Employe</th><th>H trav.</th><th>% objectif</th><th>J travailles</th><th>J bureau</th><th>Taux bureau</th><th>Absences</th><th>Statut</th></tr></thead><tbody>';
   d.empStats.forEach(function(e){
     var pPct=e.pct;var bPct=e.bureauPct;
     var pc=pPct>=95?'dp-ok':pPct>=80?'dp-warn':'dp-err';
-    var bc=bPct>=40?'dp-ok':bPct>=25?'dp-warn':'dp-err';
-    h+='<tr><td style="font-weight:500">'+e.name+'</td>'
-      +'<td>'+e.h+'h</td>'
+    var bc=bPct>=ciblePctBur_t?'dp-ok':bPct>=ciblePctBur_t*0.6?'dp-warn':'dp-err';
+    var hCible_t = e.target || 0;
+    h+='<tr><td style="font-weight:500">'+esc(e.name)+'</td>'
+      +'<td>'+e.h+'h <small style="color:var(--ink3)">/ '+hCible_t+'h</small></td>'
       +'<td><span class="dpill '+pc+'">'+pPct+'%</span></td>'
       +'<td>'+e.worked+'j</td>'
-      +'<td>'+e.bur+'j</td>'
-      +'<td><span class="dpill '+bc+'">'+bPct+'%</span></td>'
+      +'<td>'+e.bur+'j <small style="color:var(--ink3)">/ '+cibleBurP_t+'j</small></td>'
+      +'<td><span class="dpill '+bc+'">'+bPct+'% <small>/ '+ciblePctBur_t+'%</small></span></td>'
       +'<td>'+e.abs+'j</td>'
-      +'<td>'+(pPct>=95&&bPct>=40?'<span class="dpill dp-ok">Conforme</span>':pPct>=80?'<span class="dpill dp-warn">Partiel</span>':'<span class="dpill dp-err">A surveiller</span>')+'</td>'
+      +'<td>'+(pPct>=95&&bPct>=ciblePctBur_t?'<span class="dpill dp-ok">Conforme</span>':pPct>=80?'<span class="dpill dp-warn">Partiel</span>':'<span class="dpill dp-err">A surveiller</span>')+'</td>'
       +'</tr>';
   });
   h+='</tbody></table></div></div>';
@@ -4001,21 +4024,32 @@ async function loadFiche() {
       var pm = tgtMois>0 ? Math.round(bm.h/tgtMois*100) : 0;
       var bpct = bm.worked > 0 ? Math.round(bm.bur/bm.worked*100) : 0;
       var statusColor = pm >= 95 ? 'var(--gr)' : pm >= 70 ? 'var(--am)' : 'var(--rd)';
+      // Cible bureau mensuelle = min_jours_bureau_sem * 4.33
+      var cibleBurMois = Math.round(empMinBureau * 4.33 * 10) / 10;
+      var cibleBurPctF = Math.round(empMinBureau / 5 * 100);
+      var bColor = bpct >= cibleBurPctF ? 'var(--gr)' : bpct >= cibleBurPctF*0.6 ? 'var(--am)' : 'var(--rd)';
       h += '<tr><td><strong>' + MOIS[m] + '</strong></td>';
       h += '<td>' + hm + 'h</td>';
       h += '<td>' + tgtMois + 'h</td>';
       h += '<td style="color:' + (ecart>=0?'var(--gr)':'var(--rd)') + '">' + (ecart>=0?'+':'') + ecart + 'h</td>';
       h += '<td style="color:' + statusColor + ';font-weight:600">' + pm + '%</td>';
-      h += '<td>' + bm.bur + 'j</td>';
-      h += '<td>' + bpct + '%</td>';
+      h += '<td>' + bm.bur + ' <small style="color:var(--ink3)">/ ' + cibleBurMois + 'j</small></td>';
+      h += '<td style="color:' + bColor + '">' + bpct + '% <small style="color:var(--ink3);font-weight:400">/ ' + cibleBurPctF + '%</small></td>';
       h += '<td>' + bm.conge + 'j</td>';
       h += '</tr>';
     }
+    // Total annuel : cible bureau = min_jours_bureau_sem * 52, banque conges depuis empData
+    var cibleBurAnnee = Math.round(empMinBureau * 52 * 10) / 10;
+    var banquePersoFiche2 = parseInt(empData.banque_perso); if(isNaN(banquePersoFiche2)) banquePersoFiche2 = 3;
     h += '<tr style="background:#f8f9fc;font-weight:700"><td>TOTAL</td>';
-    h += '<td>' + hR + 'h</td><td>' + tgtAnnuel + 'h</td>';
+    h += '<td>' + hR + 'h <small style="color:var(--ink3);font-weight:400">/ ' + tgtAnnuel + 'h</small></td>';
+    h += '<td>' + tgtAnnuel + 'h</td>';
     h += '<td style="color:' + (hSupp>=0?'var(--gr)':'var(--rd)') + '">+' + hSupp + 'h</td>';
-    h += '<td>' + pct + '%</td><td>' + totalBur + 'j</td>';
-    h += '<td>' + bureauPct + '%</td><td>' + totalConge + 'j</td></tr>';
+    h += '<td>' + pct + '%</td>';
+    h += '<td>' + totalBur + ' <small style="color:var(--ink3);font-weight:400">/ ' + cibleBurAnnee + 'j</small></td>';
+    h += '<td>' + bureauPct + '%</td>';
+    h += '<td>' + totalConge + ' <small style="color:var(--ink3);font-weight:400">/ ' + banquePersoFiche2 + 'j banque</small></td>';
+    h += '</tr>';
     h += '</tbody></table></div>';
     
     el.innerHTML = h;
