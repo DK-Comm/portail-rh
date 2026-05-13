@@ -572,13 +572,25 @@ body.dir-mode.viewing-emp .tb-period{display:none}
 .card-table tr:hover td{background:#f8f9fc}
 .btn-sm{padding:5px 12px;border-radius:6px;font-size:14px;font-weight:500;border:none;cursor:pointer}
 .btn-primary{background:var(--ac);color:#fff}.btn-danger{background:var(--rd);color:#fff}.btn-success{background:var(--gr);color:#fff}.btn-secondary{background:var(--bd2);color:var(--ink2)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.form-group{display:flex;flex-direction:column}
+.form-group label{font-size:12px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;min-height:32px;display:flex;align-items:flex-end;line-height:1.3}
+.form-group label small{font-weight:400;color:var(--ink3);text-transform:none;letter-spacing:0;margin-left:6px}
+.form-group input,.form-group select,.form-group textarea{padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;background:var(--card);color:var(--ink);font-family:inherit;width:100%}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-s)}
+/* Sections dans une grosse modale */
+.form-section{border:1px solid var(--bd);border-radius:12px;padding:16px 18px;margin-bottom:16px;background:var(--card)}
+.form-section-title{font-size:13px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px}
+.form-section-title small{font-weight:500;color:var(--ink3);text-transform:none;letter-spacing:0;font-size:11px;margin-left:auto}
+body.dark .form-section{background:rgba(255,255,255,.02);border-color:var(--bd)}
 .form-group label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:4px;text-transform:uppercase}
 .form-group input,.form-group select{width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:15px;color:var(--ink);box-sizing:border-box;background:var(--card)}
 .form-group input:focus,.form-group select:focus{border-color:var(--ac);outline:none}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center}
-.modal-box{background:var(--card);border-radius:var(--r);padding:28px 32px;max-width:560px;width:90%;max-height:90vh;overflow-y:auto}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-box{background:var(--card);border-radius:var(--r);padding:28px 32px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto}
+/* Variant large pour les modales avec beaucoup de champs (ex emp-modal) */
+#emp-modal .modal-box{max-width:820px}
 .modal-title{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:20px}
 .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--bd)}
 .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:13px;font-weight:600}
@@ -1310,68 +1322,125 @@ var SUPA = {
   <div class="modal-box">
     <div class="modal-title" id="emp-modal-title">Ajouter un employ&eacute;</div>
     <input type="hidden" id="em-id">
-    <!-- Photo -->
-    <div style="display:flex;align-items:center;gap:18px;padding:16px;background:var(--s2);border-radius:10px;margin-bottom:16px">
-      <div id="em-photo-preview" style="width:84px;height:84px;border-radius:50%;background:var(--bd);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden;border:2px solid var(--bd2)">?</div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
-        <label style="font-size:13px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px">Photo de l'employ&eacute;</label>
-        <input type="file" id="em-photo-file" accept="image/*" style="font-size:14px" onchange="onPhotoSelected(event)">
-        <input type="hidden" id="em-photo-url">
-        <div style="font-size:13px;color:var(--ink3)">JPG, PNG ou WebP &middot; max 5 Mo &middot; upload automatique &agrave; l'enregistrement</div>
-        <button type="button" class="btn-sm btn-secondary" id="em-photo-remove" style="display:none;align-self:flex-start;font-size:13px;padding:4px 10px" onclick="removePhoto()"> Retirer photo</button>
+
+    <!-- SECTION 1 : Identite ============================================ -->
+    <div class="form-section">
+      <div class="form-section-title">Identit&eacute;</div>
+      <div style="display:flex;align-items:flex-start;gap:18px;padding:14px;background:var(--s2);border-radius:10px;margin-bottom:14px">
+        <div id="em-photo-preview" style="width:96px;height:96px;border-radius:50%;background:var(--bd);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden;border:2px solid var(--bd2)">?</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:12px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;margin:0">Photo de l'employ&eacute;</label>
+          <input type="file" id="em-photo-file" accept="image/*" style="font-size:13px" onchange="onPhotoSelected(event)">
+          <input type="hidden" id="em-photo-url">
+          <div style="font-size:11.5px;color:var(--ink3)">JPG, PNG ou WebP &middot; max 5 Mo</div>
+          <button type="button" class="btn-sm btn-secondary" id="em-photo-remove" style="display:none;align-self:flex-start;font-size:12px;padding:5px 11px" onclick="removePhoto()">Retirer la photo</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Nom complet</label><input id="em-nom" placeholder="Pr&eacute;nom Nom"></div>
+        <div class="form-group"><label>Date de naissance <small>(optionnel)</small></label><input id="em-naissance" type="date" onclick="this.showPicker&&this.showPicker()"></div>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Nom complet</label><input id="em-nom" placeholder="Pr&eacute;nom Nom"></div>
-      <div class="form-group"><label>Email</label><input id="em-email" type="email" placeholder="prenom.nom@espacemuni.org"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>T&eacute;l&eacute;phone</label><input id="em-tel" placeholder="450 466-9777"></div>
-      <div class="form-group"><label>N&deg; de poste t&eacute;l&eacute;phonique <span style="color:var(--ink3);font-weight:400;text-transform:none">(optionnel)</span></label><input id="em-postetel" placeholder="201"></div>
-    </div>
-    <div class="form-row-3">
-      <div class="form-group"><label>Statut</label><select id="em-statut">
-        <option value="Direction">Direction</option>
-        <option value="Employe">Employ&eacute;</option>
-        <option value="Stagiaire">Stagiaire</option>
-        <option value="Prestataire externe">Prestataire externe</option>
-        <option value="Pigiste">Pigiste</option>
-        <option value="Freelance">Freelance</option>
-      </select></div>
-      <div class="form-group"><label>H/semaine</label><input id="em-h" type="number" value="37.5" step="0.5" oninput="refreshSalaryConv()"></div>
-      <div class="form-group"><label>Actif</label><select id="em-actif"><option value="true">Oui</option><option value="false">Non</option></select></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>D&eacute;partement</label>
-        <select id="em-dept"></select>
+
+    <!-- SECTION 2 : Coordonnees ========================================= -->
+    <div class="form-section">
+      <div class="form-section-title">Coordonn&eacute;es <small>email + t&eacute;l&eacute;phones</small></div>
+      <div class="form-row">
+        <div class="form-group"><label>Email professionnel</label><input id="em-email" type="email" placeholder="prenom.nom@exemple.com"></div>
+        <div class="form-group"><label>T&eacute;l&eacute;phone bureau</label><input id="em-tel" placeholder="450 466-9777"></div>
       </div>
-      <div class="form-group"><label>Type de poste</label>
-        <select id="em-type-poste"></select>
+      <div class="form-row">
+        <div class="form-group"><label>N&deg; de poste <small>(optionnel)</small></label><input id="em-postetel" placeholder="201"></div>
+        <div class="form-group"><label>Cellulaire <small>(optionnel)</small></label><input id="em-cell" placeholder="514 555-1234"></div>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group" style="grid-column:1/-1"><label>Sp&eacute;cialisation <span style="color:var(--ink3);font-weight:400;text-transform:none">(optionnel, sans r&eacute;p&eacute;ter le type de poste)</span></label><input id="em-poste" placeholder="ex: Sant&eacute;, Famille, Communication, Comptable..."></div>
-    </div>
-    <div class="form-row-3">
-      <div class="form-group"><label>Salaire ($/h ou $/an)</label><input id="em-salaire" type="number" value="25" step="0.5" oninput="refreshSalaryConv()"></div>
-      <div class="form-group"><label>Type salaire</label><select id="em-type-sal" onchange="refreshSalaryConv()"><option value="Horaire">Horaire</option><option value="Annuel">Annuel</option></select></div>
-      <div class="form-group"><label>Charges %</label><input id="em-charges" type="number" value="15.5" step="0.1"></div>
-    </div>
-    <!-- Affichage conversions salariales live -->
-    <div id="em-salary-conv" style="margin-top:8px"></div>
-    <!-- Banques d'absences -->
-    <div class="form-row" style="margin-top:14px">
-      <div class="form-group"><label>Banque jours maladie / an</label><input id="em-banque-mal" type="number" value="10" step="1" min="0"></div>
-      <div class="form-group"><label>Banque jours perso / an</label><input id="em-banque-perso" type="number" value="3" step="1" min="0"></div>
-    </div>
-    <!-- Date d'effet : pour l'historique versionne -->
-    <div style="background:#fef9e7;border:1px solid #f4d35e;border-radius:8px;padding:10px 14px;margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span style="font-size:20px"></span>
-      <div style="flex:1;min-width:200px">
-        <label style="font-size:14px;font-weight:700;color:#7a5d00;display:block">Date d'effet des changements</label>
-        <small style="font-size:13px;color:#7a5d00">Les modifications de salaire, heures/sem, statut, etc. seront historisees a partir de cette date. Important pour les rapports retrospectifs.</small>
+
+    <!-- SECTION 3 : Adresse postale ===================================== -->
+    <div class="form-section">
+      <div class="form-section-title">Adresse <small>(optionnel)</small></div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1"><label>Adresse <small>num&eacute;ro et rue</small></label><input id="em-adresse" placeholder="123 rue de l'exemple"></div>
       </div>
-      <input id="em-valid-from" type="date" onclick="this.showPicker&&this.showPicker()" style="padding:7px 10px;border:1.5px solid #f4d35e;border-radius:6px;font-size:15px;background:#fff;color:#1a1d2e;color-scheme:light">
+      <div class="form-row-3">
+        <div class="form-group"><label>Ville</label><input id="em-ville" placeholder="Montr&eacute;al"></div>
+        <div class="form-group"><label>Province</label><input id="em-province" value="QC" placeholder="QC"></div>
+        <div class="form-group"><label>Code postal</label><input id="em-cp" placeholder="H2X 1Y4"></div>
+      </div>
+    </div>
+
+    <!-- SECTION 4 : Poste & statut ====================================== -->
+    <div class="form-section">
+      <div class="form-section-title">Poste et statut</div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Statut</label><select id="em-statut">
+          <option value="Direction">Direction</option>
+          <option value="Employe">Employ&eacute;</option>
+          <option value="Stagiaire">Stagiaire</option>
+          <option value="Prestataire externe">Prestataire externe</option>
+          <option value="Pigiste">Pigiste</option>
+          <option value="Freelance">Freelance</option>
+        </select></div>
+        <div class="form-group"><label>H/semaine</label><input id="em-h" type="number" value="37.5" step="0.5" oninput="refreshSalaryConv()"></div>
+        <div class="form-group"><label>Actif</label><select id="em-actif"><option value="true">Oui</option><option value="false">Non</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>D&eacute;partement</label><select id="em-dept"></select></div>
+        <div class="form-group"><label>Type de poste</label><select id="em-type-poste"></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1"><label>Sp&eacute;cialisation <small>(optionnel, sans r&eacute;p&eacute;ter le type de poste)</small></label><input id="em-poste" placeholder="ex: Sant&eacute;, Famille, Communication, Comptable..."></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Date d'embauche <small>(optionnel)</small></label><input id="em-embauche" type="date" onclick="this.showPicker&&this.showPicker()"></div>
+        <div class="form-group"></div>
+      </div>
+    </div>
+
+    <!-- SECTION 5 : R&eacute;mun&eacute;ration ============================ -->
+    <div class="form-section">
+      <div class="form-section-title">R&eacute;mun&eacute;ration</div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Salaire <small>$/h ou $/an</small></label><input id="em-salaire" type="number" value="25" step="0.5" oninput="refreshSalaryConv()"></div>
+        <div class="form-group"><label>Type de salaire</label><select id="em-type-sal" onchange="refreshSalaryConv()"><option value="Horaire">Horaire</option><option value="Annuel">Annuel</option></select></div>
+        <div class="form-group"><label>Charges %</label><input id="em-charges" type="number" value="15.5" step="0.1"></div>
+      </div>
+      <div id="em-salary-conv" style="margin-top:6px"></div>
+    </div>
+
+    <!-- SECTION 6 : Banques absences ==================================== -->
+    <div class="form-section">
+      <div class="form-section-title">Banques d'absences <small>jours alloues par an</small></div>
+      <div class="form-row">
+        <div class="form-group"><label>Banque jours maladie / an</label><input id="em-banque-mal" type="number" value="10" step="1" min="0"></div>
+        <div class="form-group"><label>Banque jours perso / an</label><input id="em-banque-perso" type="number" value="3" step="1" min="0"></div>
+      </div>
+    </div>
+
+    <!-- SECTION 7 : Contact urgence ===================================== -->
+    <div class="form-section">
+      <div class="form-section-title">Contact d'urgence <small>(optionnel)</small></div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Nom complet</label><input id="em-urg-nom" placeholder="Pr&eacute;nom Nom"></div>
+        <div class="form-group"><label>T&eacute;l&eacute;phone</label><input id="em-urg-tel" placeholder="514 555-1234"></div>
+        <div class="form-group"><label>Lien de parent&eacute;</label><input id="em-urg-lien" placeholder="Conjoint(e), parent..."></div>
+      </div>
+    </div>
+
+    <!-- SECTION 8 : Notes admin ========================================= -->
+    <div class="form-section">
+      <div class="form-section-title">Notes administratives <small>internes - non visibles par l'employ&eacute;</small></div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1"><label>Notes</label><textarea id="em-notes-admin" rows="3" placeholder="Notes RH internes (ex: cas particuliers, ajustements ponctuels...)"></textarea></div>
+      </div>
+    </div>
+
+    <!-- Date d'effet : historique versionne -->
+    <div style="background:#fef9e7;border:1px solid #f4d35e;border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:13px;font-weight:700;color:#7a5d00;margin-bottom:3px">Date d'effet des changements</div>
+        <div style="font-size:11.5px;color:#7a5d00;line-height:1.45">Les modifications de salaire, heures/sem, statut, etc. seront historis&eacute;es &agrave; partir de cette date. Important pour les rapports r&eacute;trospectifs.</div>
+      </div>
+      <input id="em-valid-from" type="date" onclick="this.showPicker&&this.showPicker()" style="padding:8px 12px;border:1.5px solid #f4d35e;border-radius:7px;font-size:14px;background:#fff;color:#1a1d2e;color-scheme:light;font-weight:600">
     </div>
     <div class="modal-footer" style="margin-top:14px">
       <button class="btn-sm btn-secondary" onclick="closeEmpModal()">Annuler</button>
@@ -5326,6 +5395,18 @@ function openAddEmp() {
   document.getElementById('em-photo-file').value = '';
   document.getElementById('em-banque-mal').value = '10';
   document.getElementById('em-banque-perso').value = '3';
+  // Nouveaux champs - vider
+  document.getElementById('em-naissance').value = '';
+  document.getElementById('em-cell').value = '';
+  document.getElementById('em-adresse').value = '';
+  document.getElementById('em-ville').value = '';
+  document.getElementById('em-province').value = 'QC';
+  document.getElementById('em-cp').value = '';
+  document.getElementById('em-embauche').value = '';
+  document.getElementById('em-urg-nom').value = '';
+  document.getElementById('em-urg-tel').value = '';
+  document.getElementById('em-urg-lien').value = '';
+  document.getElementById('em-notes-admin').value = '';
   _pendingPhotoFile = null;
   // Date d'effet : aujourd'hui par defaut pour un nouvel employe
   document.getElementById('em-valid-from').value = new Date().toISOString().substring(0,10);
@@ -5352,6 +5433,18 @@ function openEditEmp(idx) {
   document.getElementById('em-charges').value = e.charges_pct || 15.5;
   document.getElementById('em-banque-mal').value = (e.banque_maladie !== undefined && e.banque_maladie !== null) ? e.banque_maladie : 10;
   document.getElementById('em-banque-perso').value = (e.banque_perso !== undefined && e.banque_perso !== null) ? e.banque_perso : 3;
+  // Nouveaux champs
+  document.getElementById('em-naissance').value = e.date_naissance || '';
+  document.getElementById('em-cell').value = e.telephone_cell || '';
+  document.getElementById('em-adresse').value = e.adresse || '';
+  document.getElementById('em-ville').value = e.ville || '';
+  document.getElementById('em-province').value = e.province || 'QC';
+  document.getElementById('em-cp').value = e.code_postal || '';
+  document.getElementById('em-embauche').value = e.date_embauche || '';
+  document.getElementById('em-urg-nom').value = e.urgence_nom || '';
+  document.getElementById('em-urg-tel').value = e.urgence_tel || '';
+  document.getElementById('em-urg-lien').value = e.urgence_lien || '';
+  document.getElementById('em-notes-admin').value = e.notes_admin || '';
   document.getElementById('em-photo-url').value = e.photo_url || '';
   document.getElementById('em-photo-file').value = '';
   _pendingPhotoFile = null;
@@ -5774,17 +5867,28 @@ async function saveEmp() {
     email: document.getElementById('em-email').value.trim() || null,
     telephone: document.getElementById('em-tel').value.trim() || null,
     poste_tel: document.getElementById('em-postetel').value.trim() || null,
+    telephone_cell: document.getElementById('em-cell').value.trim() || null,
+    date_naissance: document.getElementById('em-naissance').value || null,
+    adresse: document.getElementById('em-adresse').value.trim() || null,
+    ville: document.getElementById('em-ville').value.trim() || null,
+    province: document.getElementById('em-province').value.trim() || null,
+    code_postal: document.getElementById('em-cp').value.trim() || null,
     statut: document.getElementById('em-statut').value,
     heures_semaine: parseFloat(document.getElementById('em-h').value),
     actif: document.getElementById('em-actif').value === 'true',
     departement: document.getElementById('em-dept').value,
     type_poste: document.getElementById('em-type-poste').value,
     poste: document.getElementById('em-poste').value.trim(),
+    date_embauche: document.getElementById('em-embauche').value || null,
     salaire: parseFloat(document.getElementById('em-salaire').value),
     type_salaire: document.getElementById('em-type-sal').value,
     charges_pct: parseFloat(document.getElementById('em-charges').value),
     banque_maladie: parseInt(document.getElementById('em-banque-mal').value) || 0,
     banque_perso: parseInt(document.getElementById('em-banque-perso').value) || 0,
+    urgence_nom: document.getElementById('em-urg-nom').value.trim() || null,
+    urgence_tel: document.getElementById('em-urg-tel').value.trim() || null,
+    urgence_lien: document.getElementById('em-urg-lien').value.trim() || null,
+    notes_admin: document.getElementById('em-notes-admin').value.trim() || null,
     photo_url: photoUrl
   };
   // Date d'effet pour l'historique
