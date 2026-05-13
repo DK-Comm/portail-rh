@@ -4856,7 +4856,7 @@ async function loadConfig() {
       }
       ph += '<tr><td><strong>'+label+'</strong><br><small style="color:var(--ink3)">'+p.cle+' &middot; '+p.categorie+'</small></td>';
       ph += '<td>'+inputHtml+'</td>';
-      ph += '<td><button class="btn-sm btn-primary" onclick="saveParam('+JSON.stringify(p.id)+',\''+p.cle+'\')">Sauver</button></td></tr>';
+      ph += '<td><button class="btn-sm btn-primary" onclick="saveParam(\''+p.id+'\',\''+p.cle+'\')">Sauver</button></td></tr>';
     });
     paramsEl.innerHTML = ph || '<tr><td colspan="3" style="color:var(--ink3)">Aucun paramètre</td></tr>';
   } catch(e) { paramsEl.innerHTML = '<tr><td colspan="3" style="color:var(--rd)">Erreur</td></tr>'; }
@@ -5230,7 +5230,7 @@ function renderRefSection(){
     hd += '<div class="kebab-menu" id="'+menuId+'">';
     hd += '<button class="kebab-item" onclick="closeKebab();openEditRef(\'dept\',\''+d.id+'\')"><span class="kebab-icon"></span>Modifier</button>';
     hd += '<button class="kebab-item" onclick="closeKebab();toggleRefActif(\'dept\',\''+d.id+'\','+(disabled?'true':'false')+')"><span class="kebab-icon">'+(disabled?'':'')+'</span>'+(disabled?'Activer':'Désactiver')+'</button>';
-    hd += '<button class="kebab-item danger" onclick="closeKebab();deleteRef(\'dept\',\''+d.id+'\','+JSON.stringify(d.nom)+')"><span class="kebab-icon"></span>Supprimer</button>';
+    hd += '<button class="kebab-item danger" onclick="closeKebab();deleteRef(\'dept\',\''+d.id+'\','+JSON.stringify(d.nom).replace(/"/g,'&quot;')+')"><span class="kebab-icon"></span>Supprimer</button>';
     hd += '</div></div></div>';
   });
   hd += '</div></div>';
@@ -5252,7 +5252,7 @@ function renderRefSection(){
     ht += '<div class="kebab-menu" id="'+menuId+'">';
     ht += '<button class="kebab-item" onclick="closeKebab();openEditRef(\'type\',\''+t.id+'\')"><span class="kebab-icon"></span>Modifier</button>';
     ht += '<button class="kebab-item" onclick="closeKebab();toggleRefActif(\'type\',\''+t.id+'\','+(disabled?'true':'false')+')"><span class="kebab-icon">'+(disabled?'':'')+'</span>'+(disabled?'Activer':'Désactiver')+'</button>';
-    ht += '<button class="kebab-item danger" onclick="closeKebab();deleteRef(\'type\',\''+t.id+'\','+JSON.stringify(t.nom)+')"><span class="kebab-icon"></span>Supprimer</button>';
+    ht += '<button class="kebab-item danger" onclick="closeKebab();deleteRef(\'type\',\''+t.id+'\','+JSON.stringify(t.nom).replace(/"/g,'&quot;')+')"><span class="kebab-icon"></span>Supprimer</button>';
     ht += '</div></div></div>';
   });
   ht += '</div></div>';
