@@ -1437,7 +1437,7 @@ var SUPA = {
       </div>
       <div class="form-row">
         <div class="form-group"><label>Date d'embauche <small>(optionnel)</small></label><input id="em-embauche" type="date" onclick="this.showPicker&&this.showPicker()"></div>
-        <div class="form-group"></div>
+        <div class="form-group"><label>Min jours bureau / sem <small>(override)</small></label><input id="em-min-bureau" type="number" step="0.5" min="0" max="7" placeholder="Laisser vide = global"></div>
       </div>
     </div>
 
@@ -1628,7 +1628,7 @@ var S = {
   // PERIODE GLOBALE - utilisee par toutes les vues
   gY:new Date().getFullYear(), gM:new Date().getMonth(),
   // CYCLES DE PAIE (bi-hebdo) - charges depuis rh_config au login
-  payCycleStart:null, payCycleDays:14, gCycle:null,
+  payCycleStart:null, payCycleDays:14, gCycle:null, minJoursBureauSem:2,
   // Cache client — evite les appels réseau répétés sur le même mois
   _empCache:{},   // {y_m_emp: data}
   _planCache:{}   // {y_m: planData}
@@ -1673,12 +1673,21 @@ async function loadReferentiels(){
     ]);
     REF_DEPTS=Array.isArray(rd)?rd:[];
     REF_TYPES=Array.isArray(rt)?rt:[];
-    // Charger les params de paie
+    // Charger les params de paie + autres
     (Array.isArray(rc)?rc:[]).forEach(function(p){
       if(p.cle==='paie_cycle_start') S.payCycleStart = p.valeur;
       if(p.cle==='paie_cycle_jours') S.payCycleDays = parseInt(p.valeur)||14;
+      if(p.cle==='min_jours_bureau_sem') S.minJoursBureauSem = parseFloat(p.valeur)||2;
     });
   }catch(e){console.warn('loadReferentiels:',e);}
+}
+
+// Retourne le min de jours bureau/sem pour un employe donne (override ou global)
+function getEmpMinBureau(emp){
+  if(emp && emp.min_jours_bureau !== null && emp.min_jours_bureau !== undefined && !isNaN(emp.min_jours_bureau)){
+    return parseFloat(emp.min_jours_bureau);
+  }
+  return S.minJoursBureauSem || 2;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2694,7 +2703,12 @@ function renderDash(d){
   // ── SECTION 2 : Présence (4 cartes) ──
   h+='<div class="d-sect"><div class="d-sect-lbl">Presence &amp; bureau</div>';
   h+='<div class="id-grid col4">';
-  h+=idCard(C.orange[0],C.orange[1],'','Taux bureau equipe',bPct+'%','Cible >= 40%',bPct,'#ff7043',bPct>=40?'Objectif OK':bPct+'% / 40%',bPct>=40?'#e8f5e9':'#fff3e0',bPct>=40?'#1b5e20':'#bf360c');
+  // Cible bureau dynamique selon le param min_jours_bureau_sem (defaut 2j/sem -> 40%)
+  var minJB = S.minJoursBureauSem || 2;
+  var ciblePct = Math.round(minJB / 5 * 100);
+  var bureauSubInfo = (k.totalBur||0) + ' / ' + (k.totalWorked||0) + 'j (' + bPct + '%)';
+  var bureauBadge = bPct>=ciblePct ? 'Objectif OK (' + minJB + 'j/sem)' : bPct + '% / ' + ciblePct + '%';
+  h+=idCard(C.orange[0],C.orange[1],'','Bureau / travailles',bureauSubInfo,'Cible &ge; ' + minJB + 'j/sem (' + ciblePct + '%)',bPct,'#ff7043',bureauBadge,bPct>=ciblePct?'#e8f5e9':'#fff3e0',bPct>=ciblePct?'#1b5e20':'#bf360c');
   h+=idCard(C.teal[0],C.teal[1],'','Jours travailles',k.totalWorked+'j','cumul equipe ce mois',null,null,'~'+Math.round(k.totalWorked/k.empCount)+'j / employe','#e0f2f1','#004d40');
   h+=idCard(C.amber[0],C.amber[1],'','Absences',k.absences+'j','conge + maladie ce mois',null,null,k.absences<=5?'Normal':'A surveiller',k.absences<=5?'#fff8e1':'#fce4ec',k.absences<=5?'#e65100':'#880e4f');
   h+=idCard(C.slate[0],C.slate[1],'','Equipe active',k.empCount+'','employes actifs',null,null,(d.todayPresence?d.todayPresence.length:0)+' presents auj.','#eceff1','#263238');
@@ -3882,11 +3896,18 @@ async function loadFiche() {
     if(contactBits.length) h += '<div style="color:var(--ink2);font-size:14px;margin-top:6px;display:flex;gap:14px;flex-wrap:wrap">' + contactBits.join('') + '</div>';
     h += '<div style="margin-top:6px"><span class="tag ' + (empData.statut==='Direction'?'tag-direction':'tag-employe') + '">' + esc(empData.statut||'') + '</span></div></div>';
     h += '<div style="margin-left:auto;display:flex;gap:16px;flex-wrap:wrap">';
-    h += '<div class="stat-box"><div class="sv">' + hR + 'h</div><div class="sl">Heures travaillées</div></div>';
+    h += '<div class="stat-box"><div class="sv">' + hR + 'h</div><div class="sl">H travaillées <small>/ ' + tgtAnnuel + 'h cible</small></div></div>';
     h += '<div class="stat-box"><div class="sv">' + pct + '%</div><div class="sl">Objectif annuel</div></div>';
-    h += '<div class="stat-box"><div class="sv">' + totalBur + ' / ' + totalWorked + '</div><div class="sl">Bureau / j. travaillés (' + bureauPct + '%)</div></div>';
+    // Bureau : ratio j bureau / j travailles + comparaison min impose
+    var empMinBureau = getEmpMinBureau(empData);
+    var cibleBureauAnnee = Math.round(empMinBureau * 52 * 10) / 10;  // jours bureau attendus sur l'annee
+    var bureauOk = totalBur >= cibleBureauAnnee;
+    h += '<div class="stat-box"><div class="sv">' + totalBur + ' / ' + totalWorked + 'j</div><div class="sl">Bureau / travaillés <small style="color:' + (bureauOk?'var(--gr)':'var(--am)') + '">(cible ' + cibleBureauAnnee + 'j)</small></div></div>';
     h += '<div class="stat-box"><div class="sv">' + hSupp + 'h</div><div class="sl">Heures supp.</div></div>';
-    h += '<div class="stat-box"><div class="sv">' + totalConge + 'j</div><div class="sl">Congés</div></div>';
+    // Conges : ratio utilises / banque
+    var banquePersoFiche = parseInt(empData.banque_perso); if(isNaN(banquePersoFiche)) banquePersoFiche = 3;
+    var congeColor = totalConge >= banquePersoFiche ? 'var(--rd)' : totalConge >= banquePersoFiche-1 ? 'var(--am)' : 'var(--ink2)';
+    h += '<div class="stat-box"><div class="sv">' + totalConge + ' / ' + banquePersoFiche + 'j</div><div class="sl" style="color:' + congeColor + '">Congés utilisés</div></div>';
     h += '</div>';
     // Banques d'absences (decompte)
     var banqueMaladie = parseInt(empData.banque_maladie); if(isNaN(banqueMaladie)) banqueMaladie = 10;
@@ -4742,7 +4763,8 @@ async function loadConfig() {
       'seuil_supp':'Seuil heures supp. (h/sem)',
       'taux_horaire_supp':'Taux horaire heures supp.',
       'paie_cycle_start':'Date du 1er cycle de paie',
-      'paie_cycle_jours':'Dur&eacute;e du cycle de paie (jours)'
+      'paie_cycle_jours':'Dur&eacute;e du cycle de paie (jours)',
+      'min_jours_bureau_sem':'Min jours bureau / semaine <small>(modifiable par employ&eacute; dans le R&eacute;pertoire)</small>'
     };
     params.forEach(function(p) {
       var label = LABELS[p.cle] || p.cle;
@@ -5499,6 +5521,7 @@ function openAddEmp() {
   document.getElementById('em-province').value = 'QC';
   document.getElementById('em-cp').value = '';
   document.getElementById('em-embauche').value = '';
+  document.getElementById('em-min-bureau').value = '';
   document.getElementById('em-urg-nom').value = '';
   document.getElementById('em-urg-tel').value = '';
   document.getElementById('em-urg-lien').value = '';
@@ -5537,6 +5560,7 @@ function openEditEmp(idx) {
   document.getElementById('em-province').value = e.province || 'QC';
   document.getElementById('em-cp').value = e.code_postal || '';
   document.getElementById('em-embauche').value = e.date_embauche || '';
+  document.getElementById('em-min-bureau').value = (e.min_jours_bureau !== null && e.min_jours_bureau !== undefined) ? e.min_jours_bureau : '';
   document.getElementById('em-urg-nom').value = e.urgence_nom || '';
   document.getElementById('em-urg-tel').value = e.urgence_tel || '';
   document.getElementById('em-urg-lien').value = e.urgence_lien || '';
@@ -6050,6 +6074,7 @@ async function saveEmp() {
     type_poste: document.getElementById('em-type-poste').value,
     poste: document.getElementById('em-poste').value.trim(),
     date_embauche: document.getElementById('em-embauche').value || null,
+    min_jours_bureau: (function(){ var v = document.getElementById('em-min-bureau').value; return v === '' ? null : parseFloat(v); })(),
     salaire: parseFloat(document.getElementById('em-salaire').value),
     type_salaire: document.getElementById('em-type-sal').value,
     charges_pct: parseFloat(document.getElementById('em-charges').value),
