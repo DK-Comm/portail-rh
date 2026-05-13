@@ -2681,6 +2681,8 @@ function renderDash(d){
   var hPct=Math.min(100,k.targetH>0?Math.round(k.totalH/k.targetH*100):0);
   var cPct=k.complianceTotal>0?Math.round(k.compliance/k.complianceTotal*100):0;
   var bPct=k.bureauRate;
+  // nbAlerts utilise plus bas dans le HTML de la card Alertes
+  var nbAlerts = d.alerts ? d.alerts.filter(function(a){return a.level==='err';}).length : 0;
   updateAlertBadge(d);
 
   // Couleurs par thème
