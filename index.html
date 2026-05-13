@@ -2647,9 +2647,7 @@ function renderDash(d){
   var hPct=Math.min(100,k.targetH>0?Math.round(k.totalH/k.targetH*100):0);
   var cPct=k.complianceTotal>0?Math.round(k.compliance/k.complianceTotal*100):0;
   var bPct=k.bureauRate;
-  var nbAlerts=d.alerts?d.alerts.filter(function(a){return a.level==='err';}).length:0;
-  var badge=document.getElementById('alert-badge-tab');
-  if(badge) badge.textContent=nbAlerts>0?'('+nbAlerts+') ':'\u26a0 ';
+  updateAlertBadge(d);
 
   // Couleurs par thème
   var C={
@@ -2872,8 +2870,17 @@ function renderTeam(d){
   }
 }
 
+// Met a jour le badge (N) dans le menu lateral. Appele depuis renderDash + renderAlerts.
+function updateAlertBadge(d){
+  var nbAlerts = (d && d.alerts) ? d.alerts.filter(function(a){return a.level==='err';}).length : 0;
+  var badge = document.getElementById('alert-badge-tab');
+  if(badge) badge.textContent = nbAlerts>0 ? '('+nbAlerts+') ' : '⚠ ';
+}
+
 function renderAlerts(d){
   if(!d){document.getElementById('alerts-content').innerHTML='<div class="spin">Pas de donnees</div>';return;}
+  // Sync le badge du menu (au cas ou Dashboard pas encore charge)
+  updateAlertBadge(d);
   var errs=(d.alerts||[]).filter(function(a){return a.level==='err';});
   var warns=(d.alerts||[]).filter(function(a){return a.level==='warn';});
   // Update sous-titre
