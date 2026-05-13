@@ -63,6 +63,15 @@ body.dir-mode .tabs{left:200px}
 .app-body{display:flex;flex:1;min-height:calc(100vh - 60px);padding-top:60px}
 .sidebar{width:200px;background:var(--card);border-right:1.5px solid var(--bd);padding:12px 0;display:flex;flex-direction:column;gap:2px;position:fixed;top:60px;left:0;bottom:0;overflow-y:auto;flex-shrink:0;z-index:50}
 body.dir-mode .main-area{margin-left:200px}
+/* Footer sidebar (mode direction) : pousse en bas via margin-top:auto */
+.sb-footer{margin-top:auto;padding:14px 16px 18px;border-top:1px solid var(--bd);font-size:10.5px;color:var(--ink3);line-height:1.5;text-align:center;background:var(--card)}
+.sb-footer strong{color:var(--ink2);font-weight:700;font-size:11px;letter-spacing:.3px}
+body.dark .sb-footer{border-top-color:var(--bd);color:var(--ink3)}
+/* Footer mode employe : fixe en bas a gauche, cache si dir-mode */
+.emp-footer{position:fixed;bottom:14px;left:18px;font-size:10.5px;color:var(--ink3);background:rgba(255,255,255,.7);backdrop-filter:blur(6px);padding:6px 12px;border-radius:8px;border:1px solid var(--bd);box-shadow:var(--sh);z-index:80;pointer-events:none;line-height:1.4}
+.emp-footer strong{color:var(--ink2);font-weight:700;letter-spacing:.3px}
+body.dark .emp-footer{background:rgba(26,29,46,.7);border-color:var(--bd);color:var(--ink3)}
+body.dir-mode .emp-footer{display:none}
 .sb-item{display:flex;align-items:center;gap:10px;padding:12px 20px;font-size:16px;font-weight:500;color:var(--ink2);cursor:pointer;border:none;background:none;text-align:left;border-left:3px solid transparent;transition:all .15s;width:100%}
 .sb-item:hover{background:var(--s2);color:var(--ink)}
 .sb-item.on{color:var(--ac);font-weight:700;border-left-color:var(--ac);background:var(--ac-s)}
@@ -747,6 +756,7 @@ var SUPA = {
   <div class="tb-logo">
     <img src="https://espacemuni.org/wp-content/uploads/2024/07/cropped-icone-MUNI-230x230.jpg" alt="">
     ESPACE <span>MUNI</span> &middot; RH
+    <span style="margin-left:8px;font-size:11px;font-weight:600;color:#fbbf24;background:rgba(251,191,36,.15);padding:2px 8px;border-radius:10px;letter-spacing:.4px;text-transform:uppercase">Beta</span>
   </div>
   <div class="tb-sp"></div>
   <!-- Sélecteur de période global -->
@@ -803,6 +813,15 @@ var SUPA = {
       <button class="sb-item" onclick="gotoDir('paie',this)"> Paie</button>
       <button class="sb-item" onclick="gotoDir('rep',this)"> R&eacute;pertoire</button>
       <button class="sb-item" onclick="gotoDir('config',this)"> Param&egrave;tres</button>
+      <!-- Footer sidebar (mode direction) -->
+      <div class="sb-footer">
+        Propuls&eacute; par<br>
+        <strong>DK-Communication</strong>
+      </div>
+    </div>
+    <!-- Footer pour mode employe (fixed bottom-left, cache en mode direction) -->
+    <div class="emp-footer" id="emp-footer">
+      Propuls&eacute; par <strong>DK-Communication</strong>
     </div>
     <div class="main-area">
       <div class="tabs" id="main-tabs">
