@@ -214,17 +214,24 @@ body.dir-mode .emp-footer{display:none}
 .dh-n{font-size:11px;opacity:.55;text-transform:uppercase;letter-spacing:.4px}
 .dh-d{font-size:16px;font-weight:800;margin-top:2px}
 .dh-d.tod{background:#60a5fa;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;margin:2px auto 0;font-size:13px}
-.pmtbl tr:hover td.dc{filter:brightness(.95)}
 .pmtbl tr.me td.nc2{background:#e0f0ff}
-/* Crosshair (effet 'L') : surbrillance de la ligne et de la colonne au survol */
-.pmtbl tr.hl-row td.nc2{background:#fff8e1;border-left:3px solid #f59e0b}
-.pmtbl tr.hl-row td.dc{background:#fffbeb !important}
-.pmtbl td.hl-col{background:#fffbeb !important;box-shadow:inset 0 0 0 1.5px rgba(245,158,11,.35)}
-.pmtbl td.hl-col.hl-current{background:#fef3c7 !important;box-shadow:inset 0 0 0 2px #f59e0b}
-body.dark .pmtbl tr.hl-row td.nc2{background:rgba(245,158,11,.18);border-left:3px solid #f59e0b}
-body.dark .pmtbl tr.hl-row td.dc{background:rgba(245,158,11,.08) !important}
-body.dark .pmtbl td.hl-col{background:rgba(245,158,11,.08) !important;box-shadow:inset 0 0 0 1.5px rgba(245,158,11,.4)}
-body.dark .pmtbl td.hl-col.hl-current{background:rgba(245,158,11,.22) !important;box-shadow:inset 0 0 0 2px #f59e0b}
+/* Crosshair 'spotlight' : on dim le reste plutot que de colorer la croix
+   (les cellules colorees naturellement restent visibles dans la croix) */
+.pmtbl.crosshair-on td{transition:opacity .12s,filter .12s}
+.pmtbl.crosshair-on td{opacity:.22;filter:saturate(.5)}
+/* La colonne entiere survolee garde son opacite */
+.pmtbl.crosshair-on td.hl-col{opacity:1;filter:none}
+/* La ligne entiere survolee garde son opacite (override colonne) */
+.pmtbl.crosshair-on tr.hl-row td{opacity:1;filter:none}
+/* Marquage discret de la cellule pivot (intersection) */
+.pmtbl.crosshair-on td.hl-current{box-shadow:inset 0 0 0 2px #f59e0b;border-radius:2px}
+/* Marquage discret de la cellule nom de la ligne survolee */
+.pmtbl.crosshair-on tr.hl-row td.nc2{border-left:3px solid #f59e0b}
+/* Marquage discret de l'entete de la colonne survolee */
+.pmtbl.crosshair-on thead th{transition:opacity .12s,filter .12s}
+.pmtbl.crosshair-on thead th{opacity:.45}
+.pmtbl.crosshair-on thead th.hl-col-head{opacity:1;box-shadow:inset 0 -3px 0 #f59e0b}
+.pmtbl.crosshair-on thead th.nh{opacity:1}
 .pmtbl tr.me .enm{color:var(--ac);font-weight:800}
 .nc2{position:sticky;left:0;background:var(--card);z-index:5;border-right:1.5px solid var(--bd);border-bottom:1px solid var(--bd);padding:8px 14px;display:flex;align-items:center;gap:10px;height:52px;box-sizing:border-box}
 .enm{font-size:15px;font-weight:600}
@@ -2295,37 +2302,48 @@ function loadPlanData(){
 }
 function renderPlan(){updPlanLbl();var a=document.getElementById('plan-area');if(S.planV==='month')a.innerHTML=bldPMo();else if(S.planV==='week')a.innerHTML=bldPWk();else bldPDy(a);setupCrosshairPlan();}
 
-// Effet crosshair en L sur les vues mois (table) et semaine (grid). Au survol d'une
-// cellule, surligne la ligne entiere (employe) ET la colonne entiere (jour).
+// Effet crosshair 'spotlight' au survol sur la vue MOIS (table.pmtbl).
+// On dim toutes les cellules sauf celles de la ligne + colonne survolees.
+// Met aussi en evidence l'entete de la colonne et la cellule nom de la ligne.
 function setupCrosshairPlan(){
-  // Vue mois : table.pmtbl
   var tbl = document.querySelector('#plan-area .pmtbl');
-  if(tbl){
-    tbl.addEventListener('mouseover', function(e){
-      var td = e.target.closest('td');
-      if(!td || !td.parentElement || td.parentElement.tagName !== 'TR') return;
-      var row = td.parentElement;
-      if(!row.parentElement || row.parentElement.tagName !== 'TBODY') return;
-      var idx = Array.prototype.indexOf.call(row.children, td);
-      // Nettoyer l'ancien highlight
-      clearCrosshair(tbl);
-      // Highlight ligne
-      row.classList.add('hl-row');
-      // Highlight colonne (sauf colonnes nom et total)
-      Array.prototype.forEach.call(tbl.querySelectorAll('tbody tr'), function(tr){
-        var cell = tr.children[idx];
-        if(cell && !cell.classList.contains('nc2')){
-          cell.classList.add('hl-col');
-          if(tr === row) cell.classList.add('hl-current');
-        }
-      });
+  if(!tbl) return;
+  tbl.addEventListener('mouseover', function(e){
+    var td = e.target.closest('td');
+    if(!td || !td.parentElement || td.parentElement.tagName !== 'TR') return;
+    var row = td.parentElement;
+    if(!row.parentElement || row.parentElement.tagName !== 'TBODY') return;
+    var idx = Array.prototype.indexOf.call(row.children, td);
+    // Eviter de re-rendre si meme cellule (perf)
+    if(tbl._lastHlCol === idx && tbl._lastHlRow === row) return;
+    tbl._lastHlCol = idx; tbl._lastHlRow = row;
+    clearCrosshair(tbl);
+    // Highlight ligne
+    row.classList.add('hl-row');
+    // Highlight colonne (sauf nom)
+    Array.prototype.forEach.call(tbl.querySelectorAll('tbody tr'), function(tr){
+      var cell = tr.children[idx];
+      if(cell && !cell.classList.contains('nc2')){
+        cell.classList.add('hl-col');
+        if(tr === row) cell.classList.add('hl-current');
+      }
     });
-    tbl.addEventListener('mouseleave', function(){ clearCrosshair(tbl); });
-  }
+    // Highlight entete colonne (thead)
+    var thead = tbl.querySelector('thead tr');
+    if(thead && thead.children[idx]) thead.children[idx].classList.add('hl-col-head');
+    // Activer le mode spotlight global
+    tbl.classList.add('crosshair-on');
+  });
+  tbl.addEventListener('mouseleave', function(){
+    clearCrosshair(tbl);
+    tbl.classList.remove('crosshair-on');
+    tbl._lastHlCol = null; tbl._lastHlRow = null;
+  });
 }
 function clearCrosshair(tbl){
   Array.prototype.forEach.call(tbl.querySelectorAll('.hl-row'), function(el){ el.classList.remove('hl-row'); });
   Array.prototype.forEach.call(tbl.querySelectorAll('.hl-col'), function(el){ el.classList.remove('hl-col'); el.classList.remove('hl-current'); });
+  Array.prototype.forEach.call(tbl.querySelectorAll('.hl-col-head'), function(el){ el.classList.remove('hl-col-head'); });
 }
 
 function calcH(deb,fin){if(!deb||!fin)return 0;var dp=deb.split(':'),fp=fin.split(':');var mn=(parseInt(fp[0])*60+parseInt(fp[1]))-(parseInt(dp[0])*60+parseInt(dp[1]));return mn>0?Math.round(mn/6)/10:0;}
