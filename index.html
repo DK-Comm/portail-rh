@@ -1143,20 +1143,30 @@ var SUPA = {
             </div>
           </details>
 
-          <!-- Templates : 2 modes (groupe / individuel) -->
-          <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px">
-            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:10px"> Modèle groupé <small style="color:var(--ink3);font-weight:400">(BCC — message commun à tous)</small></div>
-            <input type="text" id="alerts-cfg-subject-group" placeholder="Rappel : pointage à compléter — cycle se terminant le {{date_fin}}" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card);color:var(--ink);margin-bottom:8px">
-            <textarea id="alerts-cfg-body-group" rows="6" style="width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
-            <div style="font-size:12.5px;color:var(--ink3);margin-top:5px"><strong>Seule variable utilisable ici :</strong> <code>{{date_fin}}</code> (les autres ne marchent pas car le mail est groupé)</div>
-          </div>
+          <!-- Templates : 2 modes (groupe / individuel) - depliables comme l'encadre variables -->
+          <details style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden">
+            <summary style="cursor:pointer;padding:13px 16px;font-size:14px;font-weight:700;color:var(--ink);list-style:none;display:flex;align-items:center;justify-content:space-between">
+              <span>&#128101; Mod&egrave;le group&eacute; <small style="color:var(--ink3);font-weight:400">(BCC &mdash; message commun &agrave; tous)</small></span>
+              <span style="font-size:13px;color:var(--ink3);font-weight:500">&#9660; D&eacute;plier</span>
+            </summary>
+            <div style="padding:0 16px 14px">
+              <input type="text" id="alerts-cfg-subject-group" placeholder="Rappel : pointage à compléter — cycle se terminant le {{date_fin}}" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card);color:var(--ink);margin-bottom:8px">
+              <textarea id="alerts-cfg-body-group" rows="6" style="width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
+              <div style="font-size:12.5px;color:var(--ink3);margin-top:5px"><strong>Seule variable utilisable ici :</strong> <code>{{date_fin}}</code> (les autres ne marchent pas car le mail est group&eacute;)</div>
+            </div>
+          </details>
 
-          <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px">
-            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:10px"> Modèle individuel <small style="color:var(--ink3);font-weight:400">(personnalisé par employé)</small></div>
-            <input type="text" id="alerts-cfg-subject" placeholder="Rappel : votre pointage du cycle en cours" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card);color:var(--ink);margin-bottom:8px">
-            <textarea id="alerts-cfg-body" rows="8" style="width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
-            <div style="font-size:12.5px;color:var(--ink3);margin-top:5px"><strong>Variables utilisables :</strong> <code>{{prenom}}</code> <code>{{nom}}</code> <code>{{date_fin}}</code> <code>{{jours_restants}}</code> <code>{{h_manquantes}}</code> <code>{{jours_sans_pointage}}</code></div>
-          </div>
+          <details style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:0;margin-bottom:14px;overflow:hidden">
+            <summary style="cursor:pointer;padding:13px 16px;font-size:14px;font-weight:700;color:var(--ink);list-style:none;display:flex;align-items:center;justify-content:space-between">
+              <span>&#128100; Mod&egrave;le individuel <small style="color:var(--ink3);font-weight:400">(personnalis&eacute; par employ&eacute;)</small></span>
+              <span style="font-size:13px;color:var(--ink3);font-weight:500">&#9660; D&eacute;plier</span>
+            </summary>
+            <div style="padding:0 16px 14px">
+              <input type="text" id="alerts-cfg-subject" placeholder="Rappel : votre pointage du cycle en cours" style="width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card);color:var(--ink);margin-bottom:8px">
+              <textarea id="alerts-cfg-body" rows="8" style="width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:15px;background:var(--card);color:var(--ink);font-family:inherit;resize:vertical"></textarea>
+              <div style="font-size:12.5px;color:var(--ink3);margin-top:5px"><strong>Variables utilisables :</strong> <code>{{prenom}}</code> <code>{{nom}}</code> <code>{{date_fin}}</code> <code>{{jours_restants}}</code> <code>{{h_manquantes}}</code> <code>{{jours_sans_pointage}}</code></div>
+            </div>
+          </details>
 
           <!-- Actions -->
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
