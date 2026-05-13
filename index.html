@@ -216,8 +216,17 @@ body.dir-mode .emp-footer{display:none}
 .dh-d.tod{background:#60a5fa;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;margin:2px auto 0;font-size:13px}
 .pmtbl tr:hover td.dc{filter:brightness(.95)}
 .pmtbl tr.me td.nc2{background:#e0f0ff}
+/* Crosshair (effet 'L') : surbrillance de la ligne et de la colonne au survol */
+.pmtbl tr.hl-row td.nc2{background:#fff8e1;border-left:3px solid #f59e0b}
+.pmtbl tr.hl-row td.dc{background:#fffbeb !important}
+.pmtbl td.hl-col{background:#fffbeb !important;box-shadow:inset 0 0 0 1.5px rgba(245,158,11,.35)}
+.pmtbl td.hl-col.hl-current{background:#fef3c7 !important;box-shadow:inset 0 0 0 2px #f59e0b}
+body.dark .pmtbl tr.hl-row td.nc2{background:rgba(245,158,11,.18);border-left:3px solid #f59e0b}
+body.dark .pmtbl tr.hl-row td.dc{background:rgba(245,158,11,.08) !important}
+body.dark .pmtbl td.hl-col{background:rgba(245,158,11,.08) !important;box-shadow:inset 0 0 0 1.5px rgba(245,158,11,.4)}
+body.dark .pmtbl td.hl-col.hl-current{background:rgba(245,158,11,.22) !important;box-shadow:inset 0 0 0 2px #f59e0b}
 .pmtbl tr.me .enm{color:var(--ac);font-weight:800}
-.nc2{position:sticky;left:0;background:var(--card);z-index:5;border-right:1.5px solid var(--bd);border-bottom:1px solid var(--bd);padding:8px 14px;display:flex;align-items:center;gap:10px}
+.nc2{position:sticky;left:0;background:var(--card);z-index:5;border-right:1.5px solid var(--bd);border-bottom:1px solid var(--bd);padding:8px 14px;display:flex;align-items:center;gap:10px;height:52px;box-sizing:border-box}
 .enm{font-size:15px;font-weight:600}
 .pmtbl td.dc{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:0;text-align:center;height:38px;min-width:42px}
 .dc-in{display:flex;align-items:center;justify-content:center;height:100%;font-size:13px;font-weight:800}
@@ -2284,7 +2293,40 @@ function loadPlanData(){
     .withFailureHandler(function(e){document.getElementById('plan-area').innerHTML='<p style="color:var(--rd);padding:20px">'+e.message+'</p>';})
     .api_getTeamPlanning(y,m);
 }
-function renderPlan(){updPlanLbl();var a=document.getElementById('plan-area');if(S.planV==='month')a.innerHTML=bldPMo();else if(S.planV==='week')a.innerHTML=bldPWk();else bldPDy(a);}
+function renderPlan(){updPlanLbl();var a=document.getElementById('plan-area');if(S.planV==='month')a.innerHTML=bldPMo();else if(S.planV==='week')a.innerHTML=bldPWk();else bldPDy(a);setupCrosshairPlan();}
+
+// Effet crosshair en L sur les vues mois (table) et semaine (grid). Au survol d'une
+// cellule, surligne la ligne entiere (employe) ET la colonne entiere (jour).
+function setupCrosshairPlan(){
+  // Vue mois : table.pmtbl
+  var tbl = document.querySelector('#plan-area .pmtbl');
+  if(tbl){
+    tbl.addEventListener('mouseover', function(e){
+      var td = e.target.closest('td');
+      if(!td || !td.parentElement || td.parentElement.tagName !== 'TR') return;
+      var row = td.parentElement;
+      if(!row.parentElement || row.parentElement.tagName !== 'TBODY') return;
+      var idx = Array.prototype.indexOf.call(row.children, td);
+      // Nettoyer l'ancien highlight
+      clearCrosshair(tbl);
+      // Highlight ligne
+      row.classList.add('hl-row');
+      // Highlight colonne (sauf colonnes nom et total)
+      Array.prototype.forEach.call(tbl.querySelectorAll('tbody tr'), function(tr){
+        var cell = tr.children[idx];
+        if(cell && !cell.classList.contains('nc2')){
+          cell.classList.add('hl-col');
+          if(tr === row) cell.classList.add('hl-current');
+        }
+      });
+    });
+    tbl.addEventListener('mouseleave', function(){ clearCrosshair(tbl); });
+  }
+}
+function clearCrosshair(tbl){
+  Array.prototype.forEach.call(tbl.querySelectorAll('.hl-row'), function(el){ el.classList.remove('hl-row'); });
+  Array.prototype.forEach.call(tbl.querySelectorAll('.hl-col'), function(el){ el.classList.remove('hl-col'); el.classList.remove('hl-current'); });
+}
 
 function calcH(deb,fin){if(!deb||!fin)return 0;var dp=deb.split(':'),fp=fin.split(':');var mn=(parseInt(fp[0])*60+parseInt(fp[1]))-(parseInt(dp[0])*60+parseInt(dp[1]));return mn>0?Math.round(mn/6)/10:0;}
 function fmtH(h){return h>0?h+'h':'';}
